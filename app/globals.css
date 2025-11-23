@@ -1409,62 +1409,95 @@ td {
   display: block;
 }
 
-/* === AQUA NAVBAR (DARK THEME) === */
+/* -----------------------------------------------------
+   AQUA GLASS-BLUR NEON NAVBAR (MAXIMUM GLOW)
+----------------------------------------------------- */
+
 .aqua-nav {
-  position: fixed;
+  width: 100%;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 999;
-  backdrop-filter: blur(14px);
-  background: rgba(2, 12, 22, 0.92);
-  border-bottom: 1px solid rgba(70, 232, 255, 0.35);
-  box-shadow: 0 0 18px rgba(50, 220, 255, 0.18);
+
+  background: rgba(0, 15, 25, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border-bottom: 1px solid rgba(45, 224, 255, 0.45);
+  box-shadow: 
+    0 0 20px rgba(45, 224, 255, 0.25),
+    0 0 40px rgba(0, 200, 255, 0.15);
 }
 
 .aqua-nav-inner {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 12px 20px;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-/* 🌊 Text-based glowing AQUA logo */
+/* TEXT LOGO — BIG GLOW */
 .aqua-nav-logo-text {
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 800;
-  letter-spacing: 1px;
-  color: #7cf6ff;
+  letter-spacing: 0.1em;
   text-decoration: none;
-  text-shadow: 
-    0 0 8px rgba(124, 246, 255, 0.8),
-    0 0 18px rgba(80, 244, 255, 0.6);
-  transition: 0.2s ease;
+
+  background: linear-gradient(90deg, #2de0ff, #86f7ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  text-shadow:
+    0 0 10px rgba(45, 224, 255, 0.9),
+    0 0 22px rgba(45, 224, 255, 0.6),
+    0 0 40px rgba(45, 224, 255, 0.4);
 }
 
-.aqua-nav-logo-text:hover {
-  color: #ffffff;
-  text-shadow: 
-    0 0 12px rgba(124, 246, 255, 1),
-    0 0 26px rgba(80, 244, 255, 0.9);
-}
-
+/* LINKS */
 .aqua-nav-links {
   display: flex;
-  gap: 20px;
+  gap: 22px;
 }
 
+/* DEFAULT GLOW */
 .aqua-link {
-  color: #a8ecff;
-  font-size: 14px;
-  font-weight: 500;
+  color: #a8f4ff;
+  font-size: 15px;
+  font-weight: 600;
   text-decoration: none;
-  transition: 0.2s ease;
+
+  text-shadow:
+    0 0 6px rgba(45, 224, 255, 0.6),
+    0 0 12px rgba(45, 224, 255, 0.35);
+
+  transition: 
+    color 0.15s ease,
+    text-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
+/* HOVER GLOW PULSE */
 .aqua-link:hover {
-  color: #ffffff;
-  text-shadow: 0 0 8px rgba(124, 246, 255, 0.9);
+  color: white;
+  transform: translateY(-1px);
+  text-shadow:
+    0 0 10px rgba(45, 224, 255, 1),
+    0 0 20px rgba(45, 224, 255, 0.9),
+    0 0 35px rgba(45, 224, 255, 0.7);
+}
+
+/* MOBILE FIXES */
+@media (max-width: 600px) {
+  .aqua-nav-inner {
+    padding: 10px 14px;
+  }
+  .aqua-nav-links {
+    gap: 12px;
+  }
+  .aqua-link {
+    font-size: 14px;
+  }
 }

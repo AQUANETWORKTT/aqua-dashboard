@@ -12,7 +12,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // MUST be awaited in Next.js 15+
+  // MUST be awaited on Next 15+
   const cookieStore = await cookies();
   const aquaCookie = cookieStore.get("aqua_user");
   const loggedInUser = aquaCookie?.value ?? null;
@@ -23,38 +23,36 @@ export default async function RootLayout({
     <html lang="en">
       <body className="app-body">
 
-        {/* NAVBAR (only when logged in) */}
+        {/* NAVBAR — small, clean, mobile friendly */}
         {showNavbar && (
-          <nav className="aqua-nav">
-            <div className="aqua-nav-inner">
+          <nav
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "24px",
+              padding: "14px 0",
+              background: "rgba(0, 0, 0, 0.45)",
+              backdropFilter: "blur(10px)",
+              position: "sticky",
+              top: 0,
+              zIndex: 999,
+            }}
+          >
+            <Link href="/leaderboard" className="aqua-link">
+              Leaderboard
+            </Link>
 
-              {/* Glowing Text Logo */}
-              <Link href="/" className="aqua-nav-logo-text">
-                AQUA
-              </Link>
+            <Link href="/" className="aqua-link">
+              Home
+            </Link>
 
-              {/* Right side links */}
-              <div className="aqua-nav-links">
-                <Link href="/leaderboard" className="aqua-link">
-                  Leaderboard
-                </Link>
-
-                <Link href="/" className="aqua-link">
-                  Home
-                </Link>
-
-                <Link href={`/dashboard/${loggedInUser}`} className="aqua-link">
-                  Dashboard
-                </Link>
-              </div>
-
-            </div>
+            <Link href={`/dashboard/${loggedInUser}`} className="aqua-link">
+              Dashboard
+            </Link>
           </nav>
         )}
 
-        {/* Page content */}
         {children}
-
       </body>
     </html>
   );
