@@ -4,31 +4,22 @@ import fs from "fs";
 import path from "path";
 
 const DATA_DIR = path.join(process.cwd(), "data");
-
-// IMPORTANT — Calendar reads from /history/*
-// so we save files in /public/history
 const HISTORY_DIR = path.join(process.cwd(), "public", "history");
-
 const CREATORS_TS = path.join(DATA_DIR, "creators.ts");
 
-// Escape usernames for TS writing
 function esc(str: string) {
   return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-// DAILY (diamonds + hours)
 function parseDailyFile(buffer: Buffer) {
   const wb = XLSX.read(buffer, { type: "buffer" });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
 
   const header = rows[0];
-  if (!header) throw new Error("Daily file missing header row.");
-
   const userCol = header.findIndex((h) =>
     String(h || "").toLowerCase().includes("username")
   );
-  if (userCol === -1) throw new Error("Daily file missing username column.");
 
   const out: any = {};
   for (let i = 1; i < rows.length; i++) {
@@ -43,23 +34,18 @@ function parseDailyFile(buffer: Buffer) {
       hours: Number(r[8]) || 0,
     };
   }
-
   return out;
 }
 
-// LIFETIME (diamonds + hours)
 function parseLifetimeFile(buffer: Buffer) {
   const wb = XLSX.read(buffer, { type: "buffer" });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
 
   const header = rows[0];
-  if (!header) throw new Error("Lifetime file missing header row.");
-
   const userCol = header.findIndex((h) =>
     String(h || "").toLowerCase().includes("username")
   );
-  if (userCol === -1) throw new Error("Lifetime file missing username column.");
 
   const out: any = {};
   for (let i = 1; i < rows.length; i++) {
@@ -74,13 +60,11 @@ function parseLifetimeFile(buffer: Buffer) {
       lifetimeHours: Number(r[8]) || 0,
     };
   }
-
   return out;
 }
 
 export async function POST(req: Request) {
   try {
-    // Password protection
     const password = req.headers.get("x-admin-password");
     if (password !== process.env.ADMIN_PASSWORD) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -105,7 +89,7 @@ export async function POST(req: Request) {
 
     const merged = new Map();
 
-    // Merge daily
+    // merge daily
     for (const u of Object.keys(dailyData)) {
       merged.set(u, {
         daily: dailyData[u].daily,
@@ -115,7 +99,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // Merge lifetime
+    // merge lifetime
     for (const u of Object.keys(lifetimeData)) {
       const base = merged.get(u) || {
         daily: 0,
@@ -128,42 +112,43 @@ export async function POST(req: Request) {
       merged.set(u, base);
     }
 
-    // Ensure directories exist
+    // ensure dirs
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
     if (!fs.existsSync(HISTORY_DIR)) fs.mkdirSync(HISTORY_DIR);
 
-    // Write creators.ts
+    // write creators.ts
     const creatorsContent =
       `// AUTO-GENERATED\nexport const creators = [\n` +
       Array.from(merged.entries())
-        .map(([u, d]) =>
-          `  { username: "${esc(u)}", daily: ${d.daily}, lifetime: ${d.lifetime} }`
+        .map(
+          ([u, d]) =>
+            `  { username: "${esc(u)}", daily: ${d.daily}, lifetime: ${d.lifetime} }`
         )
         .join(",\n") +
       `\n];`;
 
     fs.writeFileSync(CREATORS_TS, creatorsContent, "utf8");
 
-    // Write/update history per creator
+    // write/update history
     for (const [username, d] of merged.entries()) {
       const safe = esc(username).replace(/[<>:"/\\|?*]/g, "_");
       const file = path.join(HISTORY_DIR, `${safe}.json`);
 
-      let history = { username, entries: [] };
+      let history: any = { username, entries: [] };
       if (fs.existsSync(file)) {
         try {
           const raw = fs.readFileSync(file, "utf8");
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed.entries)) history = parsed;
-        } catch {
-          // reset on error
-        }
+          if (parsed && Array.isArray(parsed.entries)) {
+            history = parsed;
+          }
+        } catch {}
       }
 
-      // Remove existing entry for same date
-      history.entries = history.entries.filter((e) => e.date !== dateISO);
+      // REMOVE ANY existing entry for same date
+      history.entries = history.entries.filter((e: any) => e.date !== dateISO);
 
-      // Add new entry
+      // ADD new one
       history.entries.push({
         date: dateISO,
         daily: d.daily,

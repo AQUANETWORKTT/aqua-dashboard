@@ -1,34 +1,21 @@
-// app/api/history/[username]/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-const HISTORY_DIR = path.join(process.cwd(), "data", "history");
-
-export async function GET(
-  req: Request,
-  { params }: { params: { username: string } }
-) {
+export async function GET(req: NextRequest, context: { params: Promise<{ username: string }> }) {
   try {
-    const rawUsername = params.username;
-    const safeName = rawUsername.replace(/[<>:"/\\|?*]+/g, "_");
-    const filePath = path.join(HISTORY_DIR, `${safeName}.json`);
+    const { username } = await context.params;
+
+    const filePath = path.join(process.cwd(), "public", "history", `${username}.json`);
 
     if (!fs.existsSync(filePath)) {
-      return NextResponse.json({
-        username: rawUsername,
-        entries: [],
-      });
+      return NextResponse.json({ error: "User history not found" }, { status: 404 });
     }
 
-    const raw = fs.readFileSync(filePath, "utf8");
-    const json = JSON.parse(raw);
-    return NextResponse.json(json);
-  } catch (err: any) {
-    console.error("History API error:", err);
-    return NextResponse.json(
-      { error: err.message || "Failed to load history" },
-      { status: 500 }
-    );
+    const data = fs.readFileSync(filePath, "utf8");
+    return NextResponse.json(JSON.parse(data));
+
+  } catch (err) {
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
