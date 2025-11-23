@@ -1,0 +1,33 @@
+{
+  "username": "saskiahuxtable5",
+  "entries": [
+    {
+      "date": "2025-11-20",
+      "daily": 22527,
+      "hours": 4.192222222222222,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 22527,
+      "hours": 4.192222222222222,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 22527,
+      "hours": 4.192222222222222,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    }
+  ]
+}

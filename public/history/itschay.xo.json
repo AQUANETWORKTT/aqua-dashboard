@@ -1,0 +1,33 @@
+{
+  "username": "itschay.xo",
+  "entries": [
+    {
+      "date": "2025-11-20",
+      "daily": 147,
+      "hours": 1.1627777777777777,
+      "lifetime": 147,
+      "lifetimeHours": 1.1627777777777777
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 147,
+      "hours": 1.1627777777777777,
+      "lifetime": 147,
+      "lifetimeHours": 1.1627777777777777
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 147,
+      "hours": 1.1627777777777777,
+      "lifetime": 147,
+      "lifetimeHours": 1.1627777777777777
+    }
+  ]
+}

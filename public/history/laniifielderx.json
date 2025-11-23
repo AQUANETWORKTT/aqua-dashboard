@@ -1,0 +1,33 @@
+{
+  "username": "laniifielderx",
+  "entries": [
+    {
+      "date": "2025-11-20",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 71,
+      "lifetimeHours": 0.4191666666666667
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 71,
+      "lifetimeHours": 0.4191666666666667
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 71,
+      "lifetimeHours": 0.4191666666666667
+    }
+  ]
+}

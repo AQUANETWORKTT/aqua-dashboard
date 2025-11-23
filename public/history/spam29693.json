@@ -1,0 +1,33 @@
+{
+  "username": "spam29693",
+  "entries": [
+    {
+      "date": "2025-11-20",
+      "daily": 11,
+      "hours": 1.285,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 11,
+      "hours": 1.285,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 11,
+      "hours": 1.285,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "username": "lewmxy",
+  "entries": [
+    {
+      "date": "2025-11-20",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 4570,
+      "lifetimeHours": 2.6266666666666665
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 4570,
+      "lifetimeHours": 2.6266666666666665
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 4570,
+      "lifetimeHours": 2.6266666666666665
+    }
+  ]
+}

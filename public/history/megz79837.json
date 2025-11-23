@@ -1,0 +1,33 @@
+{
+  "username": "megz79837",
+  "entries": [
+    {
+      "date": "2025-11-20",
+      "daily": 105,
+      "hours": 0.9530555555555555,
+      "lifetime": 3460,
+      "lifetimeHours": 5.476944444444444
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 105,
+      "hours": 0.9530555555555555,
+      "lifetime": 3460,
+      "lifetimeHours": 5.476944444444444
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 105,
+      "hours": 0.9530555555555555,
+      "lifetime": 3460,
+      "lifetimeHours": 5.476944444444444
+    }
+  ]
+}

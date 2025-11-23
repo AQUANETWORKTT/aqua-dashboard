@@ -1,0 +1,33 @@
+{
+  "username": "hmt190306",
+  "entries": [
+    {
+      "date": "2025-11-20",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 4065,
+      "lifetimeHours": 8.435277777777777
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 4065,
+      "lifetimeHours": 8.435277777777777
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 4065,
+      "lifetimeHours": 8.435277777777777
+    }
+  ]
+}

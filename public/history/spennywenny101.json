@@ -1,0 +1,33 @@
+{
+  "username": "spennywenny101",
+  "entries": [
+    {
+      "date": "2025-11-20",
+      "daily": 34,
+      "hours": 1.7269444444444446,
+      "lifetime": 34,
+      "lifetimeHours": 1.7269444444444446
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 34,
+      "hours": 1.7269444444444446,
+      "lifetime": 34,
+      "lifetimeHours": 1.7269444444444446
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 34,
+      "hours": 1.7269444444444446,
+      "lifetime": 34,
+      "lifetimeHours": 1.7269444444444446
+    }
+  ]
+}
