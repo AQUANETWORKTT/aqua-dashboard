@@ -2,25 +2,137 @@
   "username": "xoxorubexoxo",
   "entries": [
     {
-      "date": "2025-11-20",
+      "date": "2025-11-03",
       "daily": 0,
       "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-04",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-05",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-07",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-08",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-12",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-13",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-14",
+      "daily": 23,
+      "hours": 0.9319444444444444,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-15",
+      "daily": 183,
+      "hours": 2.21,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-16",
+      "daily": 144,
+      "hours": 1.8311111111111111,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-17",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-18",
+      "daily": 289,
+      "hours": 1.3399999999999999,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-19",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2788,
+      "lifetimeHours": 9.953055555555554
+    },
+    {
+      "date": "2025-11-20",
+      "daily": 1785,
+      "hours": 1.1730555555555557,
       "lifetime": 2788,
       "lifetimeHours": 9.953055555555554
     },
     {
       "date": "2025-11-21",
-      "daily": 0,
-      "hours": 0,
+      "daily": 364,
+      "hours": 2.4669444444444446,
       "lifetime": 2788,
       "lifetimeHours": 9.953055555555554
-    },
-    {
-      "date": "2025-11-23",
-      "daily": 0,
-      "hours": 0,
-      "lifetime": 0,
-      "lifetimeHours": 0
     },
     {
       "date": "2025-11-22",
@@ -30,10 +142,10 @@
       "lifetimeHours": 9.953055555555554
     },
     {
-      "date": "2025-11-03",
-      "daily": 0,
+      "date": "2025-11-23",
+      "daily": 4,
       "hours": 0,
-      "lifetime": 2788,
+      "lifetime": 2792,
       "lifetimeHours": 9.953055555555554
     }
   ]

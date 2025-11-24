@@ -2,25 +2,137 @@
   "username": "spam29693",
   "entries": [
     {
+      "date": "2025-11-03",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-04",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-05",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-07",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-08",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-12",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-13",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-14",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-15",
+      "daily": 13474,
+      "hours": 1.4444444444444444,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-16",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-17",
+      "daily": 1407,
+      "hours": 2.4766666666666666,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-18",
+      "daily": 6672,
+      "hours": 2.218888888888889,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-19",
+      "daily": 455,
+      "hours": 1.4897222222222224,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
       "date": "2025-11-20",
-      "daily": 11,
-      "hours": 1.285,
+      "daily": 0,
+      "hours": 0,
       "lifetime": 22022,
       "lifetimeHours": 9.055000000000001
     },
     {
       "date": "2025-11-21",
-      "daily": 11,
-      "hours": 1.285,
+      "daily": 3,
+      "hours": 0.14027777777777778,
       "lifetime": 22022,
       "lifetimeHours": 9.055000000000001
-    },
-    {
-      "date": "2025-11-23",
-      "daily": 0,
-      "hours": 0,
-      "lifetime": 0,
-      "lifetimeHours": 0
     },
     {
       "date": "2025-11-22",
@@ -30,11 +142,11 @@
       "lifetimeHours": 9.055000000000001
     },
     {
-      "date": "2025-11-03",
-      "daily": 0,
-      "hours": 0,
-      "lifetime": 22022,
-      "lifetimeHours": 9.055000000000001
+      "date": "2025-11-23",
+      "daily": 2698,
+      "hours": 1.6658333333333333,
+      "lifetime": 24720,
+      "lifetimeHours": 10.720833333333333
     }
   ]
 }

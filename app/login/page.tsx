@@ -41,9 +41,9 @@ export default function LoginPage() {
         />
 
         <h1 className="login-title">Creator Login</h1>
-        <p className="login-subtitle">Access your diamonds, streaks & stats.</p>
+        <p className="login-subtext">Access your diamonds, streaks & stats.</p>
 
-        <form onSubmit={handleLogin} className="login-form">
+        <form onSubmit={handleLogin}>
 
           <input
             type="text"

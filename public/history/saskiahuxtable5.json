@@ -2,25 +2,137 @@
   "username": "saskiahuxtable5",
   "entries": [
     {
+      "date": "2025-11-03",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-04",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-05",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-07",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-08",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-12",
+      "daily": 0,
+      "hours": 0.10166666666666667,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-13",
+      "daily": 55,
+      "hours": 0.8805555555555555,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-14",
+      "daily": 9895,
+      "hours": 3.1441666666666666,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-15",
+      "daily": 911,
+      "hours": 2.4827777777777778,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-16",
+      "daily": 7514,
+      "hours": 6.401666666666667,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-17",
+      "daily": 6363,
+      "hours": 2.9558333333333335,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-18",
+      "daily": 27202,
+      "hours": 6.315277777777777,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-19",
+      "daily": 11893,
+      "hours": 8.487499999999999,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
       "date": "2025-11-20",
-      "daily": 22527,
-      "hours": 4.192222222222222,
+      "daily": 1674,
+      "hours": 4.646944444444444,
       "lifetime": 106320,
       "lifetimeHours": 45.19138888888889
     },
     {
       "date": "2025-11-21",
-      "daily": 22527,
-      "hours": 4.192222222222222,
+      "daily": 18286,
+      "hours": 5.582777777777777,
       "lifetime": 106320,
       "lifetimeHours": 45.19138888888889
-    },
-    {
-      "date": "2025-11-23",
-      "daily": 0,
-      "hours": 0,
-      "lifetime": 0,
-      "lifetimeHours": 0
     },
     {
       "date": "2025-11-22",
@@ -30,11 +142,11 @@
       "lifetimeHours": 45.19138888888889
     },
     {
-      "date": "2025-11-03",
-      "daily": 0,
-      "hours": 0,
-      "lifetime": 106320,
-      "lifetimeHours": 45.19138888888889
+      "date": "2025-11-23",
+      "daily": 15390,
+      "hours": 7.1002777777777775,
+      "lifetime": 121710,
+      "lifetimeHours": 52.291666666666664
     }
   ]
 }

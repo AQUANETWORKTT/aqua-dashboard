@@ -1,63 +1,32 @@
-import "./globals.css";
-import Link from "next/link";
-import { cookies } from "next/headers";
+// app/layout.tsx
 
+import "./globals.css";
+import NavBar from "./components/NavBar";
+
+// Old metadata.viewport is not supported anymore.
+// Keep only title + description here.
 export const metadata = {
   title: "Aqua Dashboard",
   description: "Creator stats dashboard",
-  icons: {
-    icon: "/favicon.png", // <-- make sure your icon file is in /public
-  },
 };
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // MUST be awaited on Next 15+
-  const cookieStore = await cookies();
-  const aquaCookie = cookieStore.get("aqua_user");
-  const loggedInUser = aquaCookie?.value ?? null;
+// NEW Next.js 15 viewport format:
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
-  const showNavbar = !!loggedInUser;
-
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="app-body">
+      <body className="min-h-screen overflow-x-hidden">
+        {/* Navbar auto-hides on login */}
+        <NavBar />
 
-        {/* NAVBAR — dark, glowing, mobile-friendly */}
-        {showNavbar && (
-          <nav
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "28px",
-              padding: "16px 0",
-              background: "rgba(0, 0, 0, 0.55)",
-              backdropFilter: "blur(12px)",
-              position: "sticky",
-              top: 0,
-              zIndex: 999,
-              borderBottom: "1px solid rgba(0, 255, 255, 0.25)",
-              boxShadow: "0 0 14px rgba(0,255,255,0.22)",
-            }}
-          >
-            <Link href="/leaderboard" className="aqua-link glow-link">
-              Leaderboard
-            </Link>
-
-            <Link href="/" className="aqua-link glow-link">
-              Home
-            </Link>
-
-            <Link href={`/dashboard/${loggedInUser}`} className="aqua-link glow-link">
-              Dashboard
-            </Link>
-          </nav>
-        )}
-
-        {children}
+        {/* Main content wrapper (mobile friendly) */}
+        <main className="max-w-[900px] mx-auto w-full px-4 py-6">
+          {children}
+        </main>
       </body>
     </html>
   );
