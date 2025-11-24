@@ -1,49 +1,34 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
-export default function NavBar() {
+export default function NavBar({ user }: { user: string | null }) {
   const pathname = usePathname();
-  const [username, setUsername] = useState<string | null>(null);
 
-  // Always run hooks – cannot be inside condition!
-  useEffect(() => {
-    const match = document.cookie.match(/aqua_user=([^;]+)/);
-    if (match) {
-      setUsername(match[1]);
-    }
-  }, []);
-
-  // Now we can safely hide the navbar
+  // Pages where navbar should NOT appear
   const hideOn = ["/login", "/"];
+
+  if (!user) return null;
   if (hideOn.includes(pathname)) return null;
 
   return (
-    <nav className="aqua-nav">
-      <div className="aqua-nav-inner">
-
-        {/* Logo */}
-        <Link href="/" className="aqua-nav-logo-text">
-          AQUA 🐬
-        </Link>
-
-        <div className="aqua-nav-links">
-
-          {username && (
-            <Link href={`/dashboard/${username}`} className="aqua-link">
-              Dashboard
-            </Link>
-          )}
-
-          <Link href="/leaderboard" className="aqua-link">
-            Leaderboard
-          </Link>
-
-        </div>
-
-      </div>
+    <nav
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        gap: "24px",
+        padding: "14px 0",
+        background: "rgba(0,0,0,0.45)",
+        backdropFilter: "blur(10px)",
+        position: "sticky",
+        top: 0,
+        zIndex: 999,
+      }}
+    >
+      <Link href="/leaderboard" className="aqua-link">Leaderboard</Link>
+      <Link href="/" className="aqua-link">Home</Link>
+      <Link href={`/dashboard/${user}`} className="aqua-link">Dashboard</Link>
     </nav>
   );
 }

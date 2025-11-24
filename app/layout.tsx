@@ -1,4 +1,5 @@
 import "./globals.css";
+import { cookies } from "next/headers";
 import NavBar from "./components/NavBar";
 
 export const metadata = {
@@ -6,23 +7,20 @@ export const metadata = {
   description: "Creator stats dashboard",
 };
 
-export const viewport = {
-  width: "device-width",
-  initialScale: 1,
-};
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+  const cookieStore = await cookies();
+  const aquaCookie = cookieStore.get("aqua_user");
+  const loggedInUser = aquaCookie?.value ?? null;
+
   return (
     <html lang="en">
-      <body className="min-h-screen overflow-x-hidden">
-        <NavBar />
-        <main className="max-w-[900px] mx-auto w-full px-4 py-6">
-          {children}
-        </main>
+      <body className="app-body">
+
+        {/* CLIENT NAVBAR LOGIC */}
+        <NavBar user={loggedInUser} />
+
+        {children}
       </body>
     </html>
   );

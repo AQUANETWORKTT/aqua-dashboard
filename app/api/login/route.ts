@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
 export async function POST(req: Request) {
   try {
@@ -6,30 +8,41 @@ export async function POST(req: Request) {
 
     if (!username || typeof username !== "string") {
       return NextResponse.json(
-        { error: "Invalid username" },
+        { error: "Invalid username format." },
         { status: 400 }
       );
     }
 
     const clean = username.trim().toLowerCase();
 
+    // Check if file exists in /public/history
+    const safe = clean.replace(/[<>:"/\\|?*]/g, "_");
+    const filePath = path.join(process.cwd(), "public/history", `${safe}.json`);
+
+    if (!fs.existsSync(filePath)) {
+      return NextResponse.json(
+        {
+          error:
+            "Incorrect username. Please ensure it exactly matches your TikTok username — case sensitive.",
+        },
+        { status: 404 }
+      );
+    }
+
+    // Success → set cookie
     const res = NextResponse.json({ success: true });
 
-    // FORCE overwrite cookie
-    res.cookies.set({
-      name: "aqua_user",
-      value: clean,
+    res.cookies.set("aqua_user", clean, {
       path: "/",
       httpOnly: false,
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
     return res;
-
   } catch (err) {
+    console.error("LOGIN ERROR:", err);
     return NextResponse.json(
-      { error: "Server error" },
+      { error: "Server error. Please try again." },
       { status: 500 }
     );
   }
