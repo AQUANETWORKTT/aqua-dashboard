@@ -5,6 +5,9 @@ import { cookies } from "next/headers";
 export const metadata = {
   title: "Aqua Dashboard",
   description: "Creator stats dashboard",
+  icons: {
+    icon: "/favicon.png", // <-- make sure your icon file is in /public
+  },
 };
 
 export default async function RootLayout({
@@ -23,30 +26,32 @@ export default async function RootLayout({
     <html lang="en">
       <body className="app-body">
 
-        {/* NAVBAR — small, clean, mobile friendly */}
+        {/* NAVBAR — dark, glowing, mobile-friendly */}
         {showNavbar && (
           <nav
             style={{
               display: "flex",
               justifyContent: "center",
-              gap: "24px",
-              padding: "14px 0",
-              background: "rgba(0, 0, 0, 0.45)",
-              backdropFilter: "blur(10px)",
+              gap: "28px",
+              padding: "16px 0",
+              background: "rgba(0, 0, 0, 0.55)",
+              backdropFilter: "blur(12px)",
               position: "sticky",
               top: 0,
               zIndex: 999,
+              borderBottom: "1px solid rgba(0, 255, 255, 0.25)",
+              boxShadow: "0 0 14px rgba(0,255,255,0.22)",
             }}
           >
-            <Link href="/leaderboard" className="aqua-link">
+            <Link href="/leaderboard" className="aqua-link glow-link">
               Leaderboard
             </Link>
 
-            <Link href="/" className="aqua-link">
+            <Link href="/" className="aqua-link glow-link">
               Home
             </Link>
 
-            <Link href={`/dashboard/${loggedInUser}`} className="aqua-link">
+            <Link href={`/dashboard/${loggedInUser}`} className="aqua-link glow-link">
               Dashboard
             </Link>
           </nav>
