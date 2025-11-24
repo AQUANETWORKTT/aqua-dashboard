@@ -1632,3 +1632,16 @@ body {
   min-width: 90px;
   flex-shrink: 0;
 }
+
+.creator-info {
+  width: 100%;
+}
+
+.creator-username {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: min(4vw, 17px);
+}
+
