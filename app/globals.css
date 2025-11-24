@@ -1587,7 +1587,10 @@ body {
   }
 }
 
-/* FIX leaderboard alignment WITHOUT changing layout */
+/* ============================================
+   PERFECT LEADERBOARD ALIGNMENT + RESPONSIVE NAMES
+   ============================================ */
+
 .leaderboard-row {
   display: flex;
   align-items: center;
@@ -1595,11 +1598,12 @@ body {
   gap: 14px;
 }
 
+/* LEFT SIDE: rank + avatar + username */
 .leaderboard-left {
   display: flex;
   align-items: center;
   gap: 14px;
-  min-width: 0; /* allows ellipsis */
+  min-width: 0; /* allows shrinking */
 }
 
 .rank-number {
@@ -1612,36 +1616,31 @@ body {
   flex-shrink: 0;
 }
 
+/* Username container */
 .creator-info {
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-width: 0;
+  width: 100%;
 }
 
+/* Username text that auto-shrinks instead of "sask..." */
 .creator-username {
+  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 140px; /* prevent shifting */
+
+  /* Auto-resize text based on screen size */
+  font-size: clamp(12px, 3.2vw, 17px);
 }
 
-/* RIGHT SIDE BLOCK */
+/* RIGHT SIDE: lifetime + yesterday */
 .creator-diamonds {
   text-align: right;
   min-width: 90px;
   flex-shrink: 0;
 }
 
-.creator-info {
-  width: 100%;
-}
-
-.creator-username {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: min(4vw, 17px);
-}
 
