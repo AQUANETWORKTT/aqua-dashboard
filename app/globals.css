@@ -1403,11 +1403,24 @@ td {
 }
 
 
+/* Responsive Leaderboard Banner */
 .leaderboard-title-img {
-  width: 650px; /* adjust as needed */
-  margin: -200px auto -150px;
+  width: 100%;
+  max-width: 750px; /* bigger on desktop */
+  height: auto;
   display: block;
+  margin: 0 auto 20px;
+  filter: drop-shadow(0 0 18px rgba(0, 255, 255, 0.45));
 }
+
+/* Mobile fix */
+@media (max-width: 600px) {
+  .leaderboard-title-img {
+    max-width: 100%;
+    margin: 10px auto 20px;
+  }
+}
+
 
 /* -----------------------------------------------------
    AQUA GLASS-BLUR NEON NAVBAR (MAXIMUM GLOW)
@@ -1513,4 +1526,109 @@ html, body {
 body {
   font-family: system-ui, sans-serif;
   background: #02040a;
+}
+
+/* Force navbar visible on all screens */
+.aqua-nav {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 9999 !important;
+  position: sticky !important;
+  top: 0 !important;
+}
+
+@media (max-width: 800px) {
+  .hero-left {
+    order: 2;
+  }
+
+  .hero-right {
+    order: 1;
+  }
+}
+
+/* Mobile layout reorder for homepage */
+@media (max-width: 800px) {
+  .hero-grid {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hero-left {
+    order: 1;
+    text-align: center;
+  }
+
+  .hero-right {
+    order: 2;
+    margin-top: 20px;
+  }
+
+  .hero-logo-img {
+    margin: 0 auto 10px;
+    max-width: 260px;
+  }
+
+  .hero-title {
+    font-size: 36px;
+    text-align: center;
+  }
+
+  .hero-subtitle {
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .hero-buttons {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+  }
+}
+
+/* FIX leaderboard alignment WITHOUT changing layout */
+.leaderboard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.leaderboard-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0; /* allows ellipsis */
+}
+
+.rank-number {
+  width: 32px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.leaderboard-avatar {
+  flex-shrink: 0;
+}
+
+.creator-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.creator-username {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px; /* prevent shifting */
+}
+
+/* RIGHT SIDE BLOCK */
+.creator-diamonds {
+  text-align: right;
+  min-width: 90px;
+  flex-shrink: 0;
 }
