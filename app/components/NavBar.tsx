@@ -8,15 +8,17 @@ export default function NavBar() {
   const pathname = usePathname();
   const [username, setUsername] = useState<string | null>(null);
 
-  // Hide navbar on home + login
-  const hideOn = ["/login", "/"];
-  if (hideOn.includes(pathname)) return null;
-
-  // Read username from cookie so dashboard link works
+  // Always run hooks – cannot be inside condition!
   useEffect(() => {
     const match = document.cookie.match(/aqua_user=([^;]+)/);
-    if (match) setUsername(match[1]);
+    if (match) {
+      setUsername(match[1]);
+    }
   }, []);
+
+  // Now we can safely hide the navbar
+  const hideOn = ["/login", "/"];
+  if (hideOn.includes(pathname)) return null;
 
   return (
     <nav className="aqua-nav">
@@ -27,8 +29,8 @@ export default function NavBar() {
           AQUA 🐬
         </Link>
 
-        {/* Links */}
         <div className="aqua-nav-links">
+
           {username && (
             <Link href={`/dashboard/${username}`} className="aqua-link">
               Dashboard
@@ -38,6 +40,7 @@ export default function NavBar() {
           <Link href="/leaderboard" className="aqua-link">
             Leaderboard
           </Link>
+
         </div>
 
       </div>
