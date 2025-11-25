@@ -12,8 +12,8 @@ export default function LeaderboardPage() {
       {/* Banner Image */}
       <div className="leaderboard-title-image">
         <img
-          src="/branding/points-leaderboard.png"
-          alt="Points Leaderboard"
+          src="/branding/creator-leaderboard.png"
+          alt="Creator Leaderboard"
           className="leaderboard-title-img"
         />
       </div>
@@ -23,37 +23,43 @@ export default function LeaderboardPage() {
         {sorted.map((creator, index) => (
           <div key={creator.username} className="leaderboard-row">
 
-            {/* Rank */}
-            <div className="rank-number">{index + 1}</div>
+            {/* LEFT SIDE */}
+            <div className="leaderboard-left">
 
-            {/* Avatar */}
-            <img
-              src={`/creators/${creator.username}.jpg`}
-              className="leaderboard-avatar"
-              alt={`${creator.username} avatar`}
-            />
+              {/* Rank */}
+              <div className="rank-number">{index + 1}</div>
 
-            {/* Creator Info */}
-            <div className="creator-info">
-              <div className="creator-username glow-text">
-                {creator.username}
+              {/* Avatar */}
+              <img
+                src={`/creators/${creator.username}.jpg`}
+                className="leaderboard-avatar"
+                alt={`${creator.username} avatar`}
+              />
+
+              {/* Username */}
+              <div className="creator-info">
+                <div className="creator-username glow-text">
+                  {creator.username}
+                </div>
               </div>
+
             </div>
 
-            {/* RIGHT SIDE — Diamonds */}
-            <div className="creator-diamonds">
+            {/* RIGHT SIDE */}
+            <div className="leaderboard-right">
 
-              <div className="lifetime-number">
+              <div className="leaderboard-lifetime">
                 {creator.lifetime.toLocaleString()}
               </div>
-              <span className="lifetime-label">lifetime</span>
+              <div className="leaderboard-lifetime-label">lifetime</div>
 
-              <div className="yesterday-number">
+              <div className="leaderboard-yesterday">
                 {creator.daily.toLocaleString()}
               </div>
-              <span className="yesterday-label">yesterday</span>
+              <div className="leaderboard-yesterday-label">yesterday</div>
 
             </div>
+
           </div>
         ))}
       </div>
