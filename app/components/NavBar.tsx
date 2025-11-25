@@ -27,6 +27,7 @@ export default function NavBar({ user }: { user: string | null }) {
       }}
     >
       <Link href="/leaderboard" className="aqua-link">Leaderboard</Link>
+      <Link href="/points-leaderboard" className="aqua-link">Points</Link>
       <Link href="/" className="aqua-link">Home</Link>
       <Link href={`/dashboard/${user}`} className="aqua-link">Dashboard</Link>
     </nav>

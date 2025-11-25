@@ -9,15 +9,16 @@ export default function LeaderboardPage() {
   return (
     <main className="leaderboard-wrapper">
 
-      {/* Banner Image Replacing Title */}
+      {/* Banner Image */}
       <div className="leaderboard-title-image">
         <img
-          src="/branding/creator-leaderboard.png"
-          alt="Creator Leaderboard"
+          src="/branding/points-leaderboard.png"
+          alt="Points Leaderboard"
           className="leaderboard-title-img"
         />
       </div>
 
+      {/* Leaderboard List */}
       <div className="leaderboard-list">
         {sorted.map((creator, index) => (
           <div key={creator.username} className="leaderboard-row">
@@ -37,16 +38,11 @@ export default function LeaderboardPage() {
               <div className="creator-username glow-text">
                 {creator.username}
               </div>
-
-              <div className="creator-daily">
-                Yesterday:{" "}
-                <span>{creator.daily.toLocaleString()}</span>
-              </div>
             </div>
 
-            {/* Diamonds (Lifetime & Yesterday) */}
+            {/* RIGHT SIDE — Diamonds */}
             <div className="creator-diamonds">
-              
+
               <div className="lifetime-number">
                 {creator.lifetime.toLocaleString()}
               </div>

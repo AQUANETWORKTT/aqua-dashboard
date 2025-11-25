@@ -1643,4 +1643,56 @@ body {
   flex-shrink: 0;
 }
 
+/* POINTS LEADERBOARD BANNER */
+.points-leaderboard-img,
+.leaderboard-title-img {
+  width: 100%;
+  max-width: 500px;
+  display: block;
+  margin: -200px auto -100px !important; /* 🔥 reduced top margin */
+}
+
+/* MOBILE FIX — unify layout with main leaderboard */
+@media (max-width: 800px) {
+  .leaderboard-wrapper {
+    padding: 40px 16px 60px;
+  }
+
+  .leaderboard-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .leaderboard-left {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .leaderboard-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .creator-info {
+    flex: 1;
+  }
+
+  .creator-username {
+    font-size: 15px;
+  }
+
+  .creator-diamonds {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 6px;
+    border-top: 1px solid rgba(45, 224, 255, 0.2);
+  }
+}
 
