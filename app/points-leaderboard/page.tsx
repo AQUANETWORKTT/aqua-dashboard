@@ -19,7 +19,6 @@ type HistoryFile = {
 
 type PointsCreator = {
   username: string;
-  displayName: string;
   avatar: string;
   totalPoints: number;
   totalDailyDiamonds: number;
@@ -32,35 +31,23 @@ function parseDate(d: string) {
 }
 
 function computeStreak(entries: HistoryEntry[]): number {
-  if (!entries || entries.length === 0) return 0;
+  if (!entries.length) return 0;
 
-  const validEntries = entries
-    .filter((e) => e.date && typeof e.hours === "number")
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const valid = entries
+    .filter((e) => (e.hours ?? 0) >= 1)
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  if (validEntries.length === 0) return 0;
+  if (!valid.length) return 0;
 
-  let streak = 0;
-  let lastDate: Date | null = null;
+  let streak = 1;
+  for (let i = valid.length - 1; i > 0; i--) {
+    const d1 = parseDate(valid[i].date);
+    const d0 = parseDate(valid[i - 1].date);
 
-  for (let i = validEntries.length - 1; i >= 0; i--) {
-    const entry = validEntries[i];
-    if ((entry.hours ?? 0) < 1) break;
+    const diff = (d1.getTime() - d0.getTime()) / (1000 * 60 * 60 * 24);
 
-    const thisDate = parseDate(entry.date);
-
-    if (!lastDate) {
-      streak = 1;
-      lastDate = thisDate;
-    } else {
-      const diffMs = lastDate.getTime() - thisDate.getTime();
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
-      if (diffDays >= 0.5 && diffDays <= 1.5) {
-        streak++;
-        lastDate = thisDate;
-      } else break;
-    }
+    if (diff >= 0.5 && diff <= 1.5) streak++;
+    else break;
   }
 
   return streak;
@@ -76,15 +63,12 @@ function streakPoints(days: number) {
 }
 
 function loadHistory(username: string): HistoryEntry[] {
-  const filePath = path.join(process.cwd(), "public", "history", `${username}.json`);
-  if (!fs.existsSync(filePath)) return [];
+  const file = path.join(process.cwd(), "public", "history", `${username}.json`);
+  if (!fs.existsSync(file)) return [];
 
   try {
-    const raw = fs.readFileSync(filePath, "utf8");
-    const data = JSON.parse(raw) as HistoryFile;
-    return Array.isArray(data.entries)
-      ? [...data.entries].sort((a, b) => (a.date < b.date ? -1 : 1))
-      : [];
+    const json = JSON.parse(fs.readFileSync(file, "utf8")) as HistoryFile;
+    return json.entries?.sort((a, b) => (a.date < b.date ? -1 : 1)) ?? [];
   } catch {
     return [];
   }
@@ -95,78 +79,85 @@ function formatNumber(n: number) {
 }
 
 export default function PointsLeaderboardPage() {
+  // Load histories
   const histories: Record<string, HistoryEntry[]> = {};
-  creators.forEach((c) => {
+  creators.forEach((c: any) => {
     histories[c.username] = loadHistory(c.username);
   });
 
-  // Collect all dates
-  const allDates = Array.from(
-    new Set(
-      Object.values(histories)
-        .flat()
-        .map((e) => e.date)
-    )
-  ).sort();
+  // Collect all unique dates
+  const dateSet = new Set<string>();
+  Object.values(histories).forEach((arr) =>
+    arr.forEach((e) => dateSet.add(e.date))
+  );
+  const dates = [...dateSet].sort();
 
-  // Achievement points per day
-  const achievementByDay: Record<string, Record<string, number>> = {};
+  // Achievement map: date -> user -> points
   const achievementValues = [8, 6, 4, 2];
+  const achievementByDay: Record<string, Record<string, number>> = {};
 
-  allDates.forEach((date) => {
-    const stats = creators
-      .map((c) => {
-        const entry = histories[c.username].find((e) => e.date === date);
-        return { username: c.username, daily: entry?.daily ?? 0 };
-      })
-      .filter((x) => x.daily > 0)
-      .sort((a, b) => b.daily - a.daily);
+  dates.forEach((date) => {
+    const dayStats: { username: string; daily: number }[] = [];
 
-    const dayMap: Record<string, number> = {};
-    stats.forEach((s, i) => {
-      if (i < 4) dayMap[s.username] = achievementValues[i];
+    creators.forEach((c) => {
+      const entry = histories[c.username].find((e) => e.date === date);
+      if (entry?.daily && entry.daily > 0) {
+        dayStats.push({ username: c.username, daily: entry.daily });
+      }
     });
 
-    achievementByDay[date] = dayMap;
+    if (!dayStats.length) return;
+
+    dayStats.sort((a, b) => b.daily - a.daily);
+
+    const map: Record<string, number> = {};
+    dayStats.forEach((c, i) => {
+      if (i < achievementValues.length) {
+        map[c.username] = achievementValues[i];
+      }
+    });
+
+    achievementByDay[date] = map;
   });
 
-  // Calculate totals
-  const scored = creators.map((c) => {
-    const entries = histories[c.username] || [];
+  // Score all creators
+  const scored: PointsCreator[] = creators.map((c) => {
+    const username = c.username;
+    const entries = histories[username] || [];
 
-    let totalDaily = 0;
-    let totalHours = 0;
     let totalPoints = 0;
+    let totalDailyDiamonds = 0;
+    let totalHoursLive = 0;
 
     entries.forEach((e) => {
       const daily = e.daily ?? 0;
-      const hours = e.hours ?? 0;
+      const hrs = e.hours ?? 0;
 
-      totalDaily += daily;
-      totalHours += hours;
+      totalDailyDiamonds += daily;
+      totalHoursLive += hrs;
 
-      const perHourPts = Math.floor(hours) * 2;
+      const perHourPts = Math.floor(hrs) * 2;
       const oneKPts = daily >= 1000 ? 2 : 0;
-      const validDay = hours >= 1 ? 2 : 0;
-      const achievePts = achievementByDay[e.date]?.[c.username] ?? 0;
+      const validDayPts = hrs >= 1 ? 2 : 0;
+      const achievePts = achievementByDay[e.date]?.[username] ?? 0;
 
-      totalPoints += perHourPts + oneKPts + validDay + achievePts;
+      totalPoints += perHourPts + oneKPts + validDayPts + achievePts;
     });
 
-    const streak = computeStreak(entries);
-    totalPoints += streakPoints(streak);
+    const streakDays = computeStreak(entries);
+    totalPoints += streakPoints(streakDays);
 
     return {
-      username: c.username,
-      displayName: c.displayName ?? c.username,
-      avatar: `/creators/${c.username}.jpg`,
+      username,
+      avatar: `/creators/${username}.jpg`,
       totalPoints,
-      totalDailyDiamonds: totalDaily,
-      totalHoursLive: totalHours,
-      streakDays: streak,
+      totalDailyDiamonds,
+      totalHoursLive,
+      streakDays,
     };
   });
 
+  // Sort
   const ranked = scored.sort((a, b) =>
     b.totalPoints !== a.totalPoints
       ? b.totalPoints - a.totalPoints
@@ -188,30 +179,36 @@ export default function PointsLeaderboardPage() {
       </p>
 
       <div className="leaderboard-list">
-        {ranked.map((c, i) => (
-          <div className="leaderboard-row" key={c.username}>
+        {ranked.map((creator, index) => (
+          <div key={creator.username} className="leaderboard-row">
             <div className="leaderboard-left">
-              <div className="rank-number">{i + 1}</div>
+              <div className="rank-number">{index + 1}</div>
 
-              <img src={c.avatar} className="leaderboard-avatar" />
+              <img
+                src={creator.avatar}
+                className="leaderboard-avatar"
+                alt={creator.username}
+              />
 
               <div className="creator-info">
-                <div className="creator-username glow-text">{c.displayName}</div>
+                <div className="creator-username glow-text">
+                  {creator.username}
+                </div>
                 <div className="creator-daily">
-                  Total diamonds: <span>{formatNumber(c.totalDailyDiamonds)}</span> ·{" "}
-                  {Math.floor(c.totalHoursLive)}h live
+                  Total diamonds:{" "}
+                  <span>{formatNumber(creator.totalDailyDiamonds)}</span> ·{" "}
+                  {Math.floor(creator.totalHoursLive)}h live
                 </div>
               </div>
             </div>
 
-            {/* RIGHT SIDE — NOW ONLY POINTS + STREAK */}
             <div className="creator-diamonds">
-              <div className="lifetime-number">{c.totalPoints}</div>
+              <div className="lifetime-number">{creator.totalPoints}</div>
               <div className="lifetime-label">points</div>
 
-              {c.streakDays > 0 && (
+              {creator.streakDays > 0 && (
                 <div className="creator-daily">
-                  Streak: <span>{c.streakDays} days</span>
+                  Streak: <span>{creator.streakDays} days</span>
                 </div>
               )}
             </div>
