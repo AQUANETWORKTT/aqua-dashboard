@@ -30,24 +30,40 @@ function parseDate(d: string) {
   return new Date(d + "T00:00:00Z");
 }
 
+// ✅ NEW: compute *current* streak of consecutive days with >=1h
 function computeStreak(entries: HistoryEntry[]): number {
   if (!entries.length) return 0;
 
-  const valid = entries
-    .filter((e) => (e.hours ?? 0) >= 1)
-    .sort((a, b) => (a.date < b.date ? -1 : 1));
+  // sort oldest → newest
+  const sorted = [...entries].sort((a, b) =>
+    a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+  );
 
-  if (!valid.length) return 0;
+  const last = sorted[sorted.length - 1];
+
+  // if latest recorded day is not valid, streak is 0
+  if ((last.hours ?? 0) < 1) return 0;
 
   let streak = 1;
-  for (let i = valid.length - 1; i > 0; i--) {
-    const d1 = parseDate(valid[i].date);
-    const d0 = parseDate(valid[i - 1].date);
+  let lastDate = parseDate(last.date);
 
-    const diff = (d1.getTime() - d0.getTime()) / (1000 * 60 * 60 * 24);
+  // walk backwards through earlier days
+  for (let i = sorted.length - 2; i >= 0; i--) {
+    const e = sorted[i];
+    const d = parseDate(e.date);
 
-    if (diff >= 0.5 && diff <= 1.5) streak++;
-    else break;
+    const diffDays =
+      (lastDate.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+
+    // must be exactly “previous day” AND have >= 1h to extend streak
+    if (diffDays >= 0.5 && diffDays <= 1.5 && (e.hours ?? 0) >= 1) {
+      streak++;
+      lastDate = d;
+      continue;
+    }
+
+    // if there’s a gap bigger than 1 day, or <1h, streak breaks
+    break;
   }
 
   return streak;
@@ -68,7 +84,9 @@ function loadHistory(username: string): HistoryEntry[] {
 
   try {
     const json = JSON.parse(fs.readFileSync(file, "utf8")) as HistoryFile;
-    return json.entries?.sort((a, b) => (a.date < b.date ? -1 : 1)) ?? [];
+    return json.entries?.sort((a, b) =>
+      a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+    ) ?? [];
   } catch {
     return [];
   }
