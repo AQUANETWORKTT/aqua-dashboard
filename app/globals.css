@@ -1141,12 +1141,19 @@ a {
 
 .glow-text {
   color: #7cf6ff;
-  text-shadow:
-    0 0 6px rgba(124, 246, 255, 0.8),
-    0 0 12px rgba(124, 246, 255, 0.5),
-    0 0 24px rgba(124, 246, 255, 0.3);
   font-weight: 600;
+
+  /* ✨ Smooth soft glow (no square edges) */
+  text-shadow:
+    0 0 4px rgba(124, 246, 255, 0.55),
+    0 0 8px rgba(124, 246, 255, 0.35),
+    0 0 14px rgba(124, 246, 255, 0.25);
+
+  /* Higher quality rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
 
 /* MOBILE LAYOUT FOR BOTH LEADERBOARDS */
 

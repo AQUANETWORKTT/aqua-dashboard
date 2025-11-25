@@ -192,10 +192,6 @@ export default function PointsLeaderboardPage() {
         />
       </div>
 
-      <p className="leaderboard-sub">
-        Points from all days in history · Hours, diamonds, achievements & streaks
-      </p>
-
       <div className="leaderboard-list">
         {ranked.map((creator, index) => (
           <div key={creator.username} className="leaderboard-row">
