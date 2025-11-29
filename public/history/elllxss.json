@@ -179,9 +179,9 @@
     {
       "date": "2025-11-28",
       "daily": 0,
-      "hours": 0,
+      "hours": 0.03138888888888889,
       "lifetime": 1914,
-      "lifetimeHours": 5.767222222222222
+      "lifetimeHours": 5.798611111111111
     }
   ]
 }
