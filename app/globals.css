@@ -1193,3 +1193,21 @@ a {
     text-align: left;
   }
 }
+
+
+.progress-label {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #aef3ff; /* Aqua blue */
+  margin-bottom: 6px;
+  text-shadow: 0 0 6px #2de0ff55;
+}
+
+.target-current {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #8de1ff;
+  margin-top: 4px;
+  text-shadow: 0 0 4px #2de0ff33;
+}
+
