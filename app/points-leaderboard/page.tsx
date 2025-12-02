@@ -30,7 +30,7 @@ function parseDate(d: string) {
   return new Date(d + "T00:00:00Z");
 }
 
-// ✅ NEW: compute *current* streak of consecutive days with >=1h
+// ✅ compute streak of consecutive days with >=1h (within the month only)
 function computeStreak(entries: HistoryEntry[]): number {
   if (!entries.length) return 0;
 
@@ -84,9 +84,11 @@ function loadHistory(username: string): HistoryEntry[] {
 
   try {
     const json = JSON.parse(fs.readFileSync(file, "utf8")) as HistoryFile;
-    return json.entries?.sort((a, b) =>
-      a.date < b.date ? -1 : a.date > b.date ? 1 : 0
-    ) ?? [];
+    return (
+      json.entries?.sort((a, b) =>
+        a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+      ) ?? []
+    );
   } catch {
     return [];
   }
@@ -97,20 +99,30 @@ function formatNumber(n: number) {
 }
 
 export default function PointsLeaderboardPage() {
+  // 🔹 Determine current month key: "YYYY-MM"
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(
+    now.getMonth() + 1
+  ).padStart(2, "0")}`;
+
   // Load histories
   const histories: Record<string, HistoryEntry[]> = {};
   creators.forEach((c: any) => {
     histories[c.username] = loadHistory(c.username);
   });
 
-  // Collect all unique dates
+  // Collect all unique dates for THIS MONTH ONLY
   const dateSet = new Set<string>();
   Object.values(histories).forEach((arr) =>
-    arr.forEach((e) => dateSet.add(e.date))
+    arr.forEach((e) => {
+      if (e.date.startsWith(monthKey)) {
+        dateSet.add(e.date);
+      }
+    })
   );
   const dates = [...dateSet].sort();
 
-  // Achievement map: date -> user -> points
+  // Achievement map: date -> user -> points (for this month only)
   const achievementValues = [8, 6, 4, 2];
   const achievementByDay: Record<string, Record<string, number>> = {};
 
@@ -138,16 +150,19 @@ export default function PointsLeaderboardPage() {
     achievementByDay[date] = map;
   });
 
-  // Score all creators
+  // Score all creators (for THIS MONTH ONLY)
   const scored: PointsCreator[] = creators.map((c) => {
     const username = c.username;
     const entries = histories[username] || [];
+
+    // 🔹 Only use entries from the current month
+    const monthEntries = entries.filter((e) => e.date.startsWith(monthKey));
 
     let totalPoints = 0;
     let totalDailyDiamonds = 0;
     let totalHoursLive = 0;
 
-    entries.forEach((e) => {
+    monthEntries.forEach((e) => {
       const daily = e.daily ?? 0;
       const hrs = e.hours ?? 0;
 
@@ -162,7 +177,8 @@ export default function PointsLeaderboardPage() {
       totalPoints += perHourPts + oneKPts + validDayPts + achievePts;
     });
 
-    const streakDays = computeStreak(entries);
+    // 🔹 Streak based only on this month's entries
+    const streakDays = computeStreak(monthEntries);
     totalPoints += streakPoints(streakDays);
 
     return {
@@ -175,7 +191,7 @@ export default function PointsLeaderboardPage() {
     };
   });
 
-  // Sort
+  // Sort by points (then diamonds)
   const ranked = scored.sort((a, b) =>
     b.totalPoints !== a.totalPoints
       ? b.totalPoints - a.totalPoints
@@ -209,7 +225,7 @@ export default function PointsLeaderboardPage() {
                   {creator.username}
                 </div>
                 <div className="creator-daily">
-                  Total diamonds:{" "}
+                  Total diamonds this month:{" "}
                   <span>{formatNumber(creator.totalDailyDiamonds)}</span> ·{" "}
                   {Math.floor(creator.totalHoursLive)}h live
                 </div>
@@ -218,11 +234,12 @@ export default function PointsLeaderboardPage() {
 
             <div className="creator-diamonds">
               <div className="lifetime-number">{creator.totalPoints}</div>
-              <div className="lifetime-label">points</div>
+              <div className="lifetime-label">points this month</div>
 
               {creator.streakDays > 0 && (
                 <div className="creator-daily">
-                  Streak: <span>{creator.streakDays} days</span>
+                  Streak this month:{" "}
+                  <span>{creator.streakDays} days</span>
                 </div>
               )}
             </div>

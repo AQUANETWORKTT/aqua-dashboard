@@ -39,7 +39,7 @@ export default function CreatorDashboardPage() {
 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  // Load history JSON from /public/history/<username>.json
+  // Load history JSON
   useEffect(() => {
     if (!usernameParam) return;
 
@@ -50,7 +50,6 @@ export default function CreatorDashboardPage() {
         });
 
         if (!res.ok) {
-          // no file exists yet
           setHistory([]);
           return;
         }
@@ -69,12 +68,12 @@ export default function CreatorDashboardPage() {
   function buildMonth() {
     const today = new Date();
     const year = today.getFullYear();
-    const month = today.getMonth(); // 0–11
+    const month = today.getMonth();
 
     const first = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    const firstWeekday = (first.getDay() + 6) % 7; // Monday-based (Mon=0)
+    const firstWeekday = (first.getDay() + 6) % 7;
 
     const cells: { day: number | null; dateStr?: string }[] = [];
 
@@ -95,41 +94,34 @@ export default function CreatorDashboardPage() {
 
   const { cells, year, month, monthLabel } = buildMonth();
 
-  // helpers to look up history for a given date
+  // history lookup
   const historyByDate = useMemo(() => {
     const map: Record<string, HistoryEntry> = {};
-    for (const e of history) {
-      map[e.date] = e;
-    }
+    for (const e of history) map[e.date] = e;
     return map;
   }, [history]);
 
-  // streak: consecutive days (starting from *yesterday*) with hours >= 1
+  // streak
   function computeStreak(entries: HistoryEntry[]): number {
     if (!entries.length) return 0;
 
-    const activeDays = new Set(
+    const active = new Set(
       entries.filter((e) => (e.hours ?? 0) >= 1).map((e) => e.date)
     );
-
-    if (!activeDays.size) return 0;
+    if (!active.size) return 0;
 
     let streak = 0;
 
-    // start from YESTERDAY, not today
     const start = new Date();
     start.setDate(start.getDate() - 1);
 
     for (let i = 0; i < 365; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() - i);
-      const iso = d.toISOString().slice(0, 10);
 
-      if (activeDays.has(iso)) {
-        streak++;
-      } else {
-        break;
-      }
+      const iso = d.toISOString().slice(0, 10);
+      if (active.has(iso)) streak++;
+      else break;
     }
 
     return streak;
@@ -137,7 +129,7 @@ export default function CreatorDashboardPage() {
 
   const streak = computeStreak(history);
 
-  // Month totals (for current month)
+  // monthly totals
   const monthTotals = useMemo(() => {
     let diamonds = 0;
     let hours = 0;
@@ -153,16 +145,21 @@ export default function CreatorDashboardPage() {
     return { diamonds, hours };
   }, [history, year, month]);
 
+  const monthlyDiamonds = monthTotals.diamonds;
+
+  // NEW progress bar percentages
+  const pct75 = Math.min(1, monthlyDiamonds / 75_000);
+  const pct150 = Math.min(1, monthlyDiamonds / 150_000);
+  const pct500 = Math.min(1, monthlyDiamonds / 500_000);
+
   const totalHoursAllTime = history.reduce(
     (sum, e) => sum + (e.hours ?? 0),
     0
   );
 
-  // progress bar toward 500k
-  const pctTotal = Math.min(1, lifetime / 500_000);
-
   return (
     <main className="dashboard-wrapper">
+      
       {/* HEADER */}
       <section className="dash-header">
         <div className="dash-profile">
@@ -187,30 +184,64 @@ export default function CreatorDashboardPage() {
             {streak}
             <span className="streak-unit"> days</span>
           </div>
-          <p className="streak-subtext">Streak = 1 hour+ live per day (from yesterday backwards).</p>
+          <p className="streak-subtext">
+            Streak = 1 hour+ live per day (from yesterday backwards)
+          </p>
         </div>
       </section>
 
-      {/* PROGRESS BAR */}
+      {/* ⭐ NEW MONTHLY PROGRESS BARS */}
       <section className="dash-card">
-        <div className="dash-card-title">Network Targets</div>
+        <div className="dash-card-title">Monthly Progress</div>
         <div className="dash-card-sub">
-          Progress toward 75k, 150k &amp; 500k lifetime diamonds.
+          Monthly diamond targets updated automatically.
         </div>
 
-        <div className="target-bar">
-          <div className="target-bar-bg">
-            <div
-              className="target-bar-fill"
-              style={{ width: `${pctTotal * 100}%` }}
-            />
-            <div className="target-marker marker-75" />
-            <div className="target-marker marker-150" />
-            <div className="target-marker marker-500" />
+        {/* 75K MONTHLY BAR */}
+        <div className="progress-block">
+          <div className="progress-label">75K Monthly Target</div>
+          <div className="target-bar">
+            <div className="target-bar-bg">
+              <div
+                className="target-bar-fill"
+                style={{ width: `${pct75 * 100}%` }}
+              />
+            </div>
+            <div className="target-current">
+              {monthlyDiamonds.toLocaleString()} / 75,000
+            </div>
           </div>
+        </div>
 
-          <div className="target-current">
-            Lifetime: <span>{lifetime.toLocaleString()} diamonds</span>
+        {/* 150K MONTHLY BAR */}
+        <div className="progress-block">
+          <div className="progress-label">150K Monthly Target</div>
+          <div className="target-bar">
+            <div className="target-bar-bg">
+              <div
+                className="target-bar-fill"
+                style={{ width: `${pct150 * 100}%` }}
+              />
+            </div>
+            <div className="target-current">
+              {monthlyDiamonds.toLocaleString()} / 150,000
+            </div>
+          </div>
+        </div>
+
+        {/* 500K MONTHLY BAR */}
+        <div className="progress-block">
+          <div className="progress-label">500K Monthly Target</div>
+          <div className="target-bar">
+            <div className="target-bar-bg">
+              <div
+                className="target-bar-fill"
+                style={{ width: `${pct500 * 100}%` }}
+              />
+            </div>
+            <div className="target-current">
+              {monthlyDiamonds.toLocaleString()} / 500,000
+            </div>
           </div>
         </div>
       </section>
@@ -268,9 +299,9 @@ export default function CreatorDashboardPage() {
         </div>
 
         <div className="dash-mini-card">
-          <div className="mini-label">This month&apos;s diamonds</div>
+          <div className="mini-label">This month’s diamonds</div>
           <div className="mini-value">
-            {monthTotals.diamonds.toLocaleString()}
+            {monthlyDiamonds.toLocaleString()}
           </div>
         </div>
 
@@ -288,7 +319,7 @@ export default function CreatorDashboardPage() {
           {monthLabel} {year} Activity
         </div>
         <div className="dash-card-sub">
-          Diamonds &amp; hours per day. Blue days show 1+ hour live.
+          Diamonds & hours per day. Blue days show 1+ hour live.
         </div>
 
         <div className="calendar">
@@ -304,9 +335,8 @@ export default function CreatorDashboardPage() {
 
           <div className="calendar-grid">
             {cells.map((cell, i) => {
-              if (!cell.day) {
+              if (!cell.day)
                 return <div key={i} className="calendar-cell empty" />;
-              }
 
               const stats = cell.dateStr
                 ? historyByDate[cell.dateStr]
@@ -320,7 +350,8 @@ export default function CreatorDashboardPage() {
                 <div
                   key={cell.dateStr}
                   className={
-                    "calendar-cell day-cell" + (isActive ? " day-active" : "")
+                    "calendar-cell day-cell" +
+                    (isActive ? " day-active" : "")
                   }
                 >
                   <div className="day-number">{cell.day}</div>
