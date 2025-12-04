@@ -27,7 +27,7 @@ export default function CreatorDashboardPage() {
   const lifetime = creator?.lifetime ?? 0;
   const yesterdayDiamonds = creator?.daily ?? 0;
 
-  // leaderboard rank by lifetime
+  // Leaderboard ranking
   const sorted = useMemo(
     () => [...creators].sort((a, b) => b.lifetime - a.lifetime),
     []
@@ -39,7 +39,7 @@ export default function CreatorDashboardPage() {
 
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  // Load history JSON
+  // Load history for the user
   useEffect(() => {
     if (!usernameParam) return;
 
@@ -64,7 +64,7 @@ export default function CreatorDashboardPage() {
     load();
   }, [usernameParam]);
 
-  // build calendar for current month
+  // Build calendar month
   function buildMonth() {
     const today = new Date();
     const year = today.getFullYear();
@@ -72,14 +72,11 @@ export default function CreatorDashboardPage() {
 
     const first = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-
     const firstWeekday = (first.getDay() + 6) % 7;
 
     const cells: { day: number | null; dateStr?: string }[] = [];
 
-    for (let i = 0; i < firstWeekday; i++) {
-      cells.push({ day: null });
-    }
+    for (let i = 0; i < firstWeekday; i++) cells.push({ day: null });
 
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(year, month, d);
@@ -87,33 +84,35 @@ export default function CreatorDashboardPage() {
       cells.push({ day: d, dateStr });
     }
 
-    const monthLabel = today.toLocaleString("default", { month: "long" });
-
-    return { cells, year, month, monthLabel };
+    return {
+      cells,
+      year,
+      month,
+      monthLabel: today.toLocaleString("default", { month: "long" }),
+    };
   }
 
   const { cells, year, month, monthLabel } = buildMonth();
 
-  // history lookup
+  // Quick lookup map
   const historyByDate = useMemo(() => {
     const map: Record<string, HistoryEntry> = {};
     for (const e of history) map[e.date] = e;
     return map;
   }, [history]);
 
-  // streak
+  // Streak (yesterday backwards)
   function computeStreak(entries: HistoryEntry[]): number {
     if (!entries.length) return 0;
 
     const active = new Set(
       entries.filter((e) => (e.hours ?? 0) >= 1).map((e) => e.date)
     );
-    if (!active.size) return 0;
-
-    let streak = 0;
 
     const start = new Date();
     start.setDate(start.getDate() - 1);
+
+    let streak = 0;
 
     for (let i = 0; i < 365; i++) {
       const d = new Date(start);
@@ -129,7 +128,7 @@ export default function CreatorDashboardPage() {
 
   const streak = computeStreak(history);
 
-  // monthly totals
+  // Monthly totals
   const monthTotals = useMemo(() => {
     let diamonds = 0;
     let hours = 0;
@@ -146,20 +145,15 @@ export default function CreatorDashboardPage() {
   }, [history, year, month]);
 
   const monthlyDiamonds = monthTotals.diamonds;
+  const totalHoursAllTime = history.reduce((s, e) => s + (e.hours ?? 0), 0);
 
-  // NEW progress bar percentages
+  // Monthly progress bars
   const pct75 = Math.min(1, monthlyDiamonds / 75_000);
   const pct150 = Math.min(1, monthlyDiamonds / 150_000);
   const pct500 = Math.min(1, monthlyDiamonds / 500_000);
 
-  const totalHoursAllTime = history.reduce(
-    (sum, e) => sum + (e.hours ?? 0),
-    0
-  );
-
   return (
     <main className="dashboard-wrapper">
-      
       {/* HEADER */}
       <section className="dash-header">
         <div className="dash-profile">
@@ -185,19 +179,19 @@ export default function CreatorDashboardPage() {
             <span className="streak-unit"> days</span>
           </div>
           <p className="streak-subtext">
-            Streak = 1 hour+ live per day (from yesterday backwards)
+            Streak counts 1h+ days from yesterday backwards.
           </p>
         </div>
       </section>
 
-      {/* ⭐ NEW MONTHLY PROGRESS BARS */}
+      {/* MONTHLY PROGRESS */}
       <section className="dash-card">
         <div className="dash-card-title">Monthly Progress</div>
         <div className="dash-card-sub">
-          Monthly diamond targets updated automatically.
+          Diamonds earned this month across all streams.
         </div>
 
-        {/* 75K MONTHLY BAR */}
+        {/* 75K */}
         <div className="progress-block">
           <div className="progress-label">75K Monthly Target</div>
           <div className="target-bar">
@@ -213,7 +207,7 @@ export default function CreatorDashboardPage() {
           </div>
         </div>
 
-        {/* 150K MONTHLY BAR */}
+        {/* 150K */}
         <div className="progress-block">
           <div className="progress-label">150K Monthly Target</div>
           <div className="target-bar">
@@ -229,7 +223,7 @@ export default function CreatorDashboardPage() {
           </div>
         </div>
 
-        {/* 500K MONTHLY BAR */}
+        {/* 500K */}
         <div className="progress-block">
           <div className="progress-label">500K Monthly Target</div>
           <div className="target-bar">
@@ -246,47 +240,61 @@ export default function CreatorDashboardPage() {
         </div>
       </section>
 
-      {/* ACHIEVEMENTS */}
+      {/* MONTHLY ACHIEVEMENTS */}
       <section className="dash-card achievement-card">
-        <div className="achievement-title">Achievements</div>
+        <div className="achievement-title">Monthly Achievements</div>
 
         <div className="achievement-grid">
+          {/* BRONZE */}
           <div
             className={
               "achievement-badge " +
-              (lifetime >= 75_000 ? "badge-unlocked bronze" : "badge-locked")
+              (monthlyDiamonds >= 75_000 ? "badge-unlocked bronze" : "badge-locked")
             }
           >
             <div className="badge-level">75K</div>
             <div className="badge-text">
-              {lifetime >= 75_000 ? "Bronze Target Achieved" : "Locked"}
+              {monthlyDiamonds >= 75_000 ? "Bronze Reached" : "Locked"}
             </div>
           </div>
 
+          {/* SILVER */}
           <div
             className={
               "achievement-badge " +
-              (lifetime >= 150_000 ? "badge-unlocked silver" : "badge-locked")
+              (monthlyDiamonds >= 150_000 ? "badge-unlocked silver" : "badge-locked")
             }
           >
             <div className="badge-level">150K</div>
             <div className="badge-text">
-              {lifetime >= 150_000 ? "Silver Target Achieved" : "Locked"}
+              {monthlyDiamonds >= 150_000 ? "Silver Reached" : "Locked"}
             </div>
           </div>
 
+          {/* GOLD */}
           <div
             className={
               "achievement-badge " +
-              (lifetime >= 500_000 ? "badge-unlocked gold" : "badge-locked")
+              (monthlyDiamonds >= 500_000 ? "badge-unlocked gold" : "badge-locked")
             }
           >
             <div className="badge-level">500K</div>
             <div className="badge-text">
-              {lifetime >= 500_000 ? "Gold Target Achieved" : "Locked"}
+              {monthlyDiamonds >= 500_000 ? "Gold Reached" : "Locked"}
             </div>
           </div>
         </div>
+
+        <p
+          style={{
+            marginTop: "14px",
+            fontSize: "13px",
+            color: "#9fe8ff",
+            textAlign: "center",
+          }}
+        >
+          Monthly Diamonds: <b>{monthlyDiamonds.toLocaleString()}</b>
+        </p>
       </section>
 
       {/* SUMMARY CARDS */}
@@ -319,7 +327,7 @@ export default function CreatorDashboardPage() {
           {monthLabel} {year} Activity
         </div>
         <div className="dash-card-sub">
-          Diamonds & hours per day. Blue days show 1+ hour live.
+          Diamonds & hours per day. Blue = 1h+ live.
         </div>
 
         <div className="calendar">
