@@ -20,6 +20,7 @@ export async function DELETE(
 ) {
   const { id } = await context.params;
 
+  // If you later delete files or DB records, do it here.
   return NextResponse.json({
     success: true,
     deleted: id,

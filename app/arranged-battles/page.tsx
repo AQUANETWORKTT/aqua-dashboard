@@ -3,6 +3,16 @@ import path from "path";
 import Link from "next/link";
 import { creators } from "@/data/creators";
 
+// -----------------------------
+// Types
+// -----------------------------
+type Creator = {
+  username: string;
+  displayName?: string;
+  daily: number;
+  lifetime: number;
+};
+
 type Battle = {
   id: string;
   date: string;
@@ -15,13 +25,15 @@ type Battle = {
   notes?: string;
 };
 
-// Load arranged battles
+// -----------------------------
+// Load Arranged Battles
+// -----------------------------
 function loadBattles(): Battle[] {
   const file = path.join(process.cwd(), "data", "arranged-battles.json");
   if (!fs.existsSync(file)) return [];
 
   try {
-    const json = JSON.parse(fs.readFileSync(file, "utf8")); 
+    const json = JSON.parse(fs.readFileSync(file, "utf8"));
     return json.sort((a: Battle, b: Battle) =>
       (a.date + a.time).localeCompare(b.date + b.time)
     );
@@ -30,7 +42,9 @@ function loadBattles(): Battle[] {
   }
 }
 
-// Date formatting
+// -----------------------------
+// Formatting Helpers
+// -----------------------------
 function formatDatePretty(dateStr: string) {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
@@ -43,11 +57,13 @@ function formatDatePretty(dateStr: string) {
   });
 }
 
-// Creator lookup
+// -----------------------------
+// Creator Lookup (Type-safe)
+// -----------------------------
 function getCreatorInfo(username: string) {
   const c = creators.find(
     (x) => x.username.toLowerCase() === username.toLowerCase()
-  );
+  ) as Creator | undefined;
 
   if (!c)
     return {
@@ -63,6 +79,9 @@ function getCreatorInfo(username: string) {
   };
 }
 
+// -----------------------------
+// Page Component
+// -----------------------------
 export default function ArrangedBattlesPage() {
   const battles = loadBattles();
 
@@ -80,14 +99,14 @@ export default function ArrangedBattlesPage() {
         />
       </div>
 
-      {/* No battles */}
+      {/* No Battles */}
       {battles.length === 0 && (
         <p style={{ textAlign: "center", marginTop: "20px" }}>
           No arranged battles are currently scheduled.
         </p>
       )}
 
-      {/* Battles */}
+      {/* Battles List */}
       <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
         {battles.map((b) => {
           const creator = getCreatorInfo(b.creatorUsername);
@@ -116,7 +135,7 @@ export default function ArrangedBattlesPage() {
                 {formatDatePretty(b.date)} — {b.time}
               </div>
 
-              {/* Cards */}
+              {/* Battle Row */}
               <div
                 style={{
                   display: "flex",
@@ -207,7 +226,7 @@ export default function ArrangedBattlesPage() {
                 </div>
               )}
 
-              {/* VIEW POSTER */}
+              {/* POSTER LINK */}
               <div style={{ textAlign: "center", marginTop: "20px" }}>
                 {b.posterUrl ? (
                   <Link
