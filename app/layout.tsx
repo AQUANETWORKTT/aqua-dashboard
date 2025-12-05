@@ -7,9 +7,9 @@ export const metadata = {
   title: "Aqua Agency",
   description: "Creator Network Dashboard",
   icons: {
-    icon: "/favicon.png", // <-- your PNG icon
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    icon: "/aqua-icon.png",         // <- put your icon in /public
+    shortcut: "/aqua-icon.png",
+    apple: "/apple-touch-icon.png"
   },
 };
 
