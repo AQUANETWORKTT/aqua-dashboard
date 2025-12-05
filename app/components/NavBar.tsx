@@ -13,7 +13,7 @@ export default function NavBar({ user }: { user: string | null }) {
   if (!user) return null;
   if (hideOn.includes(pathname)) return null;
 
-  // ORDER YOU REQUESTED
+  // ORDER YOU REQUESTED + NEW RED BAN HELP BUTTON
   const links = [
     { href: "/", label: "Home" },
     { href: `/dashboard/${user}`, label: "Dashboard" },
@@ -21,6 +21,13 @@ export default function NavBar({ user }: { user: string | null }) {
     { href: "/points-leaderboard", label: "Points" },
     { href: "/arranged-battles", label: "Arranged Battles" },
     { href: "/request-battle", label: "Request a Battle" },
+
+    // 🔥 NEW — Ban Help highlighted in red
+    {
+      href: "/banned-help",
+      label: "Ban Help",
+      style: { color: "#ff4d4d", fontWeight: 700 },
+    },
   ];
 
   return (
@@ -93,6 +100,9 @@ export default function NavBar({ user }: { user: string | null }) {
               style={{
                 padding: "8px 4px",
                 textAlign: "center",
+
+                // 👇 apply red style ONLY to Ban Help
+                ...(link.style || {}),
               }}
             >
               {link.label}

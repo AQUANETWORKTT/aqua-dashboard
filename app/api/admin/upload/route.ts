@@ -1,78 +1,50 @@
 import { NextResponse } from "next/server";
+import * as XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
-import { randomUUID } from "crypto";
 
-export async function POST(req: Request) {
-  try {
-    const form = await req.formData();
+const DATA_DIR = path.join(process.cwd(), "data");
+const HISTORY_DIR = path.join(DATA_DIR, "history");
+const CREATORS_TS = path.join(DATA_DIR, "creators.ts");
 
-    const date = form.get("date")?.toString() || "";
-    const time = form.get("time")?.toString() || "";
-    const creatorUsername = form.get("creator_username")?.toString() || "";
-    const opponentAgency = form.get("opponent_agency")?.toString() || "";
-    const opponentName = form.get("opponent_name")?.toString() || "";
-    const notes = form.get("notes")?.toString() || "";
+// Read XLSX file with DAILY data (diamonds + hours)
+function parseDailyFile(buffer: Buffer) {
+  const wb = XLSX.read(buffer, { type: "buffer" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
 
-    const opponentImage = form.get("opponent_image") as File | null;
-    const posterImage = form.get("poster_image") as File | null;
+  const rows: any[][] = XLSX.utils.sheet_to_json(ws, {
+    header: 1,
+    defval: null,
+  });
 
-    let opponentImageUrl = "";
-    let posterImageUrl = "";
+  const HEADER = rows[0];
+  if (!HEADER) throw new Error("Daily file missing header row.");
 
-    // -----------------------------
-    // STORE OPPONENT IMAGE
-    // -----------------------------
-    if (opponentImage) {
-      const buffer = Buffer.from(await opponentImage.arrayBuffer());
-      const fileName = `${randomUUID()}-${opponentImage.name}`;
-      const filePath = path.join(process.cwd(), "public", "battles", fileName);
+  const userCol = HEADER.findIndex((h) =>
+    String(h || "").toLowerCase().includes("username")
+  );
+  if (userCol === -1) throw new Error("Daily file missing username column.");
 
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, buffer);
+  const dailyDiamondsCol = 7; // H
+  const dailyHoursCol = 8; // I
 
-      opponentImageUrl = `/battles/${fileName}`;
-    }
+  const out: Record<
+    string,
+    { daily: number; dailyHours: number }
+  > = {};
 
-    // -----------------------------
-    // STORE POSTER IMAGE
-    // -----------------------------
-    if (posterImage) {
-      const buffer = Buffer.from(await posterImage.arrayBuffer());
-      const fileName = `${randomUUID()}-poster-${posterImage.name}`;
-      const filePath = path.join(process.cwd(), "public", "battle-posters", fileName);
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r) continue;
 
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, buffer);
+    const username = String(r[userCol] ?? "").trim();
+    if (!username) continue;
 
-      posterImageUrl = `/battle-posters/${fileName}`;
-    }
-
-    // -----------------------------
-    // SAVE TO JSON
-    // -----------------------------
-    const jsonPath = path.join(process.cwd(), "data", "arranged-battles.json");
-    const existing = fs.existsSync(jsonPath)
-      ? JSON.parse(fs.readFileSync(jsonPath, "utf8"))
-      : [];
-
-    const battle = {
-      id: randomUUID(),
-      date,
-      time,
-      creatorUsername,
-      opponentAgency,
-      opponentName,
-      opponentImageUrl,
-      posterImageUrl,
-      notes,
+    out[username] = {
+      daily: Number(r[dailyDiamondsCol]) || 0,
+      dailyHours: Number(r[dailyHoursCol]) || 0,
     };
-
-    existing.push(battle);
-    fs.writeFileSync(jsonPath, JSON.stringify(existing, null, 2));
-
-    return NextResponse.json({ success: true, battle });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
   }
+
+  return out;
 }
