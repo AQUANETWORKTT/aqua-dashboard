@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
+
+const filePath = path.join(process.cwd(), "data", "battle-requests.json");
 
 export async function POST(req: Request) {
   try {
@@ -14,15 +18,30 @@ export async function POST(req: Request) {
       );
     }
 
-    // Save request into a file OR console for now
-    console.log("New battle request:", {
+    // Load existing requests or create empty array if none
+    let existing: any[] = [];
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, "utf8");
+      existing = JSON.parse(raw);
+    }
+
+    // Build new request object
+    const newRequest = {
+      id: crypto.randomUUID(),
       tiktok_username,
       availability,
-    });
+      date: new Date().toISOString(),
+    };
 
-    return NextResponse.json({ success: true });
+    // Add to array
+    existing.push(newRequest);
+
+    // Save back to file
+    fs.writeFileSync(filePath, JSON.stringify(existing, null, 2), "utf8");
+
+    return NextResponse.json({ success: true, request: newRequest });
   } catch (err) {
-    console.error(err);
+    console.error("REQUEST BATTLE ERROR:", err);
     return NextResponse.json(
       { error: "Server error" },
       { status: 500 }
