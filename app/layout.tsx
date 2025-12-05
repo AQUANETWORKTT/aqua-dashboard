@@ -1,11 +1,14 @@
 import "./globals.css";
 import { cookies } from "next/headers";
-import NavBar from "./components/NavBar";
+import NavBarClient from "./components/NavBarClient";
+import { Poppins } from "next/font/google";
 
-export const metadata = {
-  title: "Aqua Dashboard",
-  description: "Creator stats dashboard",
-};
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
+});
+
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
 
@@ -16,10 +19,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <body className="app-body">
-
-        {/* CLIENT NAVBAR LOGIC */}
-        <NavBar user={loggedInUser} />
-
+        <NavBarClient user={loggedInUser} />
         {children}
       </body>
     </html>

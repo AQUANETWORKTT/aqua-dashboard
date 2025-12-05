@@ -3,19 +3,19 @@
 import { useState } from "react";
 
 export default function AdminUploadPage() {
-  // -------------------------
-  // STATE: ADMIN AUTH + UPLOAD
-  // -------------------------
+  // -----------------------------------------------------------
+  // EXISTING: STATS UPLOAD STATE
+  // -----------------------------------------------------------
   const [password, setPassword] = useState("");
-
-  // DAILY / LIFETIME EXCEL
   const [statsDate, setStatsDate] = useState("");
   const [dailyFile, setDailyFile] = useState<File | null>(null);
   const [lifetimeFile, setLifetimeFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // ARRANGED BATTLES
+  // -----------------------------------------------------------
+  // NEW: ARRANGED BATTLE STATE
+  // -----------------------------------------------------------
   const [battleDate, setBattleDate] = useState("");
   const [battleTime, setBattleTime] = useState("");
   const [creatorUsername, setCreatorUsername] = useState("");
@@ -25,10 +25,10 @@ export default function AdminUploadPage() {
   const [battleNotes, setBattleNotes] = useState("");
   const [battleStatus, setBattleStatus] = useState<string | null>(null);
 
-  // ------------------------------------------
-  // SUBMIT DAILY / LIFETIME STATS
-  // ------------------------------------------
-  async function handleStatsSubmit(e: React.FormEvent) {
+  // -----------------------------------------------------------
+  // UPLOAD STATS HANDLER
+  // -----------------------------------------------------------
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus(null);
 
@@ -42,28 +42,22 @@ export default function AdminUploadPage() {
     try {
       const res = await fetch("/api/admin/upload", {
         method: "POST",
-        headers: {
-          "x-admin-password": password,
-        },
+        headers: { "x-admin-password": password },
         body: form,
       });
 
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setStatus("❌ " + (json.error || "Upload failed"));
-      } else {
-        setStatus("✅ " + json.message);
-      }
+      setStatus(res.ok ? `✅ ${json.message}` : `❌ ${json.error}`);
     } catch (err: any) {
-      setStatus("❌ " + err.message);
+      setStatus(`❌ ${err.message}`);
     }
 
     setLoading(false);
   }
 
-  // ------------------------------------------
-  // SUBMIT ARRANGED BATTLE (NO EXCEL)
-  // ------------------------------------------
+  // -----------------------------------------------------------
+  // UPLOAD ARRANGED BATTLE HANDLER
+  // -----------------------------------------------------------
   async function handleBattleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBattleStatus(null);
@@ -80,40 +74,47 @@ export default function AdminUploadPage() {
     try {
       const res = await fetch("/api/admin/upload-battle", {
         method: "POST",
-        headers: {
-          "x-admin-password": password,
-        },
         body: form,
       });
 
       const json = await res.json();
+
       if (!res.ok) {
         setBattleStatus("❌ " + json.error);
       } else {
-        setBattleStatus("✅ Arranged battle saved!");
+        setBattleStatus("✅ Battle added successfully!");
+
+        // Clear fields after success
+        setBattleDate("");
+        setBattleTime("");
+        setCreatorUsername("");
+        setOpponentAgency("");
+        setOpponentName("");
+        setOpponentImage(null);
+        setBattleNotes("");
       }
     } catch (err: any) {
       setBattleStatus("❌ " + err.message);
     }
   }
 
-  // ------------------------------------------
-  // RENDER PAGE
-  // ------------------------------------------
+  // -----------------------------------------------------------
+  // PAGE UI
+  // -----------------------------------------------------------
   return (
     <main className="admin-wrapper">
       <div className="admin-card">
 
-        {/* -------------------------------------- */}
-        {/* DAILY & LIFETIME STATS UPLOAD SECTION  */}
-        {/* -------------------------------------- */}
+        {/* ====================================================== */}
+        {/* STATS UPLOAD SECTION                                  */}
+        {/* ====================================================== */}
+
         <h1 className="admin-title">Admin · Upload Stats</h1>
         <p className="admin-sub">
-          Upload your <strong>Daily</strong> and <strong>Lifetime</strong> Excel
-          files to update creators.
+          Upload your <strong>Daily</strong> and <strong>Lifetime</strong> Excel sheets.
         </p>
 
-        <form onSubmit={handleStatsSubmit} className="admin-form">
+        <form onSubmit={handleSubmit} className="admin-form">
 
           <label className="admin-label">
             Admin Password
@@ -122,7 +123,6 @@ export default function AdminUploadPage() {
               className="admin-input"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </label>
 
@@ -133,7 +133,6 @@ export default function AdminUploadPage() {
               className="admin-input"
               value={statsDate}
               onChange={(e) => setStatsDate(e.target.value)}
-              required
             />
           </label>
 
@@ -144,7 +143,6 @@ export default function AdminUploadPage() {
               className="admin-input-file"
               accept=".xlsx,.xls"
               onChange={(e) => setDailyFile(e.target.files?.[0] ?? null)}
-              required
             />
           </label>
 
@@ -155,7 +153,6 @@ export default function AdminUploadPage() {
               className="admin-input-file"
               accept=".xlsx,.xls"
               onChange={(e) => setLifetimeFile(e.target.files?.[0] ?? null)}
-              required
             />
           </label>
 
@@ -164,20 +161,24 @@ export default function AdminUploadPage() {
           </button>
 
           {status && (
-            <p className={`admin-status ${status.startsWith("✅") ? "success" : "error"}`}>
+            <p
+              className={`admin-status ${
+                status.startsWith("✅") ? "success" : "error"
+              }`}
+            >
               {status}
             </p>
           )}
         </form>
 
-        {/* -------------------------------------- */}
-        {/* ARRANGED BATTLE CREATION FORM          */}
-        {/* -------------------------------------- */}
-        <h2 className="glow-text" style={{ marginTop: "40px", marginBottom: "12px" }}>
-          Add New Arranged Battle
-        </h2>
+        {/* ====================================================== */}
+        {/* ARRANGED BATTLE CREATOR SECTION                       */}
+        {/* ====================================================== */}
 
-        <form onSubmit={handleBattleSubmit} className="admin-form">
+        <form onSubmit={handleBattleSubmit} style={{ marginTop: "45px" }}>
+          <h2 className="glow-text" style={{ marginBottom: "10px" }}>
+            Add New Arranged Battle
+          </h2>
 
           <label className="admin-label">
             Battle Date
@@ -208,7 +209,6 @@ export default function AdminUploadPage() {
               className="admin-input"
               value={creatorUsername}
               onChange={(e) => setCreatorUsername(e.target.value)}
-              placeholder="e.g. saskiahuxtable5"
               required
             />
           </label>
@@ -220,7 +220,6 @@ export default function AdminUploadPage() {
               className="admin-input"
               value={opponentAgency}
               onChange={(e) => setOpponentAgency(e.target.value)}
-              placeholder="e.g. Atlas Agency"
               required
             />
           </label>
@@ -232,7 +231,6 @@ export default function AdminUploadPage() {
               className="admin-input"
               value={opponentName}
               onChange={(e) => setOpponentName(e.target.value)}
-              placeholder="Opponent Creator Name"
               required
             />
           </label>
@@ -254,21 +252,23 @@ export default function AdminUploadPage() {
               className="admin-input"
               value={battleNotes}
               onChange={(e) => setBattleNotes(e.target.value)}
-              placeholder="Add any notes..."
             />
           </label>
 
-          <button className="admin-button" style={{ marginTop: "10px" }}>
+          <button className="admin-button" style={{ marginTop: "12px" }}>
             Save Battle
           </button>
 
           {battleStatus && (
-            <p className={`admin-status ${battleStatus.startsWith("✅") ? "success" : "error"}`}>
+            <p
+              className={`admin-status ${
+                battleStatus.startsWith("✅") ? "success" : "error"
+              }`}
+            >
               {battleStatus}
             </p>
           )}
         </form>
-
       </div>
     </main>
   );

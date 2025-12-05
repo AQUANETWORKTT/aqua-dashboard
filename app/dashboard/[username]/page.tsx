@@ -103,28 +103,45 @@ export default function CreatorDashboardPage() {
 
   // Streak (yesterday backwards)
   function computeStreak(entries: HistoryEntry[]): number {
-    if (!entries.length) return 0;
+  if (!entries.length) return 0;
 
-    const active = new Set(
-      entries.filter((e) => (e.hours ?? 0) >= 1).map((e) => e.date)
-    );
+  const sorted = [...entries].sort((a, b) =>
+    a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+  );
 
-    const start = new Date();
-    start.setDate(start.getDate() - 1);
+  const last = sorted[sorted.length - 1];
+  const todayKey = new Date().toISOString().split("T")[0];
 
-    let streak = 0;
+  const lastHours = last.hours ?? 0;
+  const lastIsToday = last.date === todayKey;
 
-    for (let i = 0; i < 365; i++) {
-      const d = new Date(start);
-      d.setDate(start.getDate() - i);
-
-      const iso = d.toISOString().slice(0, 10);
-      if (active.has(iso)) streak++;
-      else break;
-    }
-
-    return streak;
+  // NEW FIX — ignore today's entry if it has zero hours
+  if (lastIsToday && lastHours < 1) {
+    return computeStreak(sorted.slice(0, -1));
   }
+
+  // If latest valid day has <1 hour, streak breaks (normal rule)
+  if (lastHours < 1) return 0;
+
+  let streak = 1;
+  let lastDate = new Date(last.date + "T00:00:00Z");
+
+  for (let i = sorted.length - 2; i >= 0; i--) {
+    const e = sorted[i];
+    const d = new Date(e.date + "T00:00:00Z");
+
+    const diff =
+      (lastDate.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diff >= 0.5 && diff <= 1.5 && (e.hours ?? 0) >= 1) {
+      streak++;
+      lastDate = d;
+    } else break;
+  }
+
+  return streak;
+}
+
 
   const streak = computeStreak(history);
 
