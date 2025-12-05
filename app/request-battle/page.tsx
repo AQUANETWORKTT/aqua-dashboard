@@ -39,7 +39,7 @@ export default function RequestBattlePage() {
       }}
     >
       <h1 className="glow-text" style={{ textAlign: "center", marginBottom: "10px" }}>
-        Request a Battle
+        Request an Arranged Battle
       </h1>
 
       <p style={{ textAlign: "center", marginBottom: "20px", color: "#8ad6ff" }}>
