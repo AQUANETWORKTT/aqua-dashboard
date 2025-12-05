@@ -2,50 +2,47 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
+    console.log("🟦 Request received");
+
     const form = await req.formData();
+    const tiktok_username = form.get("tiktok_username");
+    const availability = form.get("availability");
 
-    const tiktok_username = form.get("tiktok_username") as string;
-    const availability = form.get("availability") as string;
-
-    if (!tiktok_username || !availability) {
-      return NextResponse.json(
-        { error: "Missing fields" },
-        { status: 400 }
-      );
-    }
+    console.log("Username:", tiktok_username);
+    console.log("Availability:", availability);
 
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
 
+    console.log("Token exists?", !!token);
+    console.log("Chat ID exists?", !!chatId);
+
     if (!token || !chatId) {
-      console.error("Missing Telegram bot config");
-      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+      console.error("Missing environment variables.");
+      return NextResponse.json({ error: "Missing env" }, { status: 500 });
     }
 
-    const text =
-      `🟦 *New Battle Request*\n` +
-      `👤 *Username:* ${tiktok_username}\n` +
-      `🕒 *Availability:* ${availability}\n` +
-      `📅 *Sent:* ${new Date().toLocaleString("en-GB")}`;
+    const text = `New request from ${tiktok_username}: ${availability}`;
+    const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
-    const telegramUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+    console.log("Sending Telegram message...");
 
-    await fetch(telegramUrl, {
+    const result = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
         text,
-        parse_mode: "Markdown",
       }),
     });
 
+    const response = await result.json();
+    console.log("Telegram response:", response);
+
     return NextResponse.json({ success: true });
+
   } catch (err) {
-    console.error("REQUEST BATTLE ERROR:", err);
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
-    );
+    console.error("TELEGRAM ERROR:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
