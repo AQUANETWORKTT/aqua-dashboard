@@ -1222,3 +1222,45 @@ a {
   text-shadow: 0 0 4px #2de0ff33;
 }
 
+.battle-card {
+  background: #03101a;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #2de0ff33;
+  box-shadow: 0 0 12px #2de0ff22;
+  margin: 20px auto;
+  width: 100%;
+  max-width: 480px; /* perfect for mobile */
+  overflow: hidden; /* stops images escaping */
+}
+
+.battle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.battle-img {
+  width: 45%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid #2de0ff55;
+}
+
+.battle-vs {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2de0ff;
+}
+
+.battle-info {
+  text-align: center;
+  margin-top: 14px;
+}
+
+.battle-info p {
+  margin: 4px 0;
+  font-size: 0.95rem;
+}
