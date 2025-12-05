@@ -6,13 +6,6 @@ import { Poppins } from "next/font/google";
 export const metadata = {
   title: "Aqua Agency",
   description: "Creator Network Dashboard",
-  icons: {
-    icon: [
-      { url: "/icon.png", sizes: "512x512", type: "image/png" },
-      { url: "/favicon.png", sizes: "32x32", type: "image/png" }
-    ],
-    apple: "/icon.png"
-  }
 };
 
 const poppins = Poppins({
