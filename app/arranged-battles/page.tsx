@@ -135,39 +135,42 @@ export default function ArrangedBattlesPage() {
                 {formatDatePretty(b.date)} — {b.time}
               </div>
 
-              {/* Battle Row */}
+              {/* Battle Row (updated, responsive, no overlap) */}
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "space-between",
-                  gap: "20px",
+                  flexDirection: "row",
                   alignItems: "center",
+                  justifyContent: "center",
+                  gap: "20px",
+                  flexWrap: "wrap",
                 }}
               >
                 {/* Creator */}
-                <div style={{ flex: 1, textAlign: "center" }}>
+                <div style={{ flex: "1 1 120px", textAlign: "center" }}>
                   <img
                     src={creator.avatar}
                     alt={creator.display}
                     style={{
-                      width: "130px",
-                      height: "130px",
+                      width: "120px",
+                      height: "120px",
                       borderRadius: "50%",
                       border: "2px solid #2de0ff",
                       objectFit: "cover",
+                      flexShrink: 0,
                     }}
                   />
                   <div
                     style={{
                       marginTop: "10px",
-                      fontSize: "20px",
+                      fontSize: "18px",
                       fontWeight: 600,
                       color: "#e7f9ff",
                     }}
                   >
                     {creator.display}
                   </div>
-                  <div style={{ color: "#8ad6ff", fontSize: "15px" }}>
+                  <div style={{ color: "#8ad6ff", fontSize: "14px" }}>
                     {creator.agency}
                   </div>
                 </div>
@@ -178,35 +181,38 @@ export default function ArrangedBattlesPage() {
                     color: "#2de0ff",
                     fontSize: "32px",
                     fontWeight: 800,
+                    flex: "0 0 auto",
+                    margin: "10px 0",
                   }}
                 >
                   VS
                 </div>
 
                 {/* Opponent */}
-                <div style={{ flex: 1, textAlign: "center" }}>
+                <div style={{ flex: "1 1 120px", textAlign: "center" }}>
                   <img
                     src={b.opponentImageUrl || "/branding/default-opponent.png"}
                     alt={b.opponentName}
                     style={{
-                      width: "130px",
-                      height: "130px",
+                      width: "120px",
+                      height: "120px",
                       borderRadius: "50%",
                       border: "2px solid #2de0ff",
                       objectFit: "cover",
+                      flexShrink: 0,
                     }}
                   />
                   <div
                     style={{
                       marginTop: "10px",
-                      fontSize: "20px",
+                      fontSize: "18px",
                       fontWeight: 600,
                       color: "#e7f9ff",
                     }}
                   >
                     {b.opponentName}
                   </div>
-                  <div style={{ color: "#8ad6ff", fontSize: "15px" }}>
+                  <div style={{ color: "#8ad6ff", fontSize: "14px" }}>
                     {b.opponentAgency}
                   </div>
                 </div>
