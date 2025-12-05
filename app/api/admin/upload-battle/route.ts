@@ -10,22 +10,22 @@ export async function POST(req: Request) {
     const date = form.get("date")?.toString() || "";
     const time = form.get("time")?.toString() || "";
     const creatorUsername = form.get("creator_username")?.toString() || "";
-
-    // ⬇⬇ AUTO SET CREATOR AGENCY
-    const creatorAgency = "Aqua Agency";
-
     const opponentAgency = form.get("opponent_agency")?.toString() || "";
     const opponentName = form.get("opponent_name")?.toString() || "";
     const notes = form.get("notes")?.toString() || "";
 
-    const imageFile = form.get("opponent_image") as File | null;
+    const opponentImage = form.get("opponent_image") as File | null;
+    const posterImage = form.get("poster_image") as File | null;
 
     let opponentImageUrl = "";
+    let posterUrl = "";
 
-    // Save opponent image
-    if (imageFile) {
-      const buffer = Buffer.from(await imageFile.arrayBuffer());
-      const fileName = `${randomUUID()}-${imageFile.name}`;
+    // ---------------------------
+    // SAVE OPPONENT IMAGE
+    // ---------------------------
+    if (opponentImage) {
+      const buffer = Buffer.from(await opponentImage.arrayBuffer());
+      const fileName = `${randomUUID()}-${opponentImage.name}`;
       const uploadPath = path.join(process.cwd(), "public", "battles", fileName);
 
       fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
@@ -34,6 +34,23 @@ export async function POST(req: Request) {
       opponentImageUrl = `/battles/${fileName}`;
     }
 
+    // ---------------------------
+    // SAVE POSTER IMAGE
+    // ---------------------------
+    if (posterImage) {
+      const buffer = Buffer.from(await posterImage.arrayBuffer());
+      const fileName = `${randomUUID()}-${posterImage.name}`;
+      const uploadPath = path.join(process.cwd(), "public", "battle-posters", fileName);
+
+      fs.mkdirSync(path.dirname(uploadPath), { recursive: true });
+      fs.writeFileSync(uploadPath, buffer);
+
+      posterUrl = `/battle-posters/${fileName}`;
+    }
+
+    // ---------------------------
+    // SAVE TO JSON FILE
+    // ---------------------------
     const filePath = path.join(process.cwd(), "data", "arranged-battles.json");
     const existing = fs.existsSync(filePath)
       ? JSON.parse(fs.readFileSync(filePath, "utf8"))
@@ -44,18 +61,23 @@ export async function POST(req: Request) {
       date,
       time,
       creatorUsername,
-      creatorAgency, // ⬅⬅ ADD HERE
       opponentAgency,
       opponentName,
       opponentImageUrl,
+      posterUrl,
       notes,
     };
 
     existing.push(battle);
+
     fs.writeFileSync(filePath, JSON.stringify(existing, null, 2));
 
     return NextResponse.json({ success: true, battle });
+
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message },
+      { status: 500 }
+    );
   }
 }

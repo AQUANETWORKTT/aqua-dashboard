@@ -3,31 +3,28 @@
 import { useState } from "react";
 
 export default function AdminUploadPage() {
-  // -------------------------
-  // STATE: ADMIN AUTH + UPLOAD
-  // -------------------------
   const [password, setPassword] = useState("");
 
-  // DAILY / LIFETIME EXCEL
+  // Stats upload
   const [statsDate, setStatsDate] = useState("");
   const [dailyFile, setDailyFile] = useState<File | null>(null);
   const [lifetimeFile, setLifetimeFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  // ARRANGED BATTLES
+  // Battle upload
   const [battleDate, setBattleDate] = useState("");
   const [battleTime, setBattleTime] = useState("");
   const [creatorUsername, setCreatorUsername] = useState("");
   const [opponentAgency, setOpponentAgency] = useState("");
   const [opponentName, setOpponentName] = useState("");
   const [opponentImage, setOpponentImage] = useState<File | null>(null);
+  const [posterImage, setPosterImage] = useState<File | null>(null);
   const [battleNotes, setBattleNotes] = useState("");
   const [battleStatus, setBattleStatus] = useState<string | null>(null);
 
-  // ------------------------------------------
-  // SUBMIT DAILY / LIFETIME STATS
-  // ------------------------------------------
+  // ------------------------------------------------
+  // SUBMIT STATS
+  // ------------------------------------------------
   async function handleStatsSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus(null);
@@ -37,33 +34,23 @@ export default function AdminUploadPage() {
     form.append("dailyFile", dailyFile!);
     form.append("lifetimeFile", lifetimeFile!);
 
-    setLoading(true);
-
     try {
       const res = await fetch("/api/admin/upload", {
         method: "POST",
-        headers: {
-          "x-admin-password": password,
-        },
+        headers: { "x-admin-password": password },
         body: form,
       });
 
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setStatus("❌ " + (json.error || "Upload failed"));
-      } else {
-        setStatus("✅ " + json.message);
-      }
+      const json = await res.json();
+      setStatus(res.ok ? `✅ ${json.message}` : `❌ ${json.error}`);
     } catch (err: any) {
       setStatus("❌ " + err.message);
     }
-
-    setLoading(false);
   }
 
-  // ------------------------------------------
-  // SUBMIT ARRANGED BATTLE (NO EXCEL)
-  // ------------------------------------------
+  // ------------------------------------------------
+  // SUBMIT BATTLE
+  // ------------------------------------------------
   async function handleBattleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBattleStatus(null);
@@ -75,198 +62,115 @@ export default function AdminUploadPage() {
     form.append("opponent_agency", opponentAgency);
     form.append("opponent_name", opponentName);
     form.append("notes", battleNotes);
+
     if (opponentImage) form.append("opponent_image", opponentImage);
+    if (posterImage) form.append("poster_image", posterImage);
 
     try {
       const res = await fetch("/api/admin/upload-battle", {
         method: "POST",
-        headers: {
-          "x-admin-password": password,
-        },
+        headers: { "x-admin-password": password },
         body: form,
       });
 
       const json = await res.json();
-      if (!res.ok) {
-        setBattleStatus("❌ " + json.error);
-      } else {
-        setBattleStatus("✅ Arranged battle saved!");
-      }
+      setBattleStatus(res.ok ? "✅ Battle added!" : `❌ ${json.error}`);
     } catch (err: any) {
       setBattleStatus("❌ " + err.message);
     }
   }
 
-  // ------------------------------------------
-  // RENDER PAGE
-  // ------------------------------------------
   return (
     <main className="admin-wrapper">
       <div className="admin-card">
 
-        {/* -------------------------------------- */}
-        {/* DAILY & LIFETIME STATS UPLOAD SECTION  */}
-        {/* -------------------------------------- */}
-        <h1 className="admin-title">Admin · Upload Stats</h1>
-        <p className="admin-sub">
-          Upload your <strong>Daily</strong> and <strong>Lifetime</strong> Excel
-          files to update creators.
-        </p>
+        {/* ---------------- STATS UPLOAD ---------------- */}
+        <h1 className="admin-title">Upload Stats</h1>
 
         <form onSubmit={handleStatsSubmit} className="admin-form">
-
           <label className="admin-label">
             Admin Password
-            <input
-              type="password"
-              className="admin-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <input className="admin-input" type="password" required
+              value={password} onChange={(e) => setPassword(e.target.value)} />
           </label>
 
           <label className="admin-label">
             Stats Date
-            <input
-              type="date"
-              className="admin-input"
-              value={statsDate}
-              onChange={(e) => setStatsDate(e.target.value)}
-              required
-            />
+            <input className="admin-input" type="date" required
+              value={statsDate} onChange={(e) => setStatsDate(e.target.value)} />
           </label>
 
           <label className="admin-label">
-            Daily File (.xlsx)
-            <input
-              type="file"
-              className="admin-input-file"
-              accept=".xlsx,.xls"
-              onChange={(e) => setDailyFile(e.target.files?.[0] ?? null)}
-              required
-            />
+            Daily Excel
+            <input className="admin-input-file" type="file" accept=".xlsx,.xls" required
+              onChange={(e) => setDailyFile(e.target.files?.[0] ?? null)} />
           </label>
 
           <label className="admin-label">
-            Lifetime File (.xlsx)
-            <input
-              type="file"
-              className="admin-input-file"
-              accept=".xlsx,.xls"
-              onChange={(e) => setLifetimeFile(e.target.files?.[0] ?? null)}
-              required
-            />
+            Lifetime Excel
+            <input className="admin-input-file" type="file" accept=".xlsx,.xls" required
+              onChange={(e) => setLifetimeFile(e.target.files?.[0] ?? null)} />
           </label>
 
-          <button className="admin-button" disabled={loading}>
-            {loading ? "Uploading…" : "Upload Stats"}
-          </button>
-
-          {status && (
-            <p className={`admin-status ${status.startsWith("✅") ? "success" : "error"}`}>
-              {status}
-            </p>
-          )}
+          <button className="admin-button">Upload Stats</button>
+          {status && <p className="admin-status">{status}</p>}
         </form>
 
-        {/* -------------------------------------- */}
-        {/* ARRANGED BATTLE CREATION FORM          */}
-        {/* -------------------------------------- */}
-        <h2 className="glow-text" style={{ marginTop: "40px", marginBottom: "12px" }}>
-          Add New Arranged Battle
-        </h2>
+        {/* ---------------- BATTLE UPLOAD ---------------- */}
+        <h2 className="glow-text" style={{ marginTop: 40 }}>Add Arranged Battle</h2>
 
         <form onSubmit={handleBattleSubmit} className="admin-form">
 
           <label className="admin-label">
-            Battle Date
-            <input
-              type="date"
-              className="admin-input"
-              value={battleDate}
-              onChange={(e) => setBattleDate(e.target.value)}
-              required
-            />
+            Date
+            <input className="admin-input" type="date" required
+              value={battleDate} onChange={(e) => setBattleDate(e.target.value)} />
           </label>
 
           <label className="admin-label">
-            Battle Time
-            <input
-              type="time"
-              className="admin-input"
-              value={battleTime}
-              onChange={(e) => setBattleTime(e.target.value)}
-              required
-            />
+            Time
+            <input className="admin-input" type="time" required
+              value={battleTime} onChange={(e) => setBattleTime(e.target.value)} />
           </label>
 
           <label className="admin-label">
             Creator Username
-            <input
-              type="text"
-              className="admin-input"
-              value={creatorUsername}
-              onChange={(e) => setCreatorUsername(e.target.value)}
-              placeholder="e.g. saskiahuxtable5"
-              required
-            />
+            <input className="admin-input" required
+              value={creatorUsername} onChange={(e) => setCreatorUsername(e.target.value)} />
           </label>
 
           <label className="admin-label">
             Opponent Agency
-            <input
-              type="text"
-              className="admin-input"
-              value={opponentAgency}
-              onChange={(e) => setOpponentAgency(e.target.value)}
-              placeholder="e.g. Atlas Agency"
-              required
-            />
+            <input className="admin-input" required
+              value={opponentAgency} onChange={(e) => setOpponentAgency(e.target.value)} />
           </label>
 
           <label className="admin-label">
             Opponent Name
-            <input
-              type="text"
-              className="admin-input"
-              value={opponentName}
-              onChange={(e) => setOpponentName(e.target.value)}
-              placeholder="Opponent Creator Name"
-              required
-            />
+            <input className="admin-input" required
+              value={opponentName} onChange={(e) => setOpponentName(e.target.value)} />
           </label>
 
           <label className="admin-label">
             Opponent Image
-            <input
-              type="file"
-              className="admin-input-file"
-              accept="image/*"
-              onChange={(e) => setOpponentImage(e.target.files?.[0] ?? null)}
-              required
-            />
+            <input className="admin-input-file" type="file" accept="image/*" required
+              onChange={(e) => setOpponentImage(e.target.files?.[0] ?? null)} />
           </label>
 
           <label className="admin-label">
-            Notes (optional)
-            <textarea
-              className="admin-input"
-              value={battleNotes}
-              onChange={(e) => setBattleNotes(e.target.value)}
-              placeholder="Add any notes..."
-            />
+            Battle Poster
+            <input className="admin-input-file" type="file" accept="image/*"
+              onChange={(e) => setPosterImage(e.target.files?.[0] ?? null)} />
           </label>
 
-          <button className="admin-button" style={{ marginTop: "10px" }}>
-            Save Battle
-          </button>
+          <label className="admin-label">
+            Notes
+            <textarea className="admin-input"
+              value={battleNotes} onChange={(e) => setBattleNotes(e.target.value)} />
+          </label>
 
-          {battleStatus && (
-            <p className={`admin-status ${battleStatus.startsWith("✅") ? "success" : "error"}`}>
-              {battleStatus}
-            </p>
-          )}
+          <button className="admin-button">Save Battle</button>
+          {battleStatus && <p className="admin-status">{battleStatus}</p>}
         </form>
 
       </div>

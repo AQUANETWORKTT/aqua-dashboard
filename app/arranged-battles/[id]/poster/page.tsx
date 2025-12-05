@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { creators } from "@/data/creators";
 
 type Battle = {
   id: string;
@@ -11,194 +10,57 @@ type Battle = {
   opponentName: string;
   opponentImageUrl?: string;
   notes?: string;
+  posterUrl?: string;
 };
 
+// Load all battles
 function loadBattles(): Battle[] {
   const file = path.join(process.cwd(), "data", "arranged-battles.json");
   if (!fs.existsSync(file)) return [];
   try {
-    const json = JSON.parse(fs.readFileSync(file, "utf8"));
-    return json as Battle[];
+    return JSON.parse(fs.readFileSync(file, "utf8")) as Battle[];
   } catch {
     return [];
   }
 }
 
-function getBattle(id: string): Battle | undefined {
-  const battles = loadBattles();
-  return battles.find((b) => b.id === id);
-}
-
-function formatDatePretty(dateStr: string) {
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-
-  return d.toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function getCreatorInfo(username: string) {
-  const c = creators.find(
-    (x) => x.username.toLowerCase() === username.toLowerCase()
-  );
-  if (!c)
-    return {
-      display: username,
-      avatar: "/branding/default-creator.png",
-      agency: "Aqua Agency",
-    };
-
-  return {
-    display: c.displayName ?? c.username,
-    avatar: `/creators/${c.username}.jpg`,
-    agency: "Aqua Agency",
-  };
-}
-
-export default function BattlePosterPage({
+export default async function BattlePosterPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const battle = getBattle(params.id);
+  // ⬇️ FIX: unwrap params
+  const { id } = await params;
 
-  if (!battle) {
+  const battles = loadBattles();
+  const battle = battles.find((b) => b.id === id);
+
+  if (!battle || !battle.posterUrl) {
     return (
-      <main
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#e7f9ff",
-        }}
-      >
-        Battle not found.
-      </main>
+      <div style={{ textAlign: "center", padding: "40px" }}>
+        <h2 style={{ color: "white" }}>Poster not found</h2>
+      </div>
     );
   }
-
-  const creator = getCreatorInfo(battle.creatorUsername);
 
   return (
     <main
       style={{
-        minHeight: "100vh",
-        margin: 0,
-        padding: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#000814",
+        maxWidth: "900px",
+        margin: "0 auto",
+        textAlign: "center",
+        paddingTop: "20px",
       }}
     >
-      <div
+      <img
+        src={battle.posterUrl}
+        alt="Battle Poster"
         style={{
-          width: "520px",
-          height: "932px",
-          position: "relative",
-          backgroundImage: "url('/branding/battle-poster-bg.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          borderRadius: "24px",
-          overflow: "hidden",
-          boxShadow: "0 0 40px rgba(0,0,0,0.9)",
+          width: "100%",
+          borderRadius: "16px",
+          border: "2px solid #2de0ff",
         }}
-      >
-        {/* Creator avatar */}
-        <div
-          style={{
-            position: "absolute",
-            left: "50px",
-            top: "340px",
-            width: "170px",
-            height: "170px",
-            borderRadius: "50%",
-            overflow: "hidden",
-            border: "3px solid #2de0ff",
-          }}
-        >
-          <img
-            src={creator.avatar}
-            alt={creator.display}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        </div>
-
-        {/* Opponent avatar */}
-        <div
-          style={{
-            position: "absolute",
-            right: "50px",
-            top: "340px",
-            width: "170px",
-            height: "170px",
-            borderRadius: "50%",
-            overflow: "hidden",
-            border: "3px solid #2de0ff",
-          }}
-        >
-          <img
-            src={battle.opponentImageUrl || "/branding/default-opponent.png"}
-            alt={battle.opponentName}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        </div>
-
-        {/* Creator name */}
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: "530px",
-            textAlign: "left",
-            paddingLeft: "60px",
-            fontSize: "22px",
-            fontWeight: 700,
-            color: "#ffffff",
-          }}
-        >
-          {creator.display.toUpperCase()}
-        </div>
-
-        {/* Date + time */}
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: "190px",
-            textAlign: "center",
-            fontSize: "24px",
-            fontWeight: 700,
-            color: "#54c9ff",
-            textTransform: "uppercase",
-          }}
-        >
-          {formatDatePretty(battle.date).toUpperCase()} {battle.time}
-        </div>
-
-        {/* Opponent agency logo text at bottom-right (simple) */}
-        <div
-          style={{
-            position: "absolute",
-            right: "40px",
-            bottom: "40px",
-            textAlign: "right",
-            color: "#ffd54f",
-            fontWeight: 700,
-            fontSize: "16px",
-            textShadow: "0 0 8px rgba(0,0,0,0.7)",
-          }}
-        >
-          {battle.opponentAgency}
-        </div>
-      </div>
+      />
     </main>
   );
 }

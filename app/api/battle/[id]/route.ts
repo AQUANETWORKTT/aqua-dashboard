@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
-import path from "path";
 import fs from "fs";
+import path from "path";
 
-export async function GET(_: Request, { params }: any) {
-  const file = path.join(process.cwd(), "data/battles", `${params.id}.json`);
+export async function GET(_req: Request, context: { params: { id: string } }) {
+  const { id } = context.params;
 
-  if (!fs.existsSync(file)) return NextResponse.json({ error: "Not found" });
+  const filePath = path.join(process.cwd(), "data/battles", `${id}.json`);
 
-  const json = JSON.parse(fs.readFileSync(file, "utf8"));
-  return NextResponse.json(json);
+  if (!fs.existsSync(filePath)) {
+    return NextResponse.json({ error: "Battle not found" }, { status: 404 });
+  }
+
+  const battle = JSON.parse(fs.readFileSync(filePath, "utf8"));
+
+  return NextResponse.json(battle);
 }
