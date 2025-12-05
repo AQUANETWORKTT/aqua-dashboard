@@ -7,10 +7,12 @@ export const metadata = {
   title: "Aqua Agency",
   description: "Creator Network Dashboard",
   icons: {
-    icon: "/aqua-icon.png",         // <- put your icon in /public
-    shortcut: "/aqua-icon.png",
-    apple: "/apple-touch-icon.png"
-  },
+    icon: [
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.png", sizes: "32x32", type: "image/png" }
+    ],
+    apple: "/icon.png"
+  }
 };
 
 const poppins = Poppins({
@@ -19,11 +21,7 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const aquaCookie = cookieStore.get("aqua_user");
   const loggedInUser = aquaCookie?.value ?? null;
