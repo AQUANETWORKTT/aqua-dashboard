@@ -1,9 +1,4 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-
-const dataDir = path.join(process.cwd(), "data");
-const filePath = path.join(dataDir, "battle-requests.json");
 
 export async function POST(req: Request) {
   try {
@@ -19,36 +14,33 @@ export async function POST(req: Request) {
       );
     }
 
-    // Ensure /data folder exists
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir);
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    const chatId = process.env.TELEGRAM_CHAT_ID;
+
+    if (!token || !chatId) {
+      console.error("Missing Telegram bot config");
+      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
     }
 
-    // Ensure the file exists
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, "[]", "utf8");
-    }
+    const text =
+      `🟦 *New Battle Request*\n` +
+      `👤 *Username:* ${tiktok_username}\n` +
+      `🕒 *Availability:* ${availability}\n` +
+      `📅 *Sent:* ${new Date().toLocaleString("en-GB")}`;
 
-    // Load existing data
-    const raw = fs.readFileSync(filePath, "utf8");
-    const existing = JSON.parse(raw);
+    const telegramUrl = `https://api.telegram.org/bot${token}/sendMessage`;
 
-    // Build new request object
-    const newRequest = {
-      id: crypto.randomUUID(),
-      tiktok_username,
-      availability,
-      date: new Date().toISOString(),
-    };
+    await fetch(telegramUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: "Markdown",
+      }),
+    });
 
-    // Add request
-    existing.push(newRequest);
-
-    // Save file
-    fs.writeFileSync(filePath, JSON.stringify(existing, null, 2), "utf8");
-
-    return NextResponse.json({ success: true, request: newRequest });
-
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error("REQUEST BATTLE ERROR:", err);
     return NextResponse.json(
