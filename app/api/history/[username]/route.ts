@@ -1,21 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest, context: { params: Promise<{ username: string }> }) {
+export async function GET(
+  req: Request,
+  context: { params: { username: string } }
+) {
+  const { username } = context.params;
+
+  // Load history JSON file
   try {
-    const { username } = await context.params;
+    const filePath = `./data/history/${username}.json`;
+    const data = await import(`../../../../data/history/${username}.json`);
 
-    const filePath = path.join(process.cwd(), "public", "history", `${username}.json`);
-
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: "User history not found" }, { status: 404 });
-    }
-
-    const data = fs.readFileSync(filePath, "utf8");
-    return NextResponse.json(JSON.parse(data));
-
+    return NextResponse.json(data);
   } catch (err) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "History not found" },
+      { status: 404 }
+    );
   }
 }

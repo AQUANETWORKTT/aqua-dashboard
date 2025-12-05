@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/battle/[id]
 export async function GET(
-  req: Request,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
 
   return NextResponse.json({
     id,
@@ -15,12 +15,11 @@ export async function GET(
 
 // DELETE /api/battle/[id]
 export async function DELETE(
-  req: Request,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
 
-  // Here you would delete the battle file, DB entry, etc.
   return NextResponse.json({
     success: true,
     deleted: id,
