@@ -3,21 +3,33 @@ import { cookies } from "next/headers";
 import NavBarClient from "./components/NavBarClient";
 import { Poppins } from "next/font/google";
 
+export const metadata = {
+  title: "Aqua Agency",
+  description: "Creator Network Dashboard",
+  icons: {
+    icon: "/favicon.ico",         // <- put your icon in /public
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png"
+  },
+};
+
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-poppins",
 });
 
-
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const cookieStore = await cookies();
   const aquaCookie = cookieStore.get("aqua_user");
   const loggedInUser = aquaCookie?.value ?? null;
 
   return (
-    <html lang="en">
+    <html lang="en" className={poppins.variable}>
       <body className="app-body">
         <NavBarClient user={loggedInUser} />
         {children}
