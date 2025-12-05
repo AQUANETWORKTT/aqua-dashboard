@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-const filePath = path.join(process.cwd(), "data", "battle-requests.json");
+const dataDir = path.join(process.cwd(), "data");
+const filePath = path.join(dataDir, "battle-requests.json");
 
 export async function POST(req: Request) {
   try {
@@ -18,12 +19,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Load existing requests or create empty array if none
-    let existing: any[] = [];
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, "utf8");
-      existing = JSON.parse(raw);
+    // Ensure /data folder exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir);
     }
+
+    // Ensure the file exists
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, "[]", "utf8");
+    }
+
+    // Load existing data
+    const raw = fs.readFileSync(filePath, "utf8");
+    const existing = JSON.parse(raw);
 
     // Build new request object
     const newRequest = {
@@ -33,13 +41,14 @@ export async function POST(req: Request) {
       date: new Date().toISOString(),
     };
 
-    // Add to array
+    // Add request
     existing.push(newRequest);
 
-    // Save back to file
+    // Save file
     fs.writeFileSync(filePath, JSON.stringify(existing, null, 2), "utf8");
 
     return NextResponse.json({ success: true, request: newRequest });
+
   } catch (err) {
     console.error("REQUEST BATTLE ERROR:", err);
     return NextResponse.json(
