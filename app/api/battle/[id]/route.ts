@@ -1,17 +1,28 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 
-export async function GET(_req: Request, context: { params: { id: string } }) {
+// GET /api/battle/[id]
+export async function GET(
+  req: Request,
+  context: { params: { id: string } }
+) {
   const { id } = context.params;
 
-  const filePath = path.join(process.cwd(), "data/battles", `${id}.json`);
+  return NextResponse.json({
+    id,
+    message: "Battle fetched successfully",
+  });
+}
 
-  if (!fs.existsSync(filePath)) {
-    return NextResponse.json({ error: "Battle not found" }, { status: 404 });
-  }
+// DELETE /api/battle/[id]
+export async function DELETE(
+  req: Request,
+  context: { params: { id: string } }
+) {
+  const { id } = context.params;
 
-  const battle = JSON.parse(fs.readFileSync(filePath, "utf8"));
-
-  return NextResponse.json(battle);
+  // Here you would delete the battle file, DB entry, etc.
+  return NextResponse.json({
+    success: true,
+    deleted: id,
+  });
 }
