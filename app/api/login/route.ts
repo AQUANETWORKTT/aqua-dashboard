@@ -1,49 +1,35 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { creators } from "@/data/creators";
 
 export async function POST(req: Request) {
   try {
     const { username } = await req.json();
 
-    if (!username || typeof username !== "string") {
-      return NextResponse.json(
-        { error: "Invalid username format." },
-        { status: 400 }
-      );
+    if (!username) {
+      return NextResponse.json({ error: "Missing username" }, { status: 400 });
     }
 
-    const clean = username.trim().toLowerCase();
+    const creator = creators.find(
+      (c) => c.username.toLowerCase() === username.toLowerCase()
+    );
 
-    // Check if file exists in /public/history
-    const safe = clean.replace(/[<>:"/\\|?*]/g, "_");
-    const filePath = path.join(process.cwd(), "public/history", `${safe}.json`);
-
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json(
-        {
-          error:
-            "Incorrect username. Please ensure it exactly matches your TikTok username — case sensitive.",
-        },
-        { status: 404 }
-      );
+    if (!creator) {
+      return NextResponse.json({ error: "Creator not found" }, { status: 404 });
     }
 
-    // Success → set cookie
-    const res = NextResponse.json({ success: true });
-
-    res.cookies.set("aqua_user", clean, {
-      path: "/",
+    // Save canonical username into cookie
+    const res = NextResponse.json({ ok: true, username: creator.username });
+    res.cookies.set("aqua_user", creator.username, {
+      secure: true,
       httpOnly: false,
       sameSite: "lax",
+      path: "/",
     });
 
     return res;
+
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
-    return NextResponse.json(
-      { error: "Server error. Please try again." },
-      { status: 500 }
-    );
+    console.error(err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

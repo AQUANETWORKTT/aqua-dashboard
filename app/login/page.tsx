@@ -22,18 +22,20 @@ export default function LoginPage() {
       body: JSON.stringify({ username }),
     });
 
-    if (!res.ok) {
-      setError("Login failed.");
+    const data = await res.json();
+
+    if (!res.ok || !data.username) {
+      setError("Login failed. Make sure your creator username is correct.");
       return;
     }
 
-    router.push(`/dashboard/${username}`);
+    // Redirect using the REAL canonical username
+    router.push(`/dashboard/${data.username}`);
   }
 
   return (
     <main className="login-wrapper">
       <div className="login-card">
-
         <img
           src="/aqua-logo.png"
           className="login-logo"
@@ -44,7 +46,6 @@ export default function LoginPage() {
         <p className="login-subtext">Access your diamonds, streaks & stats.</p>
 
         <form onSubmit={handleLogin}>
-
           <input
             type="text"
             className="login-input"
@@ -58,9 +59,7 @@ export default function LoginPage() {
           <button className="login-button" type="submit">
             Enter Dashboard
           </button>
-
         </form>
-
       </div>
     </main>
   );
