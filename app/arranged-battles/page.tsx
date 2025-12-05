@@ -3,9 +3,6 @@ import path from "path";
 import Link from "next/link";
 import { creators } from "@/data/creators";
 
-// -----------------------------
-// Types
-// -----------------------------
 type Creator = {
   username: string;
   displayName?: string;
@@ -25,9 +22,6 @@ type Battle = {
   notes?: string;
 };
 
-// -----------------------------
-// Load Arranged Battles
-// -----------------------------
 function loadBattles(): Battle[] {
   const file = path.join(process.cwd(), "data", "arranged-battles.json");
   if (!fs.existsSync(file)) return [];
@@ -42,9 +36,6 @@ function loadBattles(): Battle[] {
   }
 }
 
-// -----------------------------
-// Formatting Helpers
-// -----------------------------
 function formatDatePretty(dateStr: string) {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
@@ -57,9 +48,6 @@ function formatDatePretty(dateStr: string) {
   });
 }
 
-// -----------------------------
-// Creator Lookup (Type-safe)
-// -----------------------------
 function getCreatorInfo(username: string) {
   const c = creators.find(
     (x) => x.username.toLowerCase() === username.toLowerCase()
@@ -79,9 +67,6 @@ function getCreatorInfo(username: string) {
   };
 }
 
-// -----------------------------
-// Page Component
-// -----------------------------
 export default function ArrangedBattlesPage() {
   const battles = loadBattles();
 
@@ -90,7 +75,6 @@ export default function ArrangedBattlesPage() {
       className="leaderboard-wrapper"
       style={{ maxWidth: "900px", margin: "0 auto" }}
     >
-      {/* Banner */}
       <div className="leaderboard-title-image">
         <img
           src="/branding/arranged-battles.png"
@@ -99,14 +83,12 @@ export default function ArrangedBattlesPage() {
         />
       </div>
 
-      {/* No Battles */}
       {battles.length === 0 && (
         <p style={{ textAlign: "center", marginTop: "20px" }}>
           No arranged battles are currently scheduled.
         </p>
       )}
 
-      {/* Battles List */}
       <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
         {battles.map((b) => {
           const creator = getCreatorInfo(b.creatorUsername);
@@ -122,7 +104,6 @@ export default function ArrangedBattlesPage() {
                 boxShadow: "0 0 24px rgba(45,224,255,0.18)",
               }}
             >
-              {/* Date */}
               <div
                 style={{
                   textAlign: "center",
@@ -135,19 +116,18 @@ export default function ArrangedBattlesPage() {
                 {formatDatePretty(b.date)} — {b.time}
               </div>
 
-              {/* Battle Row (updated, responsive, no overlap) */}
+              {/* UPDATED GRID LAYOUT */}
               <div
                 style={{
-                  display: "flex",
-                  flexDirection: "row",
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto 1fr",
                   alignItems: "center",
-                  justifyContent: "center",
+                  justifyItems: "center",
                   gap: "20px",
-                  flexWrap: "wrap",
                 }}
               >
                 {/* Creator */}
-                <div style={{ flex: "1 1 120px", textAlign: "center" }}>
+                <div style={{ textAlign: "center" }}>
                   <img
                     src={creator.avatar}
                     alt={creator.display}
@@ -157,7 +137,6 @@ export default function ArrangedBattlesPage() {
                       borderRadius: "50%",
                       border: "2px solid #2de0ff",
                       objectFit: "cover",
-                      flexShrink: 0,
                     }}
                   />
                   <div
@@ -181,15 +160,13 @@ export default function ArrangedBattlesPage() {
                     color: "#2de0ff",
                     fontSize: "32px",
                     fontWeight: 800,
-                    flex: "0 0 auto",
-                    margin: "10px 0",
                   }}
                 >
                   VS
                 </div>
 
                 {/* Opponent */}
-                <div style={{ flex: "1 1 120px", textAlign: "center" }}>
+                <div style={{ textAlign: "center" }}>
                   <img
                     src={b.opponentImageUrl || "/branding/default-opponent.png"}
                     alt={b.opponentName}
@@ -199,7 +176,6 @@ export default function ArrangedBattlesPage() {
                       borderRadius: "50%",
                       border: "2px solid #2de0ff",
                       objectFit: "cover",
-                      flexShrink: 0,
                     }}
                   />
                   <div
@@ -218,7 +194,6 @@ export default function ArrangedBattlesPage() {
                 </div>
               </div>
 
-              {/* Notes */}
               {b.notes && (
                 <div
                   style={{
@@ -232,7 +207,6 @@ export default function ArrangedBattlesPage() {
                 </div>
               )}
 
-              {/* POSTER LINK */}
               <div style={{ textAlign: "center", marginTop: "20px" }}>
                 {b.posterUrl ? (
                   <Link
