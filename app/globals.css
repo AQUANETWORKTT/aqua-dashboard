@@ -1284,33 +1284,3 @@ a {
   font-size: 12px;
   line-height: 1.2;
 }
-
-@media (max-width: 768px) {
-  .calendar-cell {
-    min-height: 64px;
-    padding: 5px;
-  }
-
-  .day-number {
-    font-size: 11px;
-    margin-bottom: 2px;
-    opacity: 0.8;
-  }
-
-  .day-metrics {
-    font-size: 11px;
-    gap: 1px;
-  }
-
-  .day-metrics span {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-.calendar-cell.day-active {
-  box-shadow: 0 0 6px rgba(45, 224, 255, 0.45);
-  border: 1px solid rgba(45, 224, 255, 0.55);
-}
-
