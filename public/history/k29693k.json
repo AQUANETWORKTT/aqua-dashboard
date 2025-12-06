@@ -2,6 +2,216 @@
   "username": "k29693k",
   "entries": [
     {
+      "date": "2025-11-03",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-04",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-05",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-07",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-08",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-12",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-13",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-14",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-15",
+      "daily": 13474,
+      "hours": 1.4444444444444444,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-16",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-17",
+      "daily": 1407,
+      "hours": 2.4766666666666666,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-18",
+      "daily": 6672,
+      "hours": 2.218888888888889,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-19",
+      "daily": 455,
+      "hours": 1.4897222222222224,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-20",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 3,
+      "hours": 0.14027777777777778,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 11,
+      "hours": 1.285,
+      "lifetime": 22022,
+      "lifetimeHours": 9.055000000000001
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 2698,
+      "hours": 1.6658333333333333,
+      "lifetime": 24720,
+      "lifetimeHours": 10.720833333333333
+    },
+    {
+      "date": "2025-11-24",
+      "daily": 2779,
+      "hours": 1.9494444444444445,
+      "lifetime": 27499,
+      "lifetimeHours": 12.670277777777777
+    },
+    {
+      "date": "2025-11-25",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 27499,
+      "lifetimeHours": 12.670277777777777
+    },
+    {
+      "date": "2025-11-26",
+      "daily": 1865,
+      "hours": 1.4619444444444445,
+      "lifetime": 29364,
+      "lifetimeHours": 14.132222222222223
+    },
+    {
+      "date": "2025-11-27",
+      "daily": 411,
+      "hours": 1.193888888888889,
+      "lifetime": 29775,
+      "lifetimeHours": 15.32611111111111
+    },
+    {
+      "date": "2025-11-28",
+      "daily": 411,
+      "hours": 1.193888888888889,
+      "lifetime": 29775,
+      "lifetimeHours": 15.32611111111111
+    },
+    {
+      "date": "2025-11-30",
+      "daily": 232,
+      "hours": 0.6625,
+      "lifetime": 34597,
+      "lifetimeHours": 17.38138888888889
+    },
+    {
+      "date": "2025-12-01",
+      "daily": 66,
+      "hours": 0.19916666666666666,
+      "lifetime": 34663,
+      "lifetimeHours": 17.580555555555556
+    },
+    {
+      "date": "2025-12-02",
+      "daily": 3309,
+      "hours": 6.1375,
+      "lifetime": 37972,
+      "lifetimeHours": 23.718055555555555
+    },
+    {
+      "date": "2025-12-03",
+      "daily": 379,
+      "hours": 1.0086111111111111,
+      "lifetime": 38351,
+      "lifetimeHours": 24.726666666666667
+    },
+    {
       "date": "2025-12-04",
       "daily": 293,
       "hours": 1.8586111111111112,

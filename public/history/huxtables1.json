@@ -2,46 +2,228 @@
   "username": "huxtables1",
   "entries": [
     {
+      "date": "2025-11-03",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-04",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-05",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-07",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-08",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-12",
+      "daily": 0,
+      "hours": 0.10166666666666667,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-13",
+      "daily": 55,
+      "hours": 0.8805555555555555,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-14",
+      "daily": 9895,
+      "hours": 3.1441666666666666,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-15",
+      "daily": 911,
+      "hours": 2.4827777777777778,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-16",
+      "daily": 7514,
+      "hours": 6.401666666666667,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-17",
+      "daily": 6363,
+      "hours": 2.9558333333333335,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-18",
+      "daily": 27202,
+      "hours": 6.315277777777777,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-19",
+      "daily": 11893,
+      "hours": 8.4875,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-20",
+      "daily": 1674,
+      "hours": 4.646944444444444,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-21",
+      "daily": 18286,
+      "hours": 5.582777777777777,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-22",
+      "daily": 22527,
+      "hours": 4.192222222222222,
+      "lifetime": 106320,
+      "lifetimeHours": 45.19138888888889
+    },
+    {
+      "date": "2025-11-23",
+      "daily": 15390,
+      "hours": 7.1002777777777775,
+      "lifetime": 121710,
+      "lifetimeHours": 52.291666666666664
+    },
+    {
+      "date": "2025-11-24",
+      "daily": 16572,
+      "hours": 5.6577777777777785,
+      "lifetime": 138282,
+      "lifetimeHours": 57.94944444444444
+    },
+    {
+      "date": "2025-11-25",
+      "daily": 3883,
+      "hours": 4.658888888888889,
+      "lifetime": 142165,
+      "lifetimeHours": 62.608333333333334
+    },
+    {
+      "date": "2025-11-26",
+      "daily": 3310,
+      "hours": 3.352777777777778,
+      "lifetime": 145475,
+      "lifetimeHours": 65.96111111111111
+    },
+    {
+      "date": "2025-11-27",
+      "daily": 5490,
+      "hours": 3.858888888888889,
+      "lifetime": 150965,
+      "lifetimeHours": 69.82
+    },
+    {
+      "date": "2025-11-28",
+      "daily": 3691,
+      "hours": 3.4733333333333336,
+      "lifetime": 154656,
+      "lifetimeHours": 73.29333333333334
+    },
+    {
       "date": "2025-11-30",
       "daily": 0,
       "hours": 0.21500000000000002,
-      "lifetime": 0,
-      "lifetimeHours": 0.21500000000000002
+      "lifetime": 154656,
+      "lifetimeHours": 73.50833333333334
     },
     {
       "date": "2025-12-01",
       "daily": 13584,
       "hours": 4.030555555555556,
-      "lifetime": 13584,
-      "lifetimeHours": 4.245555555555556
+      "lifetime": 168240,
+      "lifetimeHours": 77.53888888888889
     },
     {
       "date": "2025-12-02",
       "daily": 1681,
       "hours": 3.1258333333333335,
-      "lifetime": 15265,
-      "lifetimeHours": 7.371388888888888
+      "lifetime": 169921,
+      "lifetimeHours": 80.66472222222222
     },
     {
       "date": "2025-12-03",
       "daily": 2986,
       "hours": 3.6055555555555556,
-      "lifetime": 18251,
-      "lifetimeHours": 10.976944444444445
+      "lifetime": 172907,
+      "lifetimeHours": 84.27027777777778
     },
     {
       "date": "2025-12-04",
       "daily": 3509,
       "hours": 1.2602777777777778,
-      "lifetime": 21760,
-      "lifetimeHours": 12.237222222222222
+      "lifetime": 176416,
+      "lifetimeHours": 85.53055555555555
     },
     {
       "date": "2025-12-05",
       "daily": 0,
       "hours": 0,
-      "lifetime": 21760,
-      "lifetimeHours": 12.237222222222222
+      "lifetime": 176416,
+      "lifetimeHours": 85.53055555555555
     }
   ]
 }

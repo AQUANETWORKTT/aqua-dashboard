@@ -33,7 +33,6 @@ function parseDate(d: string) {
 }
 
 // ⭐ FIXED STREAK LOGIC ⭐
-// Prevents streak from dropping at midnight when today has 0 hours
 function computeStreak(entries: HistoryEntry[]): number {
   if (!entries.length) return 0;
 
@@ -45,12 +44,10 @@ function computeStreak(entries: HistoryEntry[]): number {
   const last = sorted[sorted.length - 1];
   const lastHours = last.hours ?? 0;
 
-  // ⭐ If the most recent entry is today AND has 0 hours → ignore it
   if (last.date === todayKey && lastHours < 1) {
     return computeStreak(sorted.slice(0, -1));
   }
 
-  // Normal rule
   if (lastHours < 1) return 0;
 
   let streak = 1;
@@ -59,7 +56,6 @@ function computeStreak(entries: HistoryEntry[]): number {
   for (let i = sorted.length - 2; i >= 0; i--) {
     const e = sorted[i];
     const d = parseDate(e.date);
-
     const diff =
       (lastDate.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
 
@@ -72,13 +68,13 @@ function computeStreak(entries: HistoryEntry[]): number {
   return streak;
 }
 
-// no change
+// NEW streak rewards
 function streakPoints(days: number) {
-  if (days >= 30) return 30;
-  if (days >= 14) return 14;
-  if (days >= 7) return 7;
-  if (days >= 5) return 5;
-  if (days >= 3) return 3;
+  if (days >= 30) return 150;
+  if (days >= 20) return 100;
+  if (days >= 10) return 50;
+  if (days >= 5) return 25;
+  if (days >= 3) return 15;
   return 0;
 }
 
@@ -113,7 +109,7 @@ export default function PointsLeaderboardPage() {
     histories[c.username] = loadHistory(c.username);
   });
 
-  // Collect this month's dates
+  // Collect dates from this month
   const dateSet = new Set<string>();
   Object.values(histories).forEach((arr) =>
     arr.forEach((e) => {
@@ -122,8 +118,9 @@ export default function PointsLeaderboardPage() {
   );
   const dates = [...dateSet].sort();
 
-  // Daily achievements
-  const achievementValues = [8, 6, 4, 2];
+  // ------------------ Daily Top 5 Placement Bonuses ------------------
+
+  const achievementValues = [25, 20, 15, 10, 5];
   const achievementByDay: Record<string, Record<string, number>> = {};
 
   dates.forEach((date) => {
@@ -131,7 +128,7 @@ export default function PointsLeaderboardPage() {
 
     creators.forEach((c) => {
       const ex = histories[c.username].find((e) => e.date === date);
-      if (ex?.daily && ex.daily > 0) {
+      if (ex && typeof ex.daily === "number") {
         dailyStats.push({ username: c.username, daily: ex.daily });
       }
     });
@@ -141,16 +138,15 @@ export default function PointsLeaderboardPage() {
     dailyStats.sort((a, b) => b.daily - a.daily);
 
     const map: Record<string, number> = {};
-    dailyStats.forEach((x, i) => {
-      if (i < achievementValues.length) {
-        map[x.username] = achievementValues[i];
-      }
+
+    dailyStats.slice(0, 5).forEach((x, i) => {
+      map[x.username] = achievementValues[i];
     });
 
     achievementByDay[date] = map;
   });
 
-  // Score all creators
+  // Score creators
   const scored: PointsCreator[] = creators.map((c) => {
     const entries = histories[c.username] || [];
     const monthEntries = entries.filter((e) => e.date.startsWith(monthKey));
@@ -166,12 +162,21 @@ export default function PointsLeaderboardPage() {
       totalDailyDiamonds += daily;
       totalHoursLive += hrs;
 
-      const perHourPts = Math.floor(hrs) * 2;
-      const oneKPts = daily >= 1000 ? 2 : 0;
-      const validDayPts = hrs >= 1 ? 2 : 0;
+      // Diamonds
+      let diamondPts = 0;
+      if (daily >= 1000) {
+        diamondPts += 10; // first 1k
+        const extra = Math.floor(daily / 1000) - 1;
+        if (extra > 0) diamondPts += extra * 2;
+      }
+
+      // Hours
+      const hourPts = Math.floor(hrs) * 3;
+      const validDayPts = hrs >= 1 ? 3 : 0;
+
       const achievePts = achievementByDay[e.date]?.[c.username] ?? 0;
 
-      totalPoints += perHourPts + oneKPts + validDayPts + achievePts;
+      totalPoints += diamondPts + hourPts + validDayPts + achievePts;
     });
 
     const streakDays = computeStreak(monthEntries);
@@ -187,30 +192,43 @@ export default function PointsLeaderboardPage() {
     };
   });
 
-  // Sort
+  // Sort leaderboard
   const ranked = scored.sort((a, b) =>
     b.totalPoints !== a.totalPoints
       ? b.totalPoints - a.totalPoints
       : b.totalDailyDiamonds - a.totalDailyDiamonds
   );
 
+  // ------------------ UI ------------------
+
   return (
     <main className="leaderboard-wrapper">
 
-      {/* points explanation */}
+      {/* Points System Panel */}
       <div
         style={{
           margin: "28px auto",
-          maxWidth: "850px",
-          padding: "20px 25px",
-          borderRadius: "14px",
+          maxWidth: "900px",
+          padding: "25px 30px",
+          borderRadius: "16px",
           background: "#03101a",
           border: "1px solid rgba(45,224,255,0.45)",
-          boxShadow: "0 0 16px rgba(45,224,255,0.28)",
+          boxShadow: "0 0 18px rgba(45,224,255,0.25)",
         }}
       >
-        <h2 className="glow-text" style={{ textAlign: "center", marginBottom: "12px" }}>
-          How to Achieve Points
+        <h2
+          style={{
+            textAlign: "center",
+            marginBottom: "20px",
+            fontSize: "24px",
+            fontWeight: 700,
+            background: "linear-gradient(90deg,#2de0ff,#7be8ff,#2de0ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent",
+            textShadow: "0 0 4px rgba(45,224,255,0.45)",
+          }}
+        >
+          Aqua Agency Points System
         </h2>
 
         <ul
@@ -218,16 +236,125 @@ export default function PointsLeaderboardPage() {
             listStyle: "none",
             padding: 0,
             margin: 0,
-            fontSize: "14px",
-            lineHeight: "1.55",
-            color: "#e7f9ff",
+            fontSize: "17px",
+            lineHeight: "1.7",
+            color: "#ffffff",
+            fontWeight: 600,
+            textShadow: "0 0 3px rgba(255,255,255,0.35)",
           }}
         >
-          <li>✨ Hit 1,000 diamonds → <strong>2 points</strong></li>
-          <li>⏱️ Every hour streamed → <strong>2 points</strong></li>
-          <li>🔥 Valid day (1h+) → <strong>2 points</strong></li>
-          <li>🏆 Top 4 daily → <strong>8 / 6 / 4 / 2 bonus points</strong></li>
-          <li>🎯 Streak bonuses for 3/5/15/30 Days</li>
+
+          {/* Diamonds */}
+          <li style={{
+            marginTop: "10px",
+            paddingBottom: "8px",
+            borderBottom: "1px solid rgba(45,224,255,0.25)",
+            fontSize: "18px",
+            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent"
+          }}>
+            💎 Diamond Points
+          </li>
+          <li>• First 1,000 diamonds → <strong>10 points</strong></li>
+          <li>• Every additional 1,000 diamonds → <strong>2 points</strong></li>
+
+          {/* Hours */}
+          <li style={{
+            marginTop: "18px",
+            paddingBottom: "8px",
+            borderBottom: "1px solid rgba(45,224,255,0.25)",
+            fontSize: "18px",
+            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent"
+          }}>
+            ⏱️ Live Hours
+          </li>
+          <li>• Every full hour streamed → <strong>3 points</strong></li>
+          <li>• Valid day bonus (1h+) → <strong>+3 points</strong></li>
+
+          {/* Top 5 */}
+          <li style={{
+            marginTop: "18px",
+            paddingBottom: "8px",
+            borderBottom: "1px solid rgba(45,224,255,0.25)",
+            fontSize: "18px",
+            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent"
+          }}>
+            🏆 Daily Top 5 Bonuses
+          </li>
+          <li>• 1st → <strong>25 points</strong></li>
+          <li>• 2nd → <strong>20 points</strong></li>
+          <li>• 3rd → <strong>15 points</strong></li>
+          <li>• 4th → <strong>10 points</strong></li>
+          <li>• 5th → <strong>5 points</strong></li>
+
+          {/* Streaks */}
+          <li style={{
+            marginTop: "18px",
+            paddingBottom: "8px",
+            borderBottom: "1px solid rgba(45,224,255,0.25)",
+            fontSize: "18px",
+            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent"
+          }}>
+            🔥 Streak Rewards
+          </li>
+          <li>• 3-day streak → <strong>15 points</strong></li>
+          <li>• 5-day streak → <strong>25 points</strong></li>
+          <li>• 10-day streak → <strong>50 points</strong></li>
+          <li>• 20-day streak → <strong>100 points</strong></li>
+          <li>• 30-day streak → <strong>150 points</strong></li>
+
+          {/* Manual Battles */}
+          <li style={{
+            marginTop: "18px",
+            paddingBottom: "8px",
+            borderBottom: "1px solid rgba(45,224,255,0.25)",
+            fontSize: "18px",
+            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent"
+          }}>
+            ⚔️ Arranged Battles (Manual Rewards)
+          </li>
+          <li>• Completing an arranged battle → <strong>100 points</strong></li>
+          <li>• Winning an arranged battle → <strong>150 points</strong></li>
+
+          {/* Milestones */}
+          <li style={{
+            marginTop: "18px",
+            paddingBottom: "8px",
+            borderBottom: "1px solid rgba(45,224,255,0.25)",
+            fontSize: "18px",
+            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent"
+          }}>
+            🌙 Monthly Milestones (Manual Rewards)
+          </li>
+          <li>• First time hitting 75,000 diamonds → <strong>1,250 points</strong></li>
+          <li>• First time hitting 150,000 diamonds → <strong>3,000 points</strong></li>
+          <li>• Second time hitting 150,000 diamonds → <strong>2,000 points</strong></li>
+          <li>• First time hitting 500,000 diamonds → <strong>7,500 points</strong></li>
+
+          {/* Exchange */}
+          <li style={{
+            marginTop: "18px",
+            fontSize: "18px",
+            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+            WebkitBackgroundClip: "text",
+            color: "transparent"
+          }}>
+            💱 Points Exchange
+          </li>
+          <li style={{ color: "#fff" }}>• 1 point = <strong>20p</strong></li>
+          <li style={{ color: "#fff" }}>• 1 point = <strong>3 coins</strong></li>
+
         </ul>
       </div>
 
@@ -236,7 +363,7 @@ export default function PointsLeaderboardPage() {
         <img src="/branding/points-leaderboard.png" className="leaderboard-title-img" />
       </div>
 
-      {/* leaderboard */}
+      {/* leaderboard list */}
       <div className="leaderboard-list">
         {ranked.map((creator, index) => (
           <div key={creator.username} className="leaderboard-row">
