@@ -21,7 +21,9 @@ type IncentiveStats = {
   hours: number;
   validDays: number;
   top5Count: number;
+  incentiveBalance: number;
 };
+
 
 export default function CreatorDashboardPage() {
   const params = useParams();
@@ -88,12 +90,13 @@ export default function CreatorDashboardPage() {
   }, []);
 
   // ------------------ Incentive raw stats ------------------
-  useEffect(() => {
-    if (!history.length || !Object.keys(allHistories).length) {
-      setStats(null);
-      return;
-    }
+useEffect(() => {
+  if (!history.length || !Object.keys(allHistories).length) {
+    setStats(null);
+    return;
+  }
 
+  async function run() {
     let diamonds = 0;
     let hours = 0;
     let validDays = 0;
@@ -124,8 +127,26 @@ export default function CreatorDashboardPage() {
       if (top5ByDay[e.date]?.includes(usernameParam)) top5Count++;
     });
 
-    setStats({ diamonds, hours, validDays, top5Count });
-  }, [history, allHistories, usernameParam]);
+    // ✅ FETCH ADMIN ADJUSTMENT FROM SUPABASE
+    const { data, error } = await supabase
+      .from("points_adjustments")
+      .select("points")
+      .eq("username", usernameParam)
+      .single();
+
+    let incentiveBalance = data?.points ?? 0;
+
+    setStats({
+      diamonds,
+      hours,
+      validDays,
+      top5Count,
+      incentiveBalance,
+    });
+  }
+
+  run();
+}, [history, allHistories, usernameParam]);
 
   // ------------------ Month + calendar ------------------
   function buildMonth() {
@@ -205,6 +226,18 @@ export default function CreatorDashboardPage() {
           {loading && <div>Loading…</div>}
           {!loading && stats && (
             <>
+		<div
+  style={{
+    fontSize: "20px",
+    fontWeight: 800,
+    marginBottom: "8px",
+    color: "#2de0ff",
+    textShadow: "0 0 6px rgba(45,224,255,0.5)",
+  }}
+>
+  💰 Incentive Balance: {stats?.incentiveBalance?.toLocaleString() ?? 0}
+</div>
+
               <div>💎 Diamonds: <b>{stats.diamonds.toLocaleString()}</b></div>
               <div>⏱️ Hours live: <b>{stats.hours.toFixed(1)}h</b></div>
               <div>✅ Valid days: <b>{stats.validDays}</b></div>
