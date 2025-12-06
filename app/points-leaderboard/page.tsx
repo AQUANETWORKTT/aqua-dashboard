@@ -68,7 +68,7 @@ function computeStreak(entries: HistoryEntry[]): number {
   return streak;
 }
 
-// NEW streak rewards
+// Streak rewards
 function streakPoints(days: number) {
   if (days >= 30) return 150;
   if (days >= 20) return 100;
@@ -84,9 +84,11 @@ function loadHistory(username: string): HistoryEntry[] {
 
   try {
     const json = JSON.parse(fs.readFileSync(file, "utf8")) as HistoryFile;
-    return json.entries?.sort((a, b) =>
-      a.date < b.date ? -1 : a.date > b.date ? 1 : 0
-    ) ?? [];
+    return (
+      json.entries?.sort((a, b) =>
+        a.date < b.date ? -1 : a.date > b.date ? 1 : 0
+      ) ?? []
+    );
   } catch {
     return [];
   }
@@ -146,7 +148,8 @@ export default function PointsLeaderboardPage() {
     achievementByDay[date] = map;
   });
 
-  // Score creators
+  // ------------------ Score creators ------------------
+
   const scored: PointsCreator[] = creators.map((c) => {
     const entries = histories[c.username] || [];
     const monthEntries = entries.filter((e) => e.date.startsWith(monthKey));
@@ -162,18 +165,19 @@ export default function PointsLeaderboardPage() {
       totalDailyDiamonds += daily;
       totalHoursLive += hrs;
 
-      // Diamonds
+      // 💎 Diamond points
       let diamondPts = 0;
       if (daily >= 1000) {
         diamondPts += 10; // first 1k
         const extra = Math.floor(daily / 1000) - 1;
-        if (extra > 0) diamondPts += extra * 2;
+        if (extra > 0) diamondPts += extra * 5; // ✅ 5 points per extra 1k
       }
 
-      // Hours
+      // ⏱️ Hours points
       const hourPts = Math.floor(hrs) * 3;
       const validDayPts = hrs >= 1 ? 3 : 0;
 
+      // 🏆 Daily top 5
       const achievePts = achievementByDay[e.date]?.[c.username] ?? 0;
 
       totalPoints += diamondPts + hourPts + validDayPts + achievePts;
@@ -192,7 +196,8 @@ export default function PointsLeaderboardPage() {
     };
   });
 
-  // Sort leaderboard
+  // ------------------ Sort leaderboard ------------------
+
   const ranked = scored.sort((a, b) =>
     b.totalPoints !== a.totalPoints
       ? b.totalPoints - a.totalPoints
@@ -203,7 +208,6 @@ export default function PointsLeaderboardPage() {
 
   return (
     <main className="leaderboard-wrapper">
-
       {/* Points System Panel */}
       <div
         style={{
@@ -243,47 +247,49 @@ export default function PointsLeaderboardPage() {
             textShadow: "0 0 3px rgba(255,255,255,0.35)",
           }}
         >
-
-          {/* Diamonds */}
-          <li style={{
-            marginTop: "10px",
-            paddingBottom: "8px",
-            borderBottom: "1px solid rgba(45,224,255,0.25)",
-            fontSize: "18px",
-            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-            WebkitBackgroundClip: "text",
-            color: "transparent"
-          }}>
+          <li
+            style={{
+              marginTop: "10px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             💎 Diamond Points
           </li>
           <li>• First 1,000 diamonds → <strong>10 points</strong></li>
-          <li>• Every additional 1,000 diamonds → <strong>2 points</strong></li>
+          <li>• Every additional 1,000 diamonds → <strong>5 points</strong></li>
 
-          {/* Hours */}
-          <li style={{
-            marginTop: "18px",
-            paddingBottom: "8px",
-            borderBottom: "1px solid rgba(45,224,255,0.25)",
-            fontSize: "18px",
-            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-            WebkitBackgroundClip: "text",
-            color: "transparent"
-          }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             ⏱️ Live Hours
           </li>
           <li>• Every full hour streamed → <strong>3 points</strong></li>
           <li>• Valid day bonus (1h+) → <strong>+3 points</strong></li>
 
-          {/* Top 5 */}
-          <li style={{
-            marginTop: "18px",
-            paddingBottom: "8px",
-            borderBottom: "1px solid rgba(45,224,255,0.25)",
-            fontSize: "18px",
-            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-            WebkitBackgroundClip: "text",
-            color: "transparent"
-          }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             🏆 Daily Top 5 Bonuses
           </li>
           <li>• 1st → <strong>25 points</strong></li>
@@ -292,16 +298,17 @@ export default function PointsLeaderboardPage() {
           <li>• 4th → <strong>10 points</strong></li>
           <li>• 5th → <strong>5 points</strong></li>
 
-          {/* Streaks */}
-          <li style={{
-            marginTop: "18px",
-            paddingBottom: "8px",
-            borderBottom: "1px solid rgba(45,224,255,0.25)",
-            fontSize: "18px",
-            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-            WebkitBackgroundClip: "text",
-            color: "transparent"
-          }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             🔥 Streak Rewards
           </li>
           <li>• 3-day streak → <strong>15 points</strong></li>
@@ -310,31 +317,33 @@ export default function PointsLeaderboardPage() {
           <li>• 20-day streak → <strong>100 points</strong></li>
           <li>• 30-day streak → <strong>150 points</strong></li>
 
-          {/* Manual Battles */}
-          <li style={{
-            marginTop: "18px",
-            paddingBottom: "8px",
-            borderBottom: "1px solid rgba(45,224,255,0.25)",
-            fontSize: "18px",
-            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-            WebkitBackgroundClip: "text",
-            color: "transparent"
-          }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             ⚔️ Arranged Battles (Manual Rewards)
           </li>
           <li>• Completing an arranged battle → <strong>100 points</strong></li>
           <li>• Winning an arranged battle → <strong>150 points</strong></li>
 
-          {/* Milestones */}
-          <li style={{
-            marginTop: "18px",
-            paddingBottom: "8px",
-            borderBottom: "1px solid rgba(45,224,255,0.25)",
-            fontSize: "18px",
-            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-            WebkitBackgroundClip: "text",
-            color: "transparent"
-          }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             🌙 Monthly Milestones (Manual Rewards)
           </li>
           <li>• First time hitting 75,000 diamonds → <strong>1,250 points</strong></li>
@@ -342,38 +351,44 @@ export default function PointsLeaderboardPage() {
           <li>• Second time hitting 150,000 diamonds → <strong>2,000 points</strong></li>
           <li>• First time hitting 500,000 diamonds → <strong>7,500 points</strong></li>
 
-          {/* Exchange */}
-          <li style={{
-            marginTop: "18px",
-            fontSize: "18px",
-            background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-            WebkitBackgroundClip: "text",
-            color: "transparent"
-          }}>
+          <li
+            style={{
+              marginTop: "18px",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             💱 Points Exchange
           </li>
-          <li style={{ color: "#fff" }}>• 1 point = <strong>20p</strong></li>
+          <li style={{ color: "#fff" }}>• 1 point = <strong>2p</strong></li>
           <li style={{ color: "#fff" }}>• 1 point = <strong>3 coins</strong></li>
-
         </ul>
       </div>
 
-      {/* banner */}
       <div className="leaderboard-title-image">
-        <img src="/branding/points-leaderboard.png" className="leaderboard-title-img" />
+        <img
+          src="/branding/points-leaderboard.png"
+          className="leaderboard-title-img"
+        />
       </div>
 
-      {/* leaderboard list */}
       <div className="leaderboard-list">
         {ranked.map((creator, index) => (
           <div key={creator.username} className="leaderboard-row">
             <div className="leaderboard-left">
               <div className="rank-number">{index + 1}</div>
 
-              <img src={creator.avatar} className="leaderboard-avatar" />
+              <img
+                src={creator.avatar}
+                className="leaderboard-avatar"
+              />
 
               <div className="creator-info">
-                <div className="creator-username glow-text">{creator.username}</div>
+                <div className="creator-username glow-text">
+                  {creator.username}
+                </div>
                 <div className="creator-daily">
                   Total diamonds this month:{" "}
                   <span>{formatNumber(creator.totalDailyDiamonds)}</span> ·{" "}
@@ -396,7 +411,6 @@ export default function PointsLeaderboardPage() {
           </div>
         ))}
       </div>
-
     </main>
   );
 }
