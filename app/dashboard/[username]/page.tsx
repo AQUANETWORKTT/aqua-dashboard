@@ -179,9 +179,8 @@ const { data } = await supabase
 
 const adminAdjustment = data?.points ?? 0;
 
-// ✅ FINAL incentive balance (app + admin)
-const incentiveBalance = calculatedPoints + adminAdjustment;
-
+// ✅ ADD admin points ON TOP (not replace)
+const incentiveBalance = adminAdjustment;
 
 setStats({
   diamonds,
