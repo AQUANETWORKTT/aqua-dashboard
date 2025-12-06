@@ -220,10 +220,10 @@
     },
     {
       "date": "2025-12-05",
-      "daily": 0,
-      "hours": 0,
-      "lifetime": 176416,
-      "lifetimeHours": 85.53055555555555
+      "daily": 20543,
+      "hours": 4.048611111111111,
+      "lifetime": 42303,
+      "lifetimeHours": 16.285833333333336
     }
   ]
 }
