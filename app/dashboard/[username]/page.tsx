@@ -1,5 +1,5 @@
 "use client";
-
+import { supabase } from "@/lib/supabase";
 import { creators } from "@/data/creators";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -127,22 +127,70 @@ useEffect(() => {
       if (top5ByDay[e.date]?.includes(usernameParam)) top5Count++;
     });
 
+// ================= INCENTIVE POINT CALCULATION =================
+
+// 💎 Diamond points
+const thousands = Math.floor(diamonds / 1000);
+let diamondPoints = 0;
+
+if (thousands >= 1) {
+  diamondPoints += 10; // first 1k
+  diamondPoints += Math.max(0, thousands - 1) * 5; // additional 1ks
+}
+
+// ⏱ Live hour points
+const fullHours = Math.floor(hours);
+const hourPoints = fullHours * 3;
+
+// ✅ Valid day bonus (1h+)
+const validDayPoints = validDays * 3;
+
+// 🏆 Top-5 placement points
+let top5Points = 0;
+
+history.forEach((e) => {
+  const placements = top5ByDay[e.date];
+  if (!placements) return;
+
+  const pos = placements.indexOf(usernameParam);
+  if (pos === -1) return;
+
+  if (pos === 0) top5Points += 25;
+  else if (pos === 1) top5Points += 20;
+  else if (pos === 2) top5Points += 15;
+  else if (pos === 3) top5Points += 10;
+  else if (pos === 4) top5Points += 5;
+});
+
+// ✅ TOTAL app-calculated incentive points
+const calculatedPoints =
+  diamondPoints +
+  hourPoints +
+  validDayPoints +
+  top5Points;
+
+
     // ✅ FETCH ADMIN ADJUSTMENT FROM SUPABASE
-    const { data, error } = await supabase
-      .from("points_adjustments")
-      .select("points")
-      .eq("username", usernameParam)
-      .single();
+const { data } = await supabase
+  .from("points_adjustments")
+  .select("points")
+  .eq("username", usernameParam)
+  .single();
 
-    let incentiveBalance = data?.points ?? 0;
+const adminAdjustment = data?.points ?? 0;
 
-    setStats({
-      diamonds,
-      hours,
-      validDays,
-      top5Count,
-      incentiveBalance,
-    });
+// ✅ FINAL incentive balance (app + admin)
+const incentiveBalance = calculatedPoints + adminAdjustment;
+
+
+setStats({
+  diamonds,
+  hours,
+  validDays,
+  top5Count,
+  incentiveBalance,
+});
+
   }
 
   run();
