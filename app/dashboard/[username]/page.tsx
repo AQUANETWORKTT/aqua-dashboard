@@ -169,8 +169,7 @@ const calculatedPoints =
   validDayPoints +
   top5Points;
 
-
-    // ✅ FETCH ADMIN ADJUSTMENT FROM SUPABASE
+// ✅ FETCH ADMIN ADJUSTMENT FROM SUPABASE
 const { data } = await supabase
   .from("points_adjustments")
   .select("points")
@@ -179,8 +178,8 @@ const { data } = await supabase
 
 const adminAdjustment = data?.points ?? 0;
 
-// ✅ ADD admin points ON TOP (not replace)
-const incentiveBalance = adminAdjustment;
+// ✅ FINAL BALANCE = APP + ADMIN OFFSET
+const incentiveBalance = calculatedPoints + adminAdjustment;
 
 setStats({
   diamonds,
