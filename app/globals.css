@@ -1265,22 +1265,3 @@ a {
   font-size: 0.95rem;
 }
 
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.calendar-cell {
-  min-height: 78px;
-  padding: 6px;
-  border-radius: 10px;
-}
-
-.day-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
-  line-height: 1.2;
-}
