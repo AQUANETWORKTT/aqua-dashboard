@@ -14,8 +14,5 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({
-    ok: true,
-    rows: data ?? [],
-  });
+  return NextResponse.json({ ok: true, rows: data ?? [] });
 }
