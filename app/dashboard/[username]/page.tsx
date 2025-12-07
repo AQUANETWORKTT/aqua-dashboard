@@ -1,7 +1,7 @@
 "use client";
 
-import { supabase } from "@/lib/supabase";
 import { creators } from "@/data/creators";
+import { incentiveExtras } from "@/data/incentive-extras";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -46,9 +46,11 @@ export default function CreatorDashboardPage() {
     () => [...creators].sort((a, b) => b.lifetime - a.lifetime),
     []
   );
+
   const rankIndex = sorted.findIndex(
     (c) => c.username.toLowerCase() === username.toLowerCase()
   );
+
   const rank = rankIndex >= 0 ? rankIndex + 1 : null;
 
   /* ---------- state ---------- */
@@ -100,88 +102,80 @@ export default function CreatorDashboardPage() {
   useEffect(() => {
     if (!history.length || !Object.keys(allHistories).length) return;
 
-    async function run() {
-      let diamonds = 0;
-      let hours = 0;
-      let validDays = 0;
-      let top5Count = 0;
+    let diamonds = 0;
+    let hours = 0;
+    let validDays = 0;
+    let top5Count = 0;
 
-      const dates = new Set<string>();
-      Object.values(allHistories).forEach((arr) =>
-        arr.forEach((e) => dates.add(e.date))
-      );
+    const dates = new Set<string>();
+    Object.values(allHistories).forEach((arr) =>
+      arr.forEach((e) => dates.add(e.date))
+    );
 
-      const top5ByDay: Record<string, string[]> = {};
-      [...dates].forEach((date) => {
-        const rows: { username: string; daily: number }[] = [];
+    const top5ByDay: Record<string, string[]> = {};
+    [...dates].forEach((date) => {
+      const rows: { username: string; daily: number }[] = [];
 
-        for (const u in allHistories) {
-          const e = allHistories[u].find((x) => x.date === date);
-          if (e && e.daily > 0) rows.push({ username: u, daily: e.daily });
-        }
-
-        rows.sort((a, b) => b.daily - a.daily);
-        top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
-      });
-
-      history.forEach((e) => {
-        diamonds += e.daily ?? 0;
-        hours += e.hours ?? 0;
-        if ((e.hours ?? 0) >= 1) validDays++;
-        if (top5ByDay[e.date]?.includes(username)) top5Count++;
-      });
-
-      /* ---------- calculated points ---------- */
-      const thousands = Math.floor(diamonds / 1000);
-      let diamondPoints = 0;
-      if (thousands >= 1) {
-        diamondPoints += 10;
-        diamondPoints += Math.max(0, thousands - 1) * 5;
+      for (const u in allHistories) {
+        const e = allHistories[u].find((x) => x.date === date);
+        if (e && e.daily > 0) rows.push({ username: u, daily: e.daily });
       }
 
-      const hourPoints = Math.floor(hours) * 3;
-      const validDayPoints = validDays * 3;
+      rows.sort((a, b) => b.daily - a.daily);
+      top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
+    });
 
-      let top5Points = 0;
-      history.forEach((e) => {
-        const placements = top5ByDay[e.date];
-        if (!placements) return;
+    history.forEach((e) => {
+      diamonds += e.daily ?? 0;
+      hours += e.hours ?? 0;
+      if ((e.hours ?? 0) >= 1) validDays++;
+      if (top5ByDay[e.date]?.includes(username)) top5Count++;
+    });
 
-        const pos = placements.indexOf(username);
-        if (pos === 0) top5Points += 25;
-        else if (pos === 1) top5Points += 20;
-        else if (pos === 2) top5Points += 15;
-        else if (pos === 3) top5Points += 10;
-        else if (pos === 4) top5Points += 5;
-      });
+    /* ---------- calculated points ---------- */
 
-      const calculatedPoints =
-        diamondPoints + hourPoints + validDayPoints + top5Points;
+    const thousands = Math.floor(diamonds / 1000);
+    let diamondPoints = 0;
 
-      /* ---------- SUPABASE EXTRAS (ADMIN POINTS) ---------- */
-      const { data } = await supabase
-        .from("points_adjustments")
-        .select("points")
-        .eq("username", username)
-        .maybeSingle();
-
-      const extrasPoints = data?.points ?? 0;
-      const incentiveBalance = calculatedPoints + extrasPoints;
-
-      setStats({
-        diamonds,
-        hours,
-        validDays,
-        top5Count,
-        calculatedPoints,
-        extrasPoints,
-        incentiveBalance,
-      });
-
-      setLoading(false);
+    if (thousands >= 1) {
+      diamondPoints += 10;
+      diamondPoints += Math.max(0, thousands - 1) * 5;
     }
 
-    run();
+    const hourPoints = Math.floor(hours) * 3;
+    const validDayPoints = validDays * 3;
+
+    let top5Points = 0;
+    history.forEach((e) => {
+      const placements = top5ByDay[e.date];
+      if (!placements) return;
+
+      const pos = placements.indexOf(username);
+      if (pos === 0) top5Points += 25;
+      else if (pos === 1) top5Points += 20;
+      else if (pos === 2) top5Points += 15;
+      else if (pos === 3) top5Points += 10;
+      else if (pos === 4) top5Points += 5;
+    });
+
+    const calculatedPoints =
+      diamondPoints + hourPoints + validDayPoints + top5Points;
+
+    /* ---------- FILE-BASED EXTRAS ---------- */
+    const extrasPoints = incentiveExtras[username] ?? 0;
+    const incentiveBalance = calculatedPoints + extrasPoints;
+
+    setStats({
+      diamonds,
+      hours,
+      validDays,
+      top5Count,
+      calculatedPoints,
+      extrasPoints,
+      incentiveBalance,
+    });
+
+    setLoading(false);
   }, [history, allHistories, username]);
 
   /* ===================== MONTH + CALENDAR ===================== */
@@ -270,8 +264,12 @@ export default function CreatorDashboardPage() {
                 {stats.incentiveBalance.toLocaleString()}
               </div>
 
-              <div>⚙️ Live-earned points: <b>{stats.calculatedPoints}</b></div>
-              <div>🎓 Graduations & extras: <b>{stats.extrasPoints}</b></div>
+              <div>
+                ⚙️ Live-earned points: <b>{stats.calculatedPoints}</b>
+              </div>
+              <div>
+                🎓 Graduations & extras: <b>{stats.extrasPoints}</b>
+              </div>
 
               <div style={{ marginTop: 8 }}>
                 💎 Diamonds: <b>{stats.diamonds.toLocaleString()}</b><br />
@@ -317,12 +315,14 @@ export default function CreatorDashboardPage() {
             {yesterdayDiamonds.toLocaleString()}
           </div>
         </div>
+
         <div className="dash-mini-card">
           <div className="mini-label">This month’s diamonds</div>
           <div className="mini-value">
             {monthlyDiamonds.toLocaleString()}
           </div>
         </div>
+
         <div className="dash-mini-card">
           <div className="mini-label">Total hours (all time)</div>
           <div className="mini-value">
