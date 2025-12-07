@@ -78,12 +78,13 @@ export default function CreatorDashboardPage() {
             if (!r.ok) return;
             const j = (await r.json()) as HistoryFile;
             out[c.username] = j.entries || [];
-          } catch {}
+          } catch {
+            // ignore
+          }
         })
       );
 
       setAllHistories(out);
-      setLoading(false);
     }
 
     loadAll();
@@ -99,6 +100,7 @@ export default function CreatorDashboardPage() {
       let validDays = 0;
       let top5Count = 0;
 
+      // collect all dates for top5
       const dates = new Set<string>();
       Object.values(allHistories).forEach((arr) =>
         arr.forEach((e) => dates.add(e.date))
@@ -117,6 +119,7 @@ export default function CreatorDashboardPage() {
         top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
       });
 
+      // aggregate this user's diamonds / hours / valid days / top5 count
       history.forEach((e) => {
         diamonds += e.daily ?? 0;
         hours += e.hours ?? 0;
@@ -124,20 +127,59 @@ export default function CreatorDashboardPage() {
         if (top5ByDay[e.date]?.includes(usernameParam)) top5Count++;
       });
 
-      // ✅ Incentive balance from Supabase ONLY
+      // ---------- CALCULATED POINTS ----------
+      // 💎 Diamond points
+      const thousands = Math.floor(diamonds / 1000);
+      let diamondPoints = 0;
+      if (thousands >= 1) {
+        diamondPoints += 10; // first 1k
+        diamondPoints += Math.max(0, thousands - 1) * 5; // extra 1ks
+      }
+
+      // ⏱ Live hour points
+      const hourPoints = Math.floor(hours) * 3;
+
+      // ✅ Valid day bonus (1h+)
+      const validDayPoints = validDays * 3;
+
+      // 🏆 Top-5 placement points
+      let top5Points = 0;
+      history.forEach((e) => {
+        const placements = top5ByDay[e.date];
+        if (!placements) return;
+
+        const pos = placements.indexOf(usernameParam);
+        if (pos === -1) return;
+
+        if (pos === 0) top5Points += 25;
+        else if (pos === 1) top5Points += 20;
+        else if (pos === 2) top5Points += 15;
+        else if (pos === 3) top5Points += 10;
+        else if (pos === 4) top5Points += 5;
+      });
+
+      const calculatedPoints =
+        diamondPoints + hourPoints + validDayPoints + top5Points;
+
+      // ---------- SUPABASE ADJUSTMENT ----------
       const { data } = await supabase
         .from("points_adjustments")
         .select("points")
         .eq("username", usernameParam)
         .maybeSingle();
 
+      const adminAdjustment = data?.points ?? 0;
+      const incentiveBalance = calculatedPoints + adminAdjustment;
+
       setStats({
         diamonds,
         hours,
         validDays,
         top5Count,
-        incentiveBalance: data?.points ?? 0,
+        incentiveBalance,
       });
+
+      setLoading(false);
     }
 
     run();
@@ -151,7 +193,7 @@ export default function CreatorDashboardPage() {
 
     const first = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const offset = (first.getDay() + 6) % 7;
+    const offset = (first.getDay() + 6) % 7; // make Monday = 0
 
     const cells: { day: number | null; dateStr?: string }[] = [];
     for (let i = 0; i < offset; i++) cells.push({ day: null });
@@ -221,22 +263,30 @@ export default function CreatorDashboardPage() {
           {loading && <div>Loading…</div>}
           {!loading && stats && (
             <>
-             <div
-  	style={{
-  	  fontSize: "20px",
-  	  fontWeight: 800,
-  	  marginBottom: "8px",
-   	 color: "#2de0ff",
-   	 textShadow: "0 0 6px rgba(45,224,255,0.6)",
- 	 }}
-	>
-  💰 Incentive Balance: {stats.incentiveBalance.toLocaleString()}
-</div>
-
-              <div>💎 Diamonds: <b>{stats.diamonds.toLocaleString()}</b></div>
-              <div>⏱️ Hours live: <b>{stats.hours.toFixed(1)}h</b></div>
-              <div>✅ Valid days: <b>{stats.validDays}</b></div>
-              <div>🏆 Top-5 finishes: <b>{stats.top5Count}</b></div>
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 800,
+                  marginBottom: "8px",
+                  color: "#2de0ff",
+                  textShadow: "0 0 8px rgba(45,224,255,0.7)",
+                }}
+              >
+                💰 Incentive Balance:{" "}
+                {stats.incentiveBalance.toLocaleString()}
+              </div>
+              <div>
+                💎 Diamonds: <b>{stats.diamonds.toLocaleString()}</b>
+              </div>
+              <div>
+                ⏱️ Hours live: <b>{stats.hours.toFixed(1)}h</b>
+              </div>
+              <div>
+                ✅ Valid days: <b>{stats.validDays}</b>
+              </div>
+              <div>
+                🏆 Top-5 finishes: <b>{stats.top5Count}</b>
+              </div>
             </>
           )}
         </div>
@@ -246,21 +296,27 @@ export default function CreatorDashboardPage() {
       <section className="dash-card">
         <div className="dash-card-title">Monthly Progress</div>
 
-        {[["75K", 75_000, pct75], ["150K", 150_000, pct150], ["500K", 500_000, pct500]].map(
-          ([label, target, pct]) => (
-            <div key={String(target)} className="progress-block">
-              <div className="progress-label">{label} Monthly Target</div>
-              <div className="target-bar">
-                <div className="target-bar-bg">
-                  <div className="target-bar-fill" style={{ width: `${(pct as number) * 100}%` }} />
-                </div>
-                <div className="target-current">
-                  {monthlyDiamonds.toLocaleString()} / {Number(target).toLocaleString()}
-                </div>
+        {[
+          ["75K", 75_000, pct75],
+          ["150K", 150_000, pct150],
+          ["500K", 500_000, pct500],
+        ].map(([labelText, target, pct]) => (
+          <div key={String(target)} className="progress-block">
+            <div className="progress-label">{labelText} Monthly Target</div>
+            <div className="target-bar">
+              <div className="target-bar-bg">
+                <div
+                  className="target-bar-fill"
+                  style={{ width: `${(pct as number) * 100}%` }}
+                />
+              </div>
+              <div className="target-current">
+                {monthlyDiamonds.toLocaleString()} /{" "}
+                {Number(target).toLocaleString()}
               </div>
             </div>
-          )
-        )}
+          </div>
+        ))}
       </section>
 
       {/* MONTHLY ACHIEVEMENTS */}
@@ -288,15 +344,21 @@ export default function CreatorDashboardPage() {
       <section className="dash-summary-grid">
         <div className="dash-mini-card">
           <div className="mini-label">Yesterday’s diamonds</div>
-          <div className="mini-value">{yesterdayDiamonds.toLocaleString()}</div>
+          <div className="mini-value">
+            {yesterdayDiamonds.toLocaleString()}
+          </div>
         </div>
         <div className="dash-mini-card">
           <div className="mini-label">This month’s diamonds</div>
-          <div className="mini-value">{monthlyDiamonds.toLocaleString()}</div>
+          <div className="mini-value">
+            {monthlyDiamonds.toLocaleString()}
+          </div>
         </div>
         <div className="dash-mini-card">
           <div className="mini-label">Total hours (all time)</div>
-          <div className="mini-value">{totalHoursAllTime.toFixed(1)}h</div>
+          <div className="mini-value">
+            {totalHoursAllTime.toFixed(1)}h
+          </div>
         </div>
       </section>
 
@@ -308,8 +370,13 @@ export default function CreatorDashboardPage() {
 
         <div className="calendar">
           <div className="calendar-weekdays">
-            <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div>
-            <div>Fri</div><div>Sat</div><div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+            <div>Sun</div>
           </div>
 
           <div className="calendar-grid">
@@ -322,19 +389,24 @@ export default function CreatorDashboardPage() {
                 : undefined;
 
               const hrs = statsDay?.hours ?? 0;
+              const isActive = hrs >= 1;
 
               return (
                 <div
                   key={cell.dateStr}
                   className={
                     "calendar-cell day-cell" +
-                    (hrs >= 1 ? " day-active" : "")
+                    (isActive ? " day-active" : "")
                   }
                 >
                   <div className="day-number">{cell.day}</div>
                   <div className="day-metrics compact">
-                    <span>💎 {statsDay?.daily?.toLocaleString() ?? "-"}</span>
-                    <span>{hrs > 0 ? `⏱ ${hrs.toFixed(1)}h` : ""}</span>
+                    <span>
+                      💎 {statsDay?.daily?.toLocaleString() ?? "-"}
+                    </span>
+                    <span>
+                      {hrs > 0 ? `⏱ ${hrs.toFixed(1)}h` : ""}
+                    </span>
                   </div>
                 </div>
               );
