@@ -53,16 +53,30 @@ export default function CreatorDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   // ------------------ Load user history ------------------
-  useEffect(() => {
-    if (!usernameParam) return;
+ useEffect(() => {
+  if (!usernameParam) return;
 
-    fetch(`/history/${usernameParam}.json`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j: HistoryFile) =>
-        setHistory(Array.isArray(j.entries) ? j.entries : [])
-      )
-      .catch(() => setHistory([]));
-  }, [usernameParam]);
+  async function loadBalance() {
+    const { data } = await supabase
+      .from("creator_incentives")
+      .select("incentive_balance")
+      .eq("username", usernameParam)
+      .single();
+
+    setStats({
+      diamonds: 0,
+      hours: 0,
+      validDays: 0,
+      top5Count: 0,
+      incentiveBalance: data?.incentive_balance ?? 0,
+    });
+
+    setLoading(false);
+  }
+
+  loadBalance();
+}, [usernameParam]);
+
 
   // ------------------ Load all histories (Top 5) ------------------
   useEffect(() => {
