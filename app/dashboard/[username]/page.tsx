@@ -1,4 +1,5 @@
 "use client";
+
 import { supabase } from "@/lib/supabase";
 import { creators } from "@/data/creators";
 import { useParams } from "next/navigation";
@@ -23,7 +24,6 @@ type IncentiveStats = {
   top5Count: number;
   incentiveBalance: number;
 };
-
 
 export default function CreatorDashboardPage() {
   const params = useParams();
@@ -53,30 +53,16 @@ export default function CreatorDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   // ------------------ Load user history ------------------
- useEffect(() => {
-  if (!usernameParam) return;
+  useEffect(() => {
+    if (!usernameParam) return;
 
-  async function loadBalance() {
-    const { data } = await supabase
-      .from("creator_incentives")
-      .select("incentive_balance")
-      .eq("username", usernameParam)
-      .single();
-
-    setStats({
-      diamonds: 0,
-      hours: 0,
-      validDays: 0,
-      top5Count: 0,
-      incentiveBalance: data?.incentive_balance ?? 0,
-    });
-
-    setLoading(false);
-  }
-
-  loadBalance();
-}, [usernameParam]);
-
+    fetch(`/history/${usernameParam}.json`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j: HistoryFile) =>
+        setHistory(Array.isArray(j.entries) ? j.entries : [])
+      )
+      .catch(() => setHistory([]));
+  }, [usernameParam]);
 
   // ------------------ Load all histories (Top 5) ------------------
   useEffect(() => {
@@ -103,112 +89,61 @@ export default function CreatorDashboardPage() {
     loadAll();
   }, []);
 
-  // ------------------ Incentive raw stats ------------------
-useEffect(() => {
-  if (!history.length || !Object.keys(allHistories).length) {
-    setStats(null);
-    return;
-  }
+  // ------------------ Incentive stats ------------------
+  useEffect(() => {
+    if (!Object.keys(allHistories).length) return;
 
-  async function run() {
-    let diamonds = 0;
-    let hours = 0;
-    let validDays = 0;
-    let top5Count = 0;
+    async function run() {
+      let diamonds = 0;
+      let hours = 0;
+      let validDays = 0;
+      let top5Count = 0;
 
-    const dates = new Set<string>();
-    Object.values(allHistories).forEach((arr) =>
-      arr.forEach((e) => dates.add(e.date))
-    );
+      const dates = new Set<string>();
+      Object.values(allHistories).forEach((arr) =>
+        arr.forEach((e) => dates.add(e.date))
+      );
 
-    const top5ByDay: Record<string, string[]> = {};
-    [...dates].forEach((date) => {
-      const rows: { username: string; daily: number }[] = [];
+      const top5ByDay: Record<string, string[]> = {};
+      [...dates].forEach((date) => {
+        const rows: { username: string; daily: number }[] = [];
 
-      for (const u in allHistories) {
-        const e = allHistories[u].find((x) => x.date === date);
-        if (e && e.daily > 0) rows.push({ username: u, daily: e.daily });
-      }
+        for (const u in allHistories) {
+          const e = allHistories[u].find((x) => x.date === date);
+          if (e && e.daily > 0) rows.push({ username: u, daily: e.daily });
+        }
 
-      rows.sort((a, b) => b.daily - a.daily);
-      top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
-    });
+        rows.sort((a, b) => b.daily - a.daily);
+        top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
+      });
 
-    history.forEach((e) => {
-      diamonds += e.daily ?? 0;
-      hours += e.hours ?? 0;
-      if ((e.hours ?? 0) >= 1) validDays++;
-      if (top5ByDay[e.date]?.includes(usernameParam)) top5Count++;
-    });
+      history.forEach((e) => {
+        diamonds += e.daily ?? 0;
+        hours += e.hours ?? 0;
+        if ((e.hours ?? 0) >= 1) validDays++;
+        if (top5ByDay[e.date]?.includes(usernameParam)) top5Count++;
+      });
 
-// ================= INCENTIVE POINT CALCULATION =================
+      // ✅ Incentive balance from Supabase ONLY
+      const { data } = await supabase
+        .from("points_adjustments")
+        .select("points")
+        .eq("username", usernameParam)
+        .maybeSingle();
 
-// 💎 Diamond points
-const thousands = Math.floor(diamonds / 1000);
-let diamondPoints = 0;
+      setStats({
+        diamonds,
+        hours,
+        validDays,
+        top5Count,
+        incentiveBalance: data?.points ?? 0,
+      });
+    }
 
-if (thousands >= 1) {
-  diamondPoints += 10; // first 1k
-  diamondPoints += Math.max(0, thousands - 1) * 5; // additional 1ks
-}
+    run();
+  }, [history, allHistories, usernameParam]);
 
-// ⏱ Live hour points
-const fullHours = Math.floor(hours);
-const hourPoints = fullHours * 3;
-
-// ✅ Valid day bonus (1h+)
-const validDayPoints = validDays * 3;
-
-// 🏆 Top-5 placement points
-let top5Points = 0;
-
-history.forEach((e) => {
-  const placements = top5ByDay[e.date];
-  if (!placements) return;
-
-  const pos = placements.indexOf(usernameParam);
-  if (pos === -1) return;
-
-  if (pos === 0) top5Points += 25;
-  else if (pos === 1) top5Points += 20;
-  else if (pos === 2) top5Points += 15;
-  else if (pos === 3) top5Points += 10;
-  else if (pos === 4) top5Points += 5;
-});
-
-// ✅ TOTAL app-calculated incentive points
-const calculatedPoints =
-  diamondPoints +
-  hourPoints +
-  validDayPoints +
-  top5Points;
-
-// ✅ FETCH ADMIN ADJUSTMENT FROM SUPABASE
-const { data } = await supabase
-  .from("points_adjustments")
-  .select("points")
-  .eq("username", usernameParam)
-  .single();
-
-const adminAdjustment = data?.points ?? 0;
-
-// ✅ FINAL BALANCE = APP + ADMIN OFFSET
-const incentiveBalance = calculatedPoints + adminAdjustment;
-
-setStats({
-  diamonds,
-  hours,
-  validDays,
-  top5Count,
-  incentiveBalance,
-});
-
-  }
-
-  run();
-}, [history, allHistories, usernameParam]);
-
-  // ------------------ Month + calendar ------------------
+  // ------------------ Month & calendar ------------------
   function buildMonth() {
     const today = new Date();
     const year = today.getFullYear();
@@ -264,6 +199,7 @@ setStats({
   const pct150 = Math.min(1, monthlyDiamonds / 150_000);
   const pct500 = Math.min(1, monthlyDiamonds / 500_000);
 
+  // ------------------ UI ------------------
   return (
     <main className="dashboard-wrapper">
       {/* HEADER */}
@@ -280,22 +216,21 @@ setStats({
           </div>
         </div>
 
-        {/* INCENTIVE STATS */}
         <div className="dash-card">
           <div className="dash-card-title">💎 Incentive Stats</div>
           {loading && <div>Loading…</div>}
           {!loading && stats && (
             <>
-		<div
-  style={{
-    fontSize: "20px",
-    fontWeight: 800,
-    marginBottom: "8px",
-    color: "#2de0ff",
-    textShadow: "0 0 6px rgba(45,224,255,0.5)",
-  }}
->
-  💰 Incentive Balance: {stats?.incentiveBalance?.toLocaleString() ?? 0}
+             <div
+  	style={{
+  	  fontSize: "20px",
+  	  fontWeight: 800,
+  	  marginBottom: "8px",
+   	 color: "#2de0ff",
+   	 textShadow: "0 0 6px rgba(45,224,255,0.6)",
+ 	 }}
+	>
+  💰 Incentive Balance: {stats.incentiveBalance.toLocaleString()}
 </div>
 
               <div>💎 Diamonds: <b>{stats.diamonds.toLocaleString()}</b></div>
@@ -382,25 +317,24 @@ setStats({
               if (!cell.day)
                 return <div key={i} className="calendar-cell empty" />;
 
-              const stats = cell.dateStr
+              const statsDay = cell.dateStr
                 ? historyByDate[cell.dateStr]
                 : undefined;
 
-              const hours = stats?.hours ?? 0;
-              const isActive = hours >= 1;
+              const hrs = statsDay?.hours ?? 0;
 
               return (
                 <div
                   key={cell.dateStr}
                   className={
                     "calendar-cell day-cell" +
-                    (isActive ? " day-active" : "")
+                    (hrs >= 1 ? " day-active" : "")
                   }
                 >
                   <div className="day-number">{cell.day}</div>
                   <div className="day-metrics compact">
-                    <span>💎 {stats?.daily ? stats.daily.toLocaleString() : "-"}</span>
-                    <span>{hours > 0 ? `⏱ ${hours.toFixed(1)}h` : ""}</span>
+                    <span>💎 {statsDay?.daily?.toLocaleString() ?? "-"}</span>
+                    <span>{hrs > 0 ? `⏱ ${hrs.toFixed(1)}h` : ""}</span>
                   </div>
                 </div>
               );
