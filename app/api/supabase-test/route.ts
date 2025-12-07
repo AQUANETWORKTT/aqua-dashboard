@@ -1,3 +1,7 @@
+export const runtime = "nodejs";
+
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
@@ -14,5 +18,8 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({ ok: true, rows: data ?? [] });
+  return NextResponse.json({
+    ok: true,
+    rows: data ?? [],
+  });
 }
