@@ -49,6 +49,13 @@
       "hours": 1.3625,
       "lifetime": 22107,
       "lifetimeHours": 25.83611111111111
+    },
+    {
+      "date": "2025-12-14",
+      "daily": 7,
+      "hours": 1.3516666666666668,
+      "lifetime": 22114,
+      "lifetimeHours": 27.18777777777778
     }
   ]
 }
