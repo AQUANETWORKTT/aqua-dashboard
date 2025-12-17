@@ -7,6 +7,7 @@ export const incentiveExtras: Record<string, number> = {
   huxtables1: 6000,
   "alfie.harnett": 1400,
   k29693k: 8000,
+  g_streamz1: 150,
 
   // add more below
 };
