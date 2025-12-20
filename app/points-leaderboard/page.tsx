@@ -140,7 +140,6 @@ export default function PointsLeaderboardPage() {
     dailyStats.sort((a, b) => b.daily - a.daily);
 
     const map: Record<string, number> = {};
-
     dailyStats.slice(0, 5).forEach((x, i) => {
       map[x.username] = achievementValues[i];
     });
@@ -168,9 +167,9 @@ export default function PointsLeaderboardPage() {
       // 💎 Diamond points
       let diamondPts = 0;
       if (daily >= 1000) {
-        diamondPts += 10; // first 1k
+        diamondPts += 10;
         const extra = Math.floor(daily / 1000) - 1;
-        if (extra > 0) diamondPts += extra * 5; // ✅ 5 points per extra 1k
+        if (extra > 0) diamondPts += extra * 5;
       }
 
       // ⏱️ Hours points
@@ -247,9 +246,29 @@ export default function PointsLeaderboardPage() {
             textShadow: "0 0 3px rgba(255,255,255,0.35)",
           }}
         >
+          {/* ✅ Redeemable Requirements */}
           <li
             style={{
-              marginTop: "10px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            ✅ Redeemable Requirements
+          </li>
+          <li>• At the beginning of the month</li>
+          <li>
+            • If the creator has achieved <strong>15 valid days</strong> and{" "}
+            <strong>40 hours</strong> within the month
+          </li>
+
+          {/* 💎 Diamond Points */}
+          <li
+            style={{
+              marginTop: "18px",
               paddingBottom: "8px",
               borderBottom: "1px solid rgba(45,224,255,0.25)",
               fontSize: "18px",
@@ -263,6 +282,7 @@ export default function PointsLeaderboardPage() {
           <li>• First 1,000 diamonds → <strong>10 points</strong></li>
           <li>• Every additional 1,000 diamonds → <strong>5 points</strong></li>
 
+          {/* ⏱️ Live Hours */}
           <li
             style={{
               marginTop: "18px",
@@ -279,6 +299,7 @@ export default function PointsLeaderboardPage() {
           <li>• Every full hour streamed → <strong>3 points</strong></li>
           <li>• Valid day bonus (1h+) → <strong>+3 points</strong></li>
 
+          {/* 🏆 Daily Top 5 */}
           <li
             style={{
               marginTop: "18px",
@@ -298,6 +319,7 @@ export default function PointsLeaderboardPage() {
           <li>• 4th → <strong>10 points</strong></li>
           <li>• 5th → <strong>5 points</strong></li>
 
+          {/* 🔥 Streak */}
           <li
             style={{
               marginTop: "18px",
@@ -317,6 +339,7 @@ export default function PointsLeaderboardPage() {
           <li>• 20-day streak → <strong>100 points</strong></li>
           <li>• 30-day streak → <strong>150 points</strong></li>
 
+          {/* ⚔️ Arranged Battles */}
           <li
             style={{
               marginTop: "18px",
@@ -333,6 +356,7 @@ export default function PointsLeaderboardPage() {
           <li>• Completing an arranged battle → <strong>100 points</strong></li>
           <li>• Winning an arranged battle → <strong>150 points</strong></li>
 
+          {/* 🌙 Milestones */}
           <li
             style={{
               marginTop: "18px",
@@ -351,6 +375,7 @@ export default function PointsLeaderboardPage() {
           <li>• Second time hitting 150,000 diamonds → <strong>1,750 points</strong></li>
           <li>• First time hitting 500,000 diamonds → <strong>6,000 points</strong></li>
 
+          {/* 💱 Exchange */}
           <li
             style={{
               marginTop: "18px",
@@ -362,8 +387,8 @@ export default function PointsLeaderboardPage() {
           >
             💱 Points Exchange
           </li>
-          <li style={{ color: "#fff" }}>• 1 point = <strong>2p</strong></li>
-          <li style={{ color: "#fff" }}>• 1 point = <strong>3 coins</strong></li>
+          <li>• 1 point = <strong>2p</strong></li>
+          <li>• 1 point = <strong>3 coins</strong></li>
         </ul>
       </div>
 
