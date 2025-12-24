@@ -29,18 +29,15 @@ export default function LoginPage() {
       return;
     }
 
-    // Redirect using the REAL canonical username
-    router.push(`/dashboard/${data.username}`);
+    // ✅ Replace + refresh so the server layout re-reads cookies and the NavBar shows instantly
+    router.replace(`/dashboard/${data.username}`);
+    router.refresh();
   }
 
   return (
     <main className="login-wrapper">
       <div className="login-card">
-        <img
-          src="/aqua-logo.png"
-          className="login-logo"
-          alt="Aqua Agency"
-        />
+        <img src="/aqua-logo.png" className="login-logo" alt="Aqua Agency" />
 
         <h1 className="login-title">Creator Login</h1>
         <p className="login-subtext">Access your diamonds, streaks & stats.</p>

@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import NavBarClient from "./components/NavBarClient";
 import { Poppins } from "next/font/google";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Aqua Agency",
   description: "Creator Network Dashboard",
@@ -14,7 +16,11 @@ const poppins = Poppins({
   variable: "--font-poppins",
 });
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const cookieStore = await cookies();
   const aquaCookie = cookieStore.get("aqua_user");
   const loggedInUser = aquaCookie?.value ?? null;
