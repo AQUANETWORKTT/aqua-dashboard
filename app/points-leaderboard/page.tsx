@@ -371,7 +371,7 @@ export default function PointsLeaderboardPage() {
             🌙 Monthly Milestones (Manual Rewards)
           </li>
           <li>• First time hitting 75,000 diamonds → <strong>1000 points</strong></li>
-          <li>• First time hitting 150,000 diamonds → <strong>2,500 points</strong></li>
+          <li>• First time hitting 150,000 diamonds → <strong>2,000 points</strong></li>
           <li>• Second time hitting 150,000 diamonds → <strong>1,750 points</strong></li>
           <li>• First time hitting 500,000 diamonds → <strong>6,000 points</strong></li>
 
