@@ -1,0 +1,26 @@
+{
+  "username": "a.b_cooke14",
+  "entries": [
+    {
+      "date": "2025-12-22",
+      "daily": 2943,
+      "hours": 0.5291666666666667,
+      "lifetime": 2944,
+      "lifetimeHours": 0.5575
+    },
+    {
+      "date": "2002-12-23",
+      "daily": 1,
+      "hours": 0.028333333333333335,
+      "lifetime": 2944,
+      "lifetimeHours": 0.5575
+    },
+    {
+      "date": "2025-12-23",
+      "daily": 1,
+      "hours": 0.028333333333333335,
+      "lifetime": 2944,
+      "lifetimeHours": 0.5575
+    }
+  ]
+}

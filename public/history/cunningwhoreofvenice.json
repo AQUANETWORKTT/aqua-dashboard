@@ -56,6 +56,27 @@
       "hours": 0.6133333333333333,
       "lifetime": 2543,
       "lifetimeHours": 17.525555555555556
+    },
+    {
+      "date": "2025-12-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2543,
+      "lifetimeHours": 17.525555555555556
+    },
+    {
+      "date": "2002-12-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2543,
+      "lifetimeHours": 17.525555555555556
+    },
+    {
+      "date": "2025-12-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2543,
+      "lifetimeHours": 17.525555555555556
     }
   ]
 }
