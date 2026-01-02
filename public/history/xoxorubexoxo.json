@@ -387,14 +387,14 @@
       "lifetimeHours": 6.356388888888889
     },
     {
-      "date": "2026-01-01",
-      "daily": 0,
-      "hours": 0,
-      "lifetime": 3204,
-      "lifetimeHours": 6.356388888888889
+      "date": "2026-02-01",
+      "daily": 8,
+      "hours": 1.2991666666666666,
+      "lifetime": 8,
+      "lifetimeHours": 1.2991666666666666
     },
     {
-      "date": "2026-02-01",
+      "date": "2026-01-01",
       "daily": 8,
       "hours": 1.2991666666666666,
       "lifetime": 8,
