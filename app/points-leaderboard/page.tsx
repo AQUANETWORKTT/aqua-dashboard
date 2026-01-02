@@ -164,7 +164,6 @@ export default function PointsLeaderboardPage() {
       totalDailyDiamonds += daily;
       totalHoursLive += hrs;
 
-      // 💎 Diamond points
       let diamondPts = 0;
       if (daily >= 1000) {
         diamondPts += 10;
@@ -172,11 +171,8 @@ export default function PointsLeaderboardPage() {
         if (extra > 0) diamondPts += extra * 5;
       }
 
-      // ⏱️ Hours points
       const hourPts = Math.floor(hrs) * 3;
       const validDayPts = hrs >= 1 ? 3 : 0;
-
-      // 🏆 Daily top 5
       const achievePts = achievementByDay[e.date]?.[c.username] ?? 0;
 
       totalPoints += diamondPts + hourPts + validDayPts + achievePts;
@@ -194,8 +190,6 @@ export default function PointsLeaderboardPage() {
       streakDays,
     };
   });
-
-  // ------------------ Sort leaderboard ------------------
 
   const ranked = scored.sort((a, b) =>
     b.totalPoints !== a.totalPoints
@@ -246,7 +240,6 @@ export default function PointsLeaderboardPage() {
             textShadow: "0 0 3px rgba(255,255,255,0.35)",
           }}
         >
-          {/* ✅ Redeemable Requirements */}
           <li
             style={{
               paddingBottom: "8px",
@@ -259,13 +252,33 @@ export default function PointsLeaderboardPage() {
           >
             ✅ Redeemable Requirements
           </li>
+
           <li>• At the beginning of the month</li>
+
           <li>
-            • If the creator has achieved <strong>15 valid days</strong> and{" "}
-            <strong>40 hours</strong> within the month
+            • If the creator has achieved{" "}
+            <span
+              style={{
+                color: "#ff4d4d",
+                fontWeight: 800,
+                textShadow: "0 0 6px rgba(255,77,77,0.9)",
+              }}
+            >
+              15 valid days
+            </span>{" "}
+            and{" "}
+            <span
+              style={{
+                color: "#ff4d4d",
+                fontWeight: 800,
+                textShadow: "0 0 6px rgba(255,77,77,0.9)",
+              }}
+            >
+              40 hours
+            </span>{" "}
+            within the month
           </li>
 
-          {/* 💎 Diamond Points */}
           <li
             style={{
               marginTop: "18px",
@@ -282,7 +295,6 @@ export default function PointsLeaderboardPage() {
           <li>• First 1,000 diamonds → <strong>10 points</strong></li>
           <li>• Every additional 1,000 diamonds → <strong>5 points</strong></li>
 
-          {/* ⏱️ Live Hours */}
           <li
             style={{
               marginTop: "18px",
@@ -299,7 +311,6 @@ export default function PointsLeaderboardPage() {
           <li>• Every full hour streamed → <strong>3 points</strong></li>
           <li>• Valid day bonus (1h+) → <strong>+3 points</strong></li>
 
-          {/* 🏆 Daily Top 5 */}
           <li
             style={{
               marginTop: "18px",
@@ -319,7 +330,6 @@ export default function PointsLeaderboardPage() {
           <li>• 4th → <strong>10 points</strong></li>
           <li>• 5th → <strong>5 points</strong></li>
 
-          {/* 🔥 Streak */}
           <li
             style={{
               marginTop: "18px",
@@ -339,7 +349,6 @@ export default function PointsLeaderboardPage() {
           <li>• 20-day streak → <strong>100 points</strong></li>
           <li>• 30-day streak → <strong>150 points</strong></li>
 
-          {/* ⚔️ Arranged Battles */}
           <li
             style={{
               marginTop: "18px",
@@ -356,7 +365,6 @@ export default function PointsLeaderboardPage() {
           <li>• Completing an arranged battle → <strong>100 points</strong></li>
           <li>• Winning an arranged battle → <strong>150 points</strong></li>
 
-          {/* 🌙 Milestones */}
           <li
             style={{
               marginTop: "18px",
@@ -375,7 +383,6 @@ export default function PointsLeaderboardPage() {
           <li>• Second time hitting 150,000 diamonds → <strong>1,750 points</strong></li>
           <li>• First time hitting 500,000 diamonds → <strong>6,000 points</strong></li>
 
-          {/* 💱 Exchange */}
           <li
             style={{
               marginTop: "18px",
@@ -388,7 +395,7 @@ export default function PointsLeaderboardPage() {
             💱 Points Exchange
           </li>
           <li>• 1 point = <strong>2p</strong></li>
-          <li>• 1 point = <strong>3 coins</strong></li>
+          <li>• 1 point = <strong>2 coins</strong></li>
         </ul>
       </div>
 
@@ -405,10 +412,7 @@ export default function PointsLeaderboardPage() {
             <div className="leaderboard-left">
               <div className="rank-number">{index + 1}</div>
 
-              <img
-                src={creator.avatar}
-                className="leaderboard-avatar"
-              />
+              <img src={creator.avatar} className="leaderboard-avatar" />
 
               <div className="creator-info">
                 <div className="creator-username glow-text">

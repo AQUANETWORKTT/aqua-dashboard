@@ -19,10 +19,8 @@ export default function NavBar({ user }: { user: string | null }) {
     { href: `/dashboard/${user}`, label: "Dashboard" },
     { href: "/leaderboard", label: "Leaderboard" },
     { href: "/points-leaderboard", label: "Points" },
-    { href: "/arranged-battles", label: "Arranged Battles" },
-    { href: "/request-battle", label: "Request a Battle" },
 
-    // 🔥 NEW — Ban Help highlighted in red
+    // 🔥 Ban Help highlighted in red
     {
       href: "/banned-help",
       label: "Ban Help",
@@ -100,8 +98,6 @@ export default function NavBar({ user }: { user: string | null }) {
               style={{
                 padding: "8px 4px",
                 textAlign: "center",
-
-                // 👇 apply red style ONLY to Ban Help
                 ...(link.style || {}),
               }}
             >

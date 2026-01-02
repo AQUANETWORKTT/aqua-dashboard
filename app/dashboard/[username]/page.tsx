@@ -29,6 +29,17 @@ type IncentiveStats = {
   incentiveBalance: number;
 };
 
+/* ===================== SMALL HELPERS ===================== */
+
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function percent(value: number, target: number) {
+  if (!target) return 0;
+  return clamp((value / target) * 100, 0, 100);
+}
+
 /* ===================== PAGE ===================== */
 
 export default function CreatorDashboardPage() {
@@ -97,10 +108,25 @@ export default function CreatorDashboardPage() {
     loadAll();
   }, []);
 
-  /* ===================== INCENTIVE LOGIC ===================== */
+  /* ===================== INCENTIVE LOGIC (MONTH-ONLY) ===================== */
 
   useEffect(() => {
     if (!history.length || !Object.keys(allHistories).length) return;
+
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
+
+    const monthHistory = history.filter((e) => e.date.startsWith(monthKey));
+
+    const monthAll: Record<string, HistoryEntry[]> = {};
+    for (const u in allHistories) {
+      monthAll[u] = (allHistories[u] || []).filter((e) =>
+        e.date.startsWith(monthKey)
+      );
+    }
 
     let diamonds = 0;
     let hours = 0;
@@ -108,7 +134,7 @@ export default function CreatorDashboardPage() {
     let top5Count = 0;
 
     const dates = new Set<string>();
-    Object.values(allHistories).forEach((arr) =>
+    Object.values(monthAll).forEach((arr) =>
       arr.forEach((e) => dates.add(e.date))
     );
 
@@ -116,8 +142,8 @@ export default function CreatorDashboardPage() {
     [...dates].forEach((date) => {
       const rows: { username: string; daily: number }[] = [];
 
-      for (const u in allHistories) {
-        const e = allHistories[u].find((x) => x.date === date);
+      for (const u in monthAll) {
+        const e = monthAll[u].find((x) => x.date === date);
         if (e && e.daily > 0) rows.push({ username: u, daily: e.daily });
       }
 
@@ -125,15 +151,14 @@ export default function CreatorDashboardPage() {
       top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
     });
 
-    history.forEach((e) => {
+    monthHistory.forEach((e) => {
       diamonds += e.daily ?? 0;
       hours += e.hours ?? 0;
       if ((e.hours ?? 0) >= 1) validDays++;
       if (top5ByDay[e.date]?.includes(username)) top5Count++;
     });
 
-    /* ---------- calculated points ---------- */
-
+    // ---------- calculated points ----------
     const thousands = Math.floor(diamonds / 1000);
     let diamondPoints = 0;
 
@@ -146,7 +171,7 @@ export default function CreatorDashboardPage() {
     const validDayPoints = validDays * 3;
 
     let top5Points = 0;
-    history.forEach((e) => {
+    monthHistory.forEach((e) => {
       const placements = top5ByDay[e.date];
       if (!placements) return;
 
@@ -161,7 +186,7 @@ export default function CreatorDashboardPage() {
     const calculatedPoints =
       diamondPoints + hourPoints + validDayPoints + top5Points;
 
-    /* ---------- FILE-BASED EXTRAS ---------- */
+    // ---------- FILE-BASED EXTRAS ----------
     const extrasPoints = incentiveExtras[username] ?? 0;
     const incentiveBalance = calculatedPoints + extrasPoints;
 
@@ -220,14 +245,51 @@ export default function CreatorDashboardPage() {
       : sum;
   }, 0);
 
-  const totalHoursAllTime = history.reduce(
-    (s, e) => s + (e.hours ?? 0),
-    0
-  );
+  const totalHoursAllTime = history.reduce((s, e) => s + (e.hours ?? 0), 0);
 
   const pct75 = Math.min(1, monthlyDiamonds / 75_000);
   const pct150 = Math.min(1, monthlyDiamonds / 150_000);
   const pct500 = Math.min(1, monthlyDiamonds / 500_000);
+
+  /* ===================== INCENTIVE REQUIREMENTS PROGRESS ===================== */
+
+  const validDaysNow = stats?.validDays ?? 0;
+  const hoursNow = stats?.hours ?? 0;
+
+  const daysTarget = 15;
+  const hoursTarget = 40;
+
+  const daysPct = percent(validDaysNow, daysTarget);
+  const hoursPct = percent(hoursNow, hoursTarget);
+
+  const daysDone = validDaysNow >= daysTarget;
+  const hoursDone = hoursNow >= hoursTarget;
+  const eligible = daysDone && hoursDone;
+
+  const daysRemaining = Math.max(0, daysTarget - validDaysNow);
+  const hoursRemaining = Math.max(0, hoursTarget - hoursNow);
+
+  const barOuter: React.CSSProperties = {
+    width: "100%",
+    height: 12,
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    overflow: "hidden",
+  };
+
+  const barInner = (p: number, done: boolean): React.CSSProperties => ({
+    height: "100%",
+    width: `${p}%`,
+    borderRadius: 999,
+    background: done
+      ? "linear-gradient(90deg, rgba(45,224,255,0.95), rgba(123,232,255,0.85))"
+      : "linear-gradient(90deg, rgba(255,77,77,0.95), rgba(255,140,140,0.75))",
+    boxShadow: done
+      ? "0 0 10px rgba(45,224,255,0.45)"
+      : "0 0 10px rgba(255,77,77,0.35)",
+    transition: "width 350ms ease",
+  });
 
   /* ===================== UI ===================== */
 
@@ -272,13 +334,141 @@ export default function CreatorDashboardPage() {
               </div>
 
               <div style={{ marginTop: 8 }}>
-                💎 Diamonds: <b>{stats.diamonds.toLocaleString()}</b><br />
-                ⏱️ Hours: <b>{stats.hours.toFixed(1)}h</b><br />
-                ✅ Valid days: <b>{stats.validDays}</b><br />
+                💎 Diamonds: <b>{stats.diamonds.toLocaleString()}</b>
+                <br />
+                ⏱️ Hours: <b>{stats.hours.toFixed(1)}h</b>
+                <br />
+                ✅ Valid days: <b>{stats.validDays}</b>
+                <br />
                 🏆 Top-5 finishes: <b>{stats.top5Count}</b>
               </div>
             </>
           )}
+        </div>
+      </section>
+
+      {/* ✅ Incentive Requirements (USES YOUR EXACT .glow-text BLUE + GLOW) */}
+      <section className="dash-card">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <div>
+            <div className="dash-card-title">✅ Incentive Requirements</div>
+
+            <div className="glow-text" style={{ marginTop: 6 }}>
+              Track progress to <b>15 valid days</b> and <b>40 hours</b> this
+              month.
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: "6px 12px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: eligible ? "#7cf6ff" : "#ff4d4d",
+              background: eligible
+                ? "rgba(124,246,255,0.10)"
+                : "rgba(255,77,77,0.10)",
+              border: eligible
+                ? "1px solid rgba(124,246,255,0.55)"
+                : "1px solid rgba(255,77,77,0.55)",
+              textShadow: eligible
+                ? "0 0 8px rgba(124,246,255,0.55)"
+                : "0 0 8px rgba(255,77,77,0.45)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {eligible ? "Eligible" : "Not Eligible"}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14, display: "grid", gap: 14 }}>
+          {/* Valid Days */}
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 8,
+              }}
+              className="glow-text"
+            >
+              <div
+                style={{
+                  fontWeight: 900,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                Valid Days
+              </div>
+              <div style={{ fontWeight: 900 }}>
+                {Math.min(validDaysNow, daysTarget)}/{daysTarget}{" "}
+                <span style={{ opacity: 0.95 }}>
+                  ({Math.round(daysPct)}%)
+                </span>
+              </div>
+            </div>
+
+            <div style={barOuter}>
+              <div style={barInner(daysPct, daysDone)} />
+            </div>
+
+            <div className="glow-text" style={{ marginTop: 6 }}>
+              {daysDone
+                ? "✅ Requirement met."
+                : `⏳ ${daysRemaining} day(s) remaining.`}
+            </div>
+          </div>
+
+          {/* Hours */}
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 8,
+              }}
+              className="glow-text"
+            >
+              <div
+                style={{
+                  fontWeight: 900,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                Hours Live
+              </div>
+              <div style={{ fontWeight: 900 }}>
+                {Math.min(hoursNow, hoursTarget).toFixed(1)}/{hoursTarget}{" "}
+                <span style={{ opacity: 0.95 }}>
+                  ({Math.round(hoursPct)}%)
+                </span>
+              </div>
+            </div>
+
+            <div style={barOuter}>
+              <div style={barInner(hoursPct, hoursDone)} />
+            </div>
+
+            <div className="glow-text" style={{ marginTop: 6 }}>
+              {hoursDone
+                ? "✅ Requirement met."
+                : `⏳ ${hoursRemaining.toFixed(1)} hour(s) remaining.`}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -311,23 +501,17 @@ export default function CreatorDashboardPage() {
       <section className="dash-summary-grid">
         <div className="dash-mini-card">
           <div className="mini-label">Yesterday’s diamonds</div>
-          <div className="mini-value">
-            {yesterdayDiamonds.toLocaleString()}
-          </div>
+          <div className="mini-value">{yesterdayDiamonds.toLocaleString()}</div>
         </div>
 
         <div className="dash-mini-card">
           <div className="mini-label">This month’s diamonds</div>
-          <div className="mini-value">
-            {monthlyDiamonds.toLocaleString()}
-          </div>
+          <div className="mini-value">{monthlyDiamonds.toLocaleString()}</div>
         </div>
 
         <div className="dash-mini-card">
           <div className="mini-label">Total hours (all time)</div>
-          <div className="mini-value">
-            {totalHoursAllTime.toFixed(1)}h
-          </div>
+          <div className="mini-value">{totalHoursAllTime.toFixed(1)}h</div>
         </div>
       </section>
 
@@ -338,14 +522,20 @@ export default function CreatorDashboardPage() {
 
         <div className="calendar">
           <div className="calendar-weekdays">
-            <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div>
-            <div>Fri</div><div>Sat</div><div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+            <div>Sun</div>
           </div>
 
           <div className="calendar-grid">
             {cells.map((cell, i) => {
-              if (!cell.day)
+              if (!cell.day) {
                 return <div key={i} className="calendar-cell empty" />;
+              }
 
               const e = historyByDate[cell.dateStr!];
               const hrs = e?.hours ?? 0;
@@ -354,8 +544,7 @@ export default function CreatorDashboardPage() {
                 <div
                   key={cell.dateStr}
                   className={
-                    "calendar-cell day-cell" +
-                    (hrs >= 1 ? " day-active" : "")
+                    "calendar-cell day-cell" + (hrs >= 1 ? " day-active" : "")
                   }
                 >
                   <div className="day-number">{cell.day}</div>

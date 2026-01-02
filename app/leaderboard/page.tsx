@@ -3,12 +3,11 @@
 import { creators } from "@/data/creators";
 
 export default function LeaderboardPage() {
-  // Sort creators by lifetime diamonds (highest → lowest)
+  // Sort creators by monthly diamonds (highest → lowest)
   const sorted = [...creators].sort((a, b) => b.lifetime - a.lifetime);
 
   return (
     <main className="leaderboard-wrapper">
-
       {/* Banner Image */}
       <div className="leaderboard-title-image">
         <img
@@ -22,10 +21,8 @@ export default function LeaderboardPage() {
       <div className="leaderboard-list">
         {sorted.map((creator, index) => (
           <div key={creator.username} className="leaderboard-row">
-
             {/* LEFT SIDE */}
             <div className="leaderboard-left">
-
               {/* Rank */}
               <div className="rank-number">{index + 1}</div>
 
@@ -42,24 +39,21 @@ export default function LeaderboardPage() {
                   {creator.username}
                 </div>
               </div>
-
             </div>
 
             {/* RIGHT SIDE */}
             <div className="leaderboard-right">
-
+              {/* KEEP CLASS NAME FOR YELLOW GLOW */}
               <div className="leaderboard-lifetime">
                 {creator.lifetime.toLocaleString()}
               </div>
-              <div className="leaderboard-lifetime-label">lifetime</div>
+              <div className="leaderboard-lifetime-label">Monthly</div>
 
               <div className="leaderboard-yesterday">
                 {creator.daily.toLocaleString()}
               </div>
               <div className="leaderboard-yesterday-label">yesterday</div>
-
             </div>
-
           </div>
         ))}
       </div>
