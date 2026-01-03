@@ -252,7 +252,7 @@ export default function CreatorDashboardPage() {
       : sum;
   }, 0);
 
-  /* ===================== INCENTIVE TARGETS (ONE AT A TIME) ===================== */
+  /* ===================== INCENTIVE TARGETS (ONE AT A TIME + LOCKED PREVIEW) ===================== */
 
   const validDaysNow = stats?.validDays ?? 0;
   const hoursNow = stats?.hours ?? 0;
@@ -292,6 +292,15 @@ export default function CreatorDashboardPage() {
 
   const baseEligible = isLevelEligible(level2);
 
+  // Preview (always show next level AFTER the current target, faded + locked)
+  const targetIndex = targetLevel
+    ? levels.findIndex((l) => l.level === targetLevel.level)
+    : -1;
+  const nextLevel =
+    targetIndex >= 0 && targetIndex < levels.length - 1
+      ? levels[targetIndex + 1]
+      : null;
+
   // Level points (only 3–5), reward scales with diamonds
   const earnedLevelPoints =
     (isLevelAvailable(level3) && isLevelEligible(level3) ? scaledReward : 0) +
@@ -317,24 +326,14 @@ export default function CreatorDashboardPage() {
     { value: 500_000, label: "500K" },
   ];
 
-  const milestonePointsFull: Record<number, string> = {
-    75_000: "1,000 pts",
-    150_000: "2,000 pts",
-    500_000: "6,000 pts",
-  };
-
-  const milestonePointsGraduated: Record<number, string> = {
-    75_000: "500 pts",
-    150_000: "1,000 pts",
-    500_000: "3,000 pts",
-  };
-
   const milestoneLeftPct = (value: number) =>
     clamp((value / maxDiamonds) * 100, 0, 100);
 
   function milestoneLabelStyle(value: number): React.CSSProperties {
-    if (value === 75_000) return { transform: "translateX(0%)", textAlign: "left" };
-    if (value === 500_000) return { transform: "translateX(-100%)", textAlign: "right" };
+    if (value === 75_000)
+      return { transform: "translateX(0%)", textAlign: "left" };
+    if (value === 500_000)
+      return { transform: "translateX(-100%)", textAlign: "right" };
     return { transform: "translateX(-50%)", textAlign: "center" };
   }
 
@@ -379,6 +378,36 @@ export default function CreatorDashboardPage() {
       : "0 0 8px rgba(255,77,77,0.45)",
     whiteSpace: "nowrap",
   });
+
+  // Fancy single-number style for Total Diamonds (clean + clear)
+  const totalDiamondsNumberStyle: React.CSSProperties = {
+    fontSize: 22,
+    fontWeight: 900,
+    color: "#7cf6ff",
+    textShadow: "0 0 12px rgba(45,224,255,0.55), 0 0 26px rgba(45,224,255,0.28)",
+    lineHeight: 1,
+    whiteSpace: "nowrap",
+  };
+
+  const totalDiamondsLabelStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 900,
+    letterSpacing: "0.10em",
+    textTransform: "uppercase",
+    color: "rgba(255,255,255,0.75)",
+    textShadow: "0 0 6px rgba(45,224,255,0.12)",
+    lineHeight: 1.1,
+  };
+
+  const lockedPreviewStyle: React.CSSProperties = {
+    marginTop: 10,
+    borderRadius: 16,
+    padding: 12,
+    background: "rgba(255,255,255,0.02)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    opacity: 0.55,
+    filter: "saturate(0.85)",
+  };
 
   /* ===================== UI ===================== */
 
@@ -436,7 +465,7 @@ export default function CreatorDashboardPage() {
         </div>
       </section>
 
-      {/* ✅ Incentive Requirements (one target at a time) */}
+      {/* ✅ Incentive Requirements (one target at a time + locked preview of next) */}
       <section className="dash-card">
         <div
           style={{
@@ -495,40 +524,204 @@ export default function CreatorDashboardPage() {
                 : `+${scaledReward.toLocaleString()} points`;
 
               return (
-                <div
-                  style={{
-                    borderRadius: 16,
-                    padding: 14,
-                    background: available
-                      ? "rgba(255,255,255,0.04)"
-                      : "rgba(255,255,255,0.02)",
-                    border: "1px solid rgba(255,255,255,0.10)",
-                    opacity: available ? 1 : 0.75,
-                  }}
-                >
+                <>
+                  {/* CURRENT TARGET */}
                   <div
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 12,
-                      marginBottom: 6,
+                      borderRadius: 16,
+                      padding: 14,
+                      background: available
+                        ? "rgba(255,255,255,0.04)"
+                        : "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      opacity: available ? 1 : 0.75,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                        marginBottom: 6,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: 900,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                          }}
+                          className="glow-text"
+                        >
+                          Target: Level {targetLevel.level}
+                        </div>
+
+                        {!available && (
+                          <span
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: "rgba(255,255,255,0.06)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                            }}
+                          >
+                            🔒 Locked (needs 150K)
+                          </span>
+                        )}
+
+                        {available && done && (
+                          <span
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 900,
+                              background: "rgba(124,246,255,0.10)",
+                              border: "1px solid rgba(124,246,255,0.45)",
+                              color: "#7cf6ff",
+                              textShadow: "0 0 8px rgba(124,246,255,0.35)",
+                            }}
+                          >
+                            ✅ Completed
+                          </span>
+                        )}
+                      </div>
+
                       <div
                         style={{
                           fontWeight: 900,
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
+                          color: "#2de0ff",
+                          textShadow: "0 0 10px rgba(45,224,255,0.55)",
+                          whiteSpace: "nowrap",
                         }}
-                        className="glow-text"
                       >
-                        Target: Level {targetLevel.level}
+                        {rewardText}
+                      </div>
+                    </div>
+
+                    <div className="glow-text" style={{ marginBottom: 10 }}>
+                      Target: <b>{targetLevel.days}</b> valid days &{" "}
+                      <b>{targetLevel.hours}</b> hours
+                      {!isL2 && (
+                        <>
+                          {" "}
+                          • Diamond scale: <b>{diamondScale}×</b> (150K → 1×,
+                          300K → 2×, 900K → 6×)
+                        </>
+                      )}
+                    </div>
+
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {/* Valid Days */}
+                      <div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            marginBottom: 8,
+                          }}
+                          className="glow-text"
+                        >
+                          <div
+                            style={{
+                              fontWeight: 900,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.06em",
+                            }}
+                          >
+                            Valid Days
+                          </div>
+                          <div style={{ fontWeight: 900 }}>
+                            {Math.min(validDaysNow, targetLevel.days)}/
+                            {targetLevel.days}{" "}
+                            <span style={{ opacity: 0.95 }}>
+                              ({Math.round(daysPct)}%)
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={barOuter}>
+                          <div
+                            style={barInner(
+                              daysPct,
+                              validDaysNow >= targetLevel.days
+                            )}
+                          />
+                        </div>
                       </div>
 
-                      {!available && (
-                        <span
+                      {/* Hours */}
+                      <div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            marginBottom: 8,
+                          }}
+                          className="glow-text"
+                        >
+                          <div
+                            style={{
+                              fontWeight: 900,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.06em",
+                            }}
+                          >
+                            Hours Live
+                          </div>
+                          <div style={{ fontWeight: 900 }}>
+                            {Math.min(hoursNow, targetLevel.hours).toFixed(1)}/
+                            {targetLevel.hours}{" "}
+                            <span style={{ opacity: 0.95 }}>
+                              ({Math.round(hrsPct)}%)
+                            </span>
+                          </div>
+                        </div>
+
+                        <div style={barOuter}>
+                          <div
+                            style={barInner(hrsPct, hoursNow >= targetLevel.hours)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* LOCKED PREVIEW (NEXT TARGET) */}
+                  {nextLevel && (
+                    <div style={lockedPreviewStyle}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          className="glow-text"
+                          style={{
+                            fontWeight: 900,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Next: Level {nextLevel.level}
+                        </div>
+
+                        <div
                           style={{
                             padding: "4px 10px",
                             borderRadius: 999,
@@ -538,132 +731,16 @@ export default function CreatorDashboardPage() {
                             border: "1px solid rgba(255,255,255,0.12)",
                           }}
                         >
-                          🔒 Locked (needs 150K)
-                        </span>
-                      )}
-
-                      {available && done && (
-                        <span
-                          style={{
-                            padding: "4px 10px",
-                            borderRadius: 999,
-                            fontSize: 11,
-                            fontWeight: 900,
-                            background: "rgba(124,246,255,0.10)",
-                            border: "1px solid rgba(124,246,255,0.45)",
-                            color: "#7cf6ff",
-                            textShadow: "0 0 8px rgba(124,246,255,0.35)",
-                          }}
-                        >
-                          ✅ Completed
-                        </span>
-                      )}
-                    </div>
-
-                    <div
-                      style={{
-                        fontWeight: 900,
-                        color: "#2de0ff",
-                        textShadow: "0 0 10px rgba(45,224,255,0.55)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {rewardText}
-                    </div>
-                  </div>
-
-                  <div className="glow-text" style={{ marginBottom: 10 }}>
-                    Target: <b>{targetLevel.days}</b> valid days &{" "}
-                    <b>{targetLevel.hours}</b> hours
-                    {!isL2 && (
-                      <>
-                        {" "}
-                        • Diamond scale: <b>{diamondScale}×</b> (150K → 1×, 300K
-                        → 2×, 900K → 6×)
-                      </>
-                    )}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {/* Valid Days */}
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          marginBottom: 8,
-                        }}
-                        className="glow-text"
-                      >
-                        <div
-                          style={{
-                            fontWeight: 900,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                          }}
-                        >
-                          Valid Days
-                        </div>
-                        <div style={{ fontWeight: 900 }}>
-                          {Math.min(validDaysNow, targetLevel.days)}/
-                          {targetLevel.days}{" "}
-                          <span style={{ opacity: 0.95 }}>
-                            ({Math.round(daysPct)}%)
-                          </span>
+                          🔒 Locked
                         </div>
                       </div>
 
-                      <div style={barOuter}>
-                        <div
-                          style={barInner(
-                            daysPct,
-                            validDaysNow >= targetLevel.days
-                          )}
-                        />
+                      <div className="glow-text" style={{ marginTop: 6 }}>
+                        {nextLevel.days} valid days • {nextLevel.hours} hours
                       </div>
                     </div>
-
-                    {/* Hours */}
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          marginBottom: 8,
-                        }}
-                        className="glow-text"
-                      >
-                        <div
-                          style={{
-                            fontWeight: 900,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                          }}
-                        >
-                          Hours Live
-                        </div>
-                        <div style={{ fontWeight: 900 }}>
-                          {Math.min(hoursNow, targetLevel.hours).toFixed(1)}/
-                          {targetLevel.hours}{" "}
-                          <span style={{ opacity: 0.95 }}>
-                            ({Math.round(hrsPct)}%)
-                          </span>
-                        </div>
-                      </div>
-
-                      <div style={barOuter}>
-                        <div
-                          style={barInner(
-                            hrsPct,
-                            hoursNow >= targetLevel.hours
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  )}
+                </>
               );
             })()
           ) : (
@@ -696,7 +773,7 @@ export default function CreatorDashboardPage() {
         </div>
       </section>
 
-      {/* ✅ Monthly Progress (outside milestones + NO per-marker subtexts) */}
+      {/* ✅ Monthly Progress (one bar, clean) */}
       <section className="dash-card">
         <div
           style={{
@@ -706,18 +783,13 @@ export default function CreatorDashboardPage() {
             gap: 12,
           }}
         >
-          <div>
-            <div className="dash-card-title">Monthly Progress</div>
+          <div className="dash-card-title">Monthly Progress</div>
 
-            <div className="glow-text" style={{ marginTop: 6 }}>
-              Point bonuses are only rewarded to creators who{" "}
-              <b>haven’t graduated before</b>. If a creator <b>has</b>{" "}
-              graduated, milestone points are <b>halved</b>.
+          <div style={{ textAlign: "right" }}>
+            <div style={totalDiamondsLabelStyle}>Total Diamonds</div>
+            <div style={totalDiamondsNumberStyle}>
+              {monthlyDiamonds.toLocaleString()}
             </div>
-          </div>
-
-          <div className="glow-text" style={{ fontWeight: 900 }}>
-            Total diamonds: {monthlyDiamonds.toLocaleString()}
           </div>
         </div>
 
@@ -746,7 +818,7 @@ export default function CreatorDashboardPage() {
               }}
             />
 
-            {/* ticks (more visible) */}
+            {/* ticks */}
             {milestones.map((m) => {
               const left = milestoneLeftPct(m.value);
               const hit = monthlyDiamonds >= m.value;
@@ -769,7 +841,7 @@ export default function CreatorDashboardPage() {
             })}
           </div>
 
-          {/* outside labels with arrows (ONLY the milestone label now) */}
+          {/* outside labels */}
           <div style={{ position: "relative", marginTop: 10, height: 44 }}>
             {milestones.map((m) => {
               const left = milestoneLeftPct(m.value);
@@ -808,23 +880,11 @@ export default function CreatorDashboardPage() {
                       opacity: hit ? 0.95 : 0.6,
                     }}
                   >
-                    
+                    ↓
                   </div>
                 </div>
               );
             })}
-          </div>
-
-          {/* points explanation ONCE (mobile-safe 2 lines) */}
-          <div className="glow-text" style={{ marginTop: 10 }}>
-            <div style={{ whiteSpace: "nowrap" }}>
-              🚀 Non-graduated: 75K = <b>1,000</b>, 150K = <b>2,000</b>, 500K ={" "}
-              <b>6,000</b>
-            </div>
-            <div style={{ whiteSpace: "nowrap", marginTop: 2 }}>
-              🎓 Graduated (half): 75K = <b>500</b>, 150K = <b>1,000</b>, 500K ={" "}
-              <b>3,000</b>
-            </div>
           </div>
         </div>
       </section>
@@ -866,7 +926,9 @@ export default function CreatorDashboardPage() {
 
           <div className="calendar-grid">
             {cells.map((cell, i) => {
-              if (!cell.day) return <div key={i} className="calendar-cell empty" />;
+              if (!cell.day) {
+                return <div key={i} className="calendar-cell empty" />;
+              }
 
               const e = historyByDate[cell.dateStr!];
               const hrs = e?.hours ?? 0;
