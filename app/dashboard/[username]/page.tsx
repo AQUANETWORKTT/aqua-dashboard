@@ -20,13 +20,13 @@ type HistoryFile = {
 };
 
 type IncentiveStats = {
-  diamonds: number;
-  hours: number;
-  validDays: number;
+  diamonds: number; // month diamonds (calculated)
+  hours: number; // month hours (calculated)
+  validDays: number; // month valid days (calculated)
   top5Count: number;
   calculatedPoints: number;
-  extrasPoints: number;
-  incentiveBalance: number;
+  extrasPoints: number; // file extras (incentiveExtras)
+  incentiveBalance: number; // calculatedPoints + extrasPoints (BEFORE ladder points)
 };
 
 /* ===================== SMALL HELPERS ===================== */
@@ -245,29 +245,100 @@ export default function CreatorDashboardPage() {
       : sum;
   }, 0);
 
-  const totalHoursAllTime = history.reduce((s, e) => s + (e.hours ?? 0), 0);
+  const monthlyHours = history.reduce((sum, e) => {
+    const d = new Date(e.date);
+    return d.getFullYear() === year && d.getMonth() === month
+      ? sum + (e.hours ?? 0)
+      : sum;
+  }, 0);
 
-  const pct75 = Math.min(1, monthlyDiamonds / 75_000);
-  const pct150 = Math.min(1, monthlyDiamonds / 150_000);
-  const pct500 = Math.min(1, monthlyDiamonds / 500_000);
-
-  /* ===================== INCENTIVE REQUIREMENTS PROGRESS ===================== */
+  /* ===================== INCENTIVE TARGETS (ONE AT A TIME) ===================== */
 
   const validDaysNow = stats?.validDays ?? 0;
   const hoursNow = stats?.hours ?? 0;
 
-  const daysTarget = 15;
-  const hoursTarget = 40;
+  const ladderUnlocked = monthlyDiamonds >= 150_000;
 
-  const daysPct = percent(validDaysNow, daysTarget);
-  const hoursPct = percent(hoursNow, hoursTarget);
+  const levels = [
+    { level: 2, days: 15, hours: 40, gated: false },
+    { level: 3, days: 20, hours: 60, gated: true },
+    { level: 4, days: 20, hours: 80, gated: true },
+    { level: 5, days: 22, hours: 100, gated: true },
+  ] as const;
 
-  const daysDone = validDaysNow >= daysTarget;
-  const hoursDone = hoursNow >= hoursTarget;
-  const eligible = daysDone && hoursDone;
+  const isLevelEligible = (l: (typeof levels)[number]) =>
+    validDaysNow >= l.days && hoursNow >= l.hours;
 
-  const daysRemaining = Math.max(0, daysTarget - validDaysNow);
-  const hoursRemaining = Math.max(0, hoursTarget - hoursNow);
+  const isLevelAvailable = (l: (typeof levels)[number]) =>
+    l.gated ? ladderUnlocked : true;
+
+  // scaling: 150K => 1x, 300K => 2x, 900K => 6x, etc.
+  const diamondScale = Math.max(1, Math.floor(monthlyDiamonds / 150_000));
+  const scaledReward = 500 * diamondScale;
+
+  const level2 = levels[0];
+  const level3 = levels[1];
+  const level4 = levels[2];
+  const level5 = levels[3];
+
+  let targetLevel: (typeof levels)[number] | null = null;
+
+  if (!isLevelEligible(level2)) targetLevel = level2;
+  else if (!ladderUnlocked) targetLevel = level3; // show next target but locked
+  else if (!isLevelEligible(level3)) targetLevel = level3;
+  else if (!isLevelEligible(level4)) targetLevel = level4;
+  else if (!isLevelEligible(level5)) targetLevel = level5;
+  else targetLevel = null;
+
+  const baseEligible = isLevelEligible(level2);
+
+  // Level points (only 3–5), reward scales with diamonds
+  const earnedLevelPoints =
+    (isLevelAvailable(level3) && isLevelEligible(level3) ? scaledReward : 0) +
+    (isLevelAvailable(level4) && isLevelEligible(level4) ? scaledReward : 0) +
+    (isLevelAvailable(level5) && isLevelEligible(level5) ? scaledReward : 0);
+
+  // Add earned level points into Incentive Balance + Extras (as requested)
+  const incentiveBalanceWithLevels =
+    (stats?.incentiveBalance ?? 0) + earnedLevelPoints;
+  const extrasWithLevels = (stats?.extrasPoints ?? 0) + earnedLevelPoints;
+
+  const daysRemainingBase = Math.max(0, level2.days - validDaysNow);
+  const hoursRemainingBase = Math.max(0, level2.hours - hoursNow);
+
+  /* ===================== MONTHLY PROGRESS (ONE BAR + OUTSIDE MILESTONES) ===================== */
+
+  const maxDiamonds = 500_000;
+  const progressPct = clamp((monthlyDiamonds / maxDiamonds) * 100, 0, 100);
+
+  const milestones = [
+    { value: 75_000, label: "75K" },
+    { value: 150_000, label: "150K" },
+    { value: 500_000, label: "500K" },
+  ];
+
+  const milestonePointsFull: Record<number, string> = {
+    75_000: "1,000 pts",
+    150_000: "2,000 pts",
+    500_000: "6,000 pts",
+  };
+
+  const milestonePointsGraduated: Record<number, string> = {
+    75_000: "500 pts",
+    150_000: "1,000 pts",
+    500_000: "3,000 pts",
+  };
+
+  const milestoneLeftPct = (value: number) =>
+    clamp((value / maxDiamonds) * 100, 0, 100);
+
+  function milestoneLabelStyle(value: number): React.CSSProperties {
+    if (value === 75_000) return { transform: "translateX(0%)", textAlign: "left" };
+    if (value === 500_000) return { transform: "translateX(-100%)", textAlign: "right" };
+    return { transform: "translateX(-50%)", textAlign: "center" };
+  }
+
+  /* ===================== SHARED BAR STYLES ===================== */
 
   const barOuter: React.CSSProperties = {
     width: "100%",
@@ -289,6 +360,24 @@ export default function CreatorDashboardPage() {
       ? "0 0 10px rgba(45,224,255,0.45)"
       : "0 0 10px rgba(255,77,77,0.35)",
     transition: "width 350ms ease",
+  });
+
+  const pillStyle = (ok: boolean): React.CSSProperties => ({
+    padding: "6px 12px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 900,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: ok ? "#7cf6ff" : "#ff4d4d",
+    background: ok ? "rgba(124,246,255,0.10)" : "rgba(255,77,77,0.10)",
+    border: ok
+      ? "1px solid rgba(124,246,255,0.55)"
+      : "1px solid rgba(255,77,77,0.55)",
+    textShadow: ok
+      ? "0 0 8px rgba(124,246,255,0.55)"
+      : "0 0 8px rgba(255,77,77,0.45)",
+    whiteSpace: "nowrap",
   });
 
   /* ===================== UI ===================== */
@@ -323,14 +412,14 @@ export default function CreatorDashboardPage() {
                 }}
               >
                 💰 Incentive Balance:{" "}
-                {stats.incentiveBalance.toLocaleString()}
+                {incentiveBalanceWithLevels.toLocaleString()}
               </div>
 
               <div>
                 ⚙️ Live-earned points: <b>{stats.calculatedPoints}</b>
               </div>
               <div>
-                🎓 Graduations & extras: <b>{stats.extrasPoints}</b>
+                🎓 Graduations & extras: <b>{extrasWithLevels}</b>
               </div>
 
               <div style={{ marginTop: 8 }}>
@@ -347,7 +436,7 @@ export default function CreatorDashboardPage() {
         </div>
       </section>
 
-      {/* ✅ Incentive Requirements (USES YOUR EXACT .glow-text BLUE + GLOW) */}
+      {/* ✅ Incentive Requirements (one target at a time) */}
       <section className="dash-card">
         <div
           style={{
@@ -361,143 +450,386 @@ export default function CreatorDashboardPage() {
             <div className="dash-card-title">✅ Incentive Requirements</div>
 
             <div className="glow-text" style={{ marginTop: 6 }}>
-              Track progress to <b>15 valid days</b> and <b>40 hours</b> this
-              month.
+              Level 2 makes you <b>eligible</b> (no points). Levels <b>3–5</b>{" "}
+              unlock at <b>150K</b> and award points that scale with diamonds.
             </div>
           </div>
+
+          <div style={pillStyle(baseEligible)}>
+            {baseEligible ? "Eligible" : "Not Eligible"}
+          </div>
+        </div>
+
+        <div className="glow-text" style={{ marginTop: 10 }}>
+          Base remaining:{" "}
+          {baseEligible
+            ? "✅ Completed."
+            : `⏳ ${daysRemainingBase} day(s) and ${hoursRemainingBase.toFixed(
+                1
+              )} hour(s) remaining.`}
+        </div>
+
+        <div className="glow-text" style={{ marginTop: 8, opacity: 0.95 }}>
+          {ladderUnlocked ? (
+            <>🔓 Levels 3–5 are unlocked (150K reached).</>
+          ) : (
+            <>
+              🔒 Levels 3–5 unlock when you hit <b>150K</b> monthly diamonds.
+            </>
+          )}
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          {targetLevel ? (
+            (() => {
+              const available = isLevelAvailable(targetLevel);
+              const done = isLevelEligible(targetLevel);
+
+              const daysPct = percent(validDaysNow, targetLevel.days);
+              const hrsPct = percent(hoursNow, targetLevel.hours);
+
+              const isL2 = targetLevel.level === 2;
+
+              const rewardText = isL2
+                ? "Eligibility only (0 points)"
+                : `+${scaledReward.toLocaleString()} points`;
+
+              return (
+                <div
+                  style={{
+                    borderRadius: 16,
+                    padding: 14,
+                    background: available
+                      ? "rgba(255,255,255,0.04)"
+                      : "rgba(255,255,255,0.02)",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    opacity: available ? 1 : 0.75,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      marginBottom: 6,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          fontWeight: 900,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                        className="glow-text"
+                      >
+                        Target: Level {targetLevel.level}
+                      </div>
+
+                      {!available && (
+                        <span
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            fontSize: 11,
+                            fontWeight: 900,
+                            background: "rgba(255,255,255,0.06)",
+                            border: "1px solid rgba(255,255,255,0.12)",
+                          }}
+                        >
+                          🔒 Locked (needs 150K)
+                        </span>
+                      )}
+
+                      {available && done && (
+                        <span
+                          style={{
+                            padding: "4px 10px",
+                            borderRadius: 999,
+                            fontSize: 11,
+                            fontWeight: 900,
+                            background: "rgba(124,246,255,0.10)",
+                            border: "1px solid rgba(124,246,255,0.45)",
+                            color: "#7cf6ff",
+                            textShadow: "0 0 8px rgba(124,246,255,0.35)",
+                          }}
+                        >
+                          ✅ Completed
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        fontWeight: 900,
+                        color: "#2de0ff",
+                        textShadow: "0 0 10px rgba(45,224,255,0.55)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {rewardText}
+                    </div>
+                  </div>
+
+                  <div className="glow-text" style={{ marginBottom: 10 }}>
+                    Target: <b>{targetLevel.days}</b> valid days &{" "}
+                    <b>{targetLevel.hours}</b> hours
+                    {!isL2 && (
+                      <>
+                        {" "}
+                        • Diamond scale: <b>{diamondScale}×</b> (150K → 1×, 300K
+                        → 2×, 900K → 6×)
+                      </>
+                    )}
+                  </div>
+
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {/* Valid Days */}
+                    <div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          marginBottom: 8,
+                        }}
+                        className="glow-text"
+                      >
+                        <div
+                          style={{
+                            fontWeight: 900,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          Valid Days
+                        </div>
+                        <div style={{ fontWeight: 900 }}>
+                          {Math.min(validDaysNow, targetLevel.days)}/
+                          {targetLevel.days}{" "}
+                          <span style={{ opacity: 0.95 }}>
+                            ({Math.round(daysPct)}%)
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={barOuter}>
+                        <div
+                          style={barInner(
+                            daysPct,
+                            validDaysNow >= targetLevel.days
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Hours */}
+                    <div>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          marginBottom: 8,
+                        }}
+                        className="glow-text"
+                      >
+                        <div
+                          style={{
+                            fontWeight: 900,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          Hours Live
+                        </div>
+                        <div style={{ fontWeight: 900 }}>
+                          {Math.min(hoursNow, targetLevel.hours).toFixed(1)}/
+                          {targetLevel.hours}{" "}
+                          <span style={{ opacity: 0.95 }}>
+                            ({Math.round(hrsPct)}%)
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={barOuter}>
+                        <div
+                          style={barInner(
+                            hrsPct,
+                            hoursNow >= targetLevel.hours
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()
+          ) : (
+            <div
+              style={{
+                borderRadius: 16,
+                padding: 14,
+                background: "rgba(45,224,255,0.06)",
+                border: "1px solid rgba(45,224,255,0.22)",
+              }}
+              className="glow-text"
+            >
+              ✅ All levels completed for this month.
+            </div>
+          )}
 
           <div
             style={{
-              padding: "6px 12px",
+              marginTop: 10,
+              padding: "10px 12px",
+              borderRadius: 14,
+              border: "1px solid rgba(45,224,255,0.22)",
+              background: "rgba(45,224,255,0.06)",
+            }}
+            className="glow-text"
+          >
+            🎯 Points earned from Levels 3–5 this month:{" "}
+            <b>{earnedLevelPoints.toLocaleString()}</b>
+          </div>
+        </div>
+      </section>
+
+      {/* ✅ Monthly Progress (outside milestones + NO per-marker subtexts) */}
+      <section className="dash-card">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            gap: 12,
+          }}
+        >
+          <div>
+            <div className="dash-card-title">Monthly Progress</div>
+
+            <div className="glow-text" style={{ marginTop: 6 }}>
+              Point bonuses are only rewarded to creators who{" "}
+              <b>haven’t graduated before</b>. If a creator <b>has</b>{" "}
+              graduated, milestone points are <b>halved</b>.
+            </div>
+          </div>
+
+          <div className="glow-text" style={{ fontWeight: 900 }}>
+            Total diamonds: {monthlyDiamonds.toLocaleString()}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          {/* bar */}
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              height: 14,
               borderRadius: 999,
-              fontSize: 12,
-              fontWeight: 900,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: eligible ? "#7cf6ff" : "#ff4d4d",
-              background: eligible
-                ? "rgba(124,246,255,0.10)"
-                : "rgba(255,77,77,0.10)",
-              border: eligible
-                ? "1px solid rgba(124,246,255,0.55)"
-                : "1px solid rgba(255,77,77,0.55)",
-              textShadow: eligible
-                ? "0 0 8px rgba(124,246,255,0.55)"
-                : "0 0 8px rgba(255,77,77,0.45)",
-              whiteSpace: "nowrap",
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              overflow: "hidden",
             }}
           >
-            {eligible ? "Eligible" : "Not Eligible"}
-          </div>
-        </div>
-
-        <div style={{ marginTop: 14, display: "grid", gap: 14 }}>
-          {/* Valid Days */}
-          <div>
             <div
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                marginBottom: 8,
+                height: "100%",
+                width: `${progressPct}%`,
+                borderRadius: 999,
+                background:
+                  "linear-gradient(90deg, rgba(45,224,255,0.95), rgba(123,232,255,0.85))",
+                boxShadow: "0 0 10px rgba(45,224,255,0.45)",
+                transition: "width 350ms ease",
               }}
-              className="glow-text"
-            >
-              <div
-                style={{
-                  fontWeight: 900,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                Valid Days
-              </div>
-              <div style={{ fontWeight: 900 }}>
-                {Math.min(validDaysNow, daysTarget)}/{daysTarget}{" "}
-                <span style={{ opacity: 0.95 }}>
-                  ({Math.round(daysPct)}%)
-                </span>
-              </div>
-            </div>
+            />
 
-            <div style={barOuter}>
-              <div style={barInner(daysPct, daysDone)} />
-            </div>
-
-            <div className="glow-text" style={{ marginTop: 6 }}>
-              {daysDone
-                ? "✅ Requirement met."
-                : `⏳ ${daysRemaining} day(s) remaining.`}
-            </div>
-          </div>
-
-          {/* Hours */}
-          <div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                marginBottom: 8,
-              }}
-              className="glow-text"
-            >
-              <div
-                style={{
-                  fontWeight: 900,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                Hours Live
-              </div>
-              <div style={{ fontWeight: 900 }}>
-                {Math.min(hoursNow, hoursTarget).toFixed(1)}/{hoursTarget}{" "}
-                <span style={{ opacity: 0.95 }}>
-                  ({Math.round(hoursPct)}%)
-                </span>
-              </div>
-            </div>
-
-            <div style={barOuter}>
-              <div style={barInner(hoursPct, hoursDone)} />
-            </div>
-
-            <div className="glow-text" style={{ marginTop: 6 }}>
-              {hoursDone
-                ? "✅ Requirement met."
-                : `⏳ ${hoursRemaining.toFixed(1)} hour(s) remaining.`}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="dash-card">
-        <div className="dash-card-title">Monthly Progress</div>
-
-        {[
-          ["75K", 75_000, pct75],
-          ["150K", 150_000, pct150],
-          ["500K", 500_000, pct500],
-        ].map(([labelText, target, pct]) => (
-          <div key={String(target)} className="progress-block">
-            <div className="progress-label">{labelText} Monthly Target</div>
-            <div className="target-bar">
-              <div className="target-bar-bg">
+            {/* ticks (more visible) */}
+            {milestones.map((m) => {
+              const left = milestoneLeftPct(m.value);
+              const hit = monthlyDiamonds >= m.value;
+              return (
                 <div
-                  className="target-bar-fill"
-                  style={{ width: `${(pct as number) * 100}%` }}
+                  key={m.value}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: `${left}%`,
+                    height: "100%",
+                    width: 2,
+                    transform: "translateX(-50%)",
+                    background: hit
+                      ? "rgba(255,255,255,0.95)"
+                      : "rgba(255,255,255,0.65)",
+                  }}
                 />
-              </div>
-              <div className="target-current">
-                {monthlyDiamonds.toLocaleString()} /{" "}
-                {Number(target).toLocaleString()}
-              </div>
+              );
+            })}
+          </div>
+
+          {/* outside labels with arrows (ONLY the milestone label now) */}
+          <div style={{ position: "relative", marginTop: 10, height: 44 }}>
+            {milestones.map((m) => {
+              const left = milestoneLeftPct(m.value);
+              const hit = monthlyDiamonds >= m.value;
+              const edgeStyle = milestoneLabelStyle(m.value);
+
+              return (
+                <div
+                  key={`out-${m.value}`}
+                  style={{
+                    position: "absolute",
+                    left: `${left}%`,
+                    top: 0,
+                    width: 110,
+                    maxWidth: "40vw",
+                    ...edgeStyle,
+                  }}
+                >
+                  <div
+                    className="glow-text"
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 900,
+                      opacity: hit ? 1 : 0.85,
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {m.label}
+                  </div>
+                  <div
+                    className="glow-text"
+                    style={{
+                      marginTop: 2,
+                      fontSize: 14,
+                      lineHeight: 1,
+                      opacity: hit ? 0.95 : 0.6,
+                    }}
+                  >
+                    
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* points explanation ONCE (mobile-safe 2 lines) */}
+          <div className="glow-text" style={{ marginTop: 10 }}>
+            <div style={{ whiteSpace: "nowrap" }}>
+              🚀 Non-graduated: 75K = <b>1,000</b>, 150K = <b>2,000</b>, 500K ={" "}
+              <b>6,000</b>
+            </div>
+            <div style={{ whiteSpace: "nowrap", marginTop: 2 }}>
+              🎓 Graduated (half): 75K = <b>500</b>, 150K = <b>1,000</b>, 500K ={" "}
+              <b>3,000</b>
             </div>
           </div>
-        ))}
+        </div>
       </section>
 
+      {/* ✅ Summary grid */}
       <section className="dash-summary-grid">
         <div className="dash-mini-card">
           <div className="mini-label">Yesterday’s diamonds</div>
@@ -510,11 +842,12 @@ export default function CreatorDashboardPage() {
         </div>
 
         <div className="dash-mini-card">
-          <div className="mini-label">Total hours (all time)</div>
-          <div className="mini-value">{totalHoursAllTime.toFixed(1)}h</div>
+          <div className="mini-label">Total hours (this month)</div>
+          <div className="mini-value">{monthlyHours.toFixed(1)}h</div>
         </div>
       </section>
 
+      {/* Calendar */}
       <section className="dash-card">
         <div className="dash-card-title">
           {label} {year} Activity
@@ -533,9 +866,7 @@ export default function CreatorDashboardPage() {
 
           <div className="calendar-grid">
             {cells.map((cell, i) => {
-              if (!cell.day) {
-                return <div key={i} className="calendar-cell empty" />;
-              }
+              if (!cell.day) return <div key={i} className="calendar-cell empty" />;
 
               const e = historyByDate[cell.dateStr!];
               const hrs = e?.hours ?? 0;
