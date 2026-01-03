@@ -301,7 +301,7 @@ export default function CreatorDashboardPage() {
       ? levels[targetIndex + 1]
       : null;
 
-  // Level points (only 3–5), reward scales with diamonds
+  // ✅ Level points (only 3–5), ✅ unlocked at 150K, ✅ scale by diamonds, ✅ STACK
   const earnedLevelPoints =
     (isLevelAvailable(level3) && isLevelEligible(level3) ? scaledReward : 0) +
     (isLevelAvailable(level4) && isLevelEligible(level4) ? scaledReward : 0) +
@@ -879,9 +879,7 @@ export default function CreatorDashboardPage() {
                       lineHeight: 1,
                       opacity: hit ? 0.95 : 0.6,
                     }}
-                  >
-                    
-                  </div>
+                  ></div>
                 </div>
               );
             })}
