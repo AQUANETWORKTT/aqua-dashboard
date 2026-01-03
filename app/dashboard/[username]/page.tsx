@@ -880,7 +880,7 @@ export default function CreatorDashboardPage() {
                       opacity: hit ? 0.95 : 0.6,
                     }}
                   >
-                    ↓
+                    
                   </div>
                 </div>
               );
