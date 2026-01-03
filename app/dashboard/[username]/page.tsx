@@ -489,14 +489,7 @@ export default function CreatorDashboardPage() {
           </div>
         </div>
 
-        <div className="glow-text" style={{ marginTop: 10 }}>
-          Base remaining:{" "}
-          {baseEligible
-            ? "✅ Completed."
-            : `⏳ ${daysRemainingBase} day(s) and ${hoursRemainingBase.toFixed(
-                1
-              )} hour(s) remaining.`}
-        </div>
+       
 
         <div className="glow-text" style={{ marginTop: 8, opacity: 0.95 }}>
           {ladderUnlocked ? (
