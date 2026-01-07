@@ -245,6 +245,20 @@
       "hours": 0.5808333333333333,
       "lifetime": 171,
       "lifetimeHours": 0.5808333333333333
+    },
+    {
+      "date": "0026-12-06",
+      "daily": 171,
+      "hours": 0.5808333333333333,
+      "lifetime": 171,
+      "lifetimeHours": 0.5808333333333333
+    },
+    {
+      "date": "2026-01-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 171,
+      "lifetimeHours": 0.5808333333333333
     }
   ]
 }
