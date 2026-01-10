@@ -33,17 +33,23 @@ export default function LeaderboardPage() {
                 alt={`${creator.username} avatar`}
               />
 
-              {/* Username */}
+              {/* Username + Badge */}
               <div className="creator-info">
                 <div className="creator-username glow-text">
                   {creator.username}
                 </div>
+
+                {creator.username === "alfie.harnett" && (
+  		<div className="campaign-winner-text">
+  		  Aqua Ascension Campaign Winner
+		  </div>
+		)}
+
               </div>
             </div>
 
             {/* RIGHT SIDE */}
             <div className="leaderboard-right">
-              {/* KEEP CLASS NAME FOR YELLOW GLOW */}
               <div className="leaderboard-lifetime">
                 {creator.lifetime.toLocaleString()}
               </div>
