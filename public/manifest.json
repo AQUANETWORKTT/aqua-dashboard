@@ -1,0 +1,22 @@
+{
+  "name": "Aqua Dashboard",
+  "short_name": "Aqua",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050b10",
+  "theme_color": "#22d3ee",
+  "description": "Aqua Agency creator dashboard and incentives tracker.",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
