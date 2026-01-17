@@ -1,0 +1,326 @@
+/* Aqua Incentives Styling */
+
+.wrap {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 20% 0%, rgba(34,211,238,.18), transparent 60%),
+    radial-gradient(900px 500px at 80% 10%, rgba(14,165,233,.18), transparent 55%),
+    #050b10;
+  color: #eaf6ff;
+  padding: 20px 0 60px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+.container {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero {
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, rgba(34,211,238,.35), rgba(14,165,233,.15), transparent 55%);
+  filter: blur(20px);
+  opacity: .7;
+  pointer-events: none;
+}
+
+.heroTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.title { margin: 0; font-size: 30px; letter-spacing: -0.02em; }
+.sub { font-size: 13px; color: rgba(234,246,255,.7); margin: 6px 0 0; }
+
+.badge {
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 16px;
+  padding: 10px 12px;
+  text-align: right;
+  min-width: 120px;
+}
+
+.badgeLabel { font-size: 11px; color: rgba(234,246,255,.6); }
+.badgeValue { font-size: 22px; font-weight: 800; }
+
+.cards {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.card {
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.35);
+  padding: 14px;
+}
+
+.glow { box-shadow: 0 0 40px rgba(34,211,238,.18); }
+
+.cardLabel {
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(234,246,255,.6);
+}
+
+.cardValue {
+  margin-top: 8px;
+  font-size: 28px;
+  font-weight: 900;
+  color: #61e7ff;
+}
+
+.small { font-size: 14px; color: rgba(234,246,255,.9); }
+.cardHint { font-size: 12px; color: rgba(234,246,255,.5); margin-top: 6px; }
+
+.tableShell {
+  margin-top: 14px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+}
+
+.tableHead,
+.row {
+  display: grid;
+  /* Desktop/tablet grid (8 columns) */
+  grid-template-columns: 2.2fr 1fr .7fr .7fr .9fr .8fr .8fr 1fr;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.tableHead {
+  background: rgba(0,0,0,.38);
+  color: rgba(97,231,255,.85);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.hCreator { grid-column: 1; }
+.hStatus { grid-column: 2; }
+.hNum { text-align: right; }
+
+.rows { display: flex; flex-direction: column; }
+
+.row {
+  border-top: 1px solid rgba(255,255,255,.06);
+  align-items: center;
+}
+
+.row:hover { background: rgba(34,211,238,.06); }
+
+.rowGood {
+  background: linear-gradient(90deg, rgba(16,185,129,.08), transparent 35%);
+}
+
+.creator { display: flex; gap: 12px; align-items: center; min-width: 0; }
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,.12);
+  flex: 0 0 auto;
+}
+
+.creatorText { min-width: 0; }
+.creatorName { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.creatorSub { font-size: 12px; color: rgba(234,246,255,.6); margin-top: 2px; }
+
+.ok { color: #6ee7b7; }
+.bad { color: #f87171; }
+
+.pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.good {
+  color: #6ee7b7;
+  background: rgba(16,185,129,.12);
+  border: 1px solid rgba(16,185,129,.35);
+}
+
+.badPill {
+  color: #fca5a5;
+  background: rgba(239,68,68,.12);
+  border: 1px solid rgba(239,68,68,.35);
+}
+
+.num { text-align: right; font-size: 13px; }
+.balance { color: #61e7ff; font-weight: 900; }
+
+/* New: cell wrapper for mobile "label/value" lines */
+.cell {
+  text-align: right;
+}
+
+/* ---------------------------
+   ✅ Mobile optimisation
+   --------------------------- */
+@media (max-width: 720px) {
+  .wrap { padding: 16px 0 50px; }
+  .container { width: min(1180px, calc(100% - 24px)); }
+
+  .heroTop { flex-direction: column; align-items: flex-start; }
+  .badge { text-align: left; min-width: 0; width: 100%; }
+
+  .cards { grid-template-columns: 1fr; }
+
+  /* Hide table header and turn rows into cards */
+  .tableHead { display: none; }
+
+  .rows { gap: 10px; padding: 10px; }
+
+  .row {
+    display: block;
+    padding: 14px;
+    border-top: none;
+    border-radius: 18px;
+    background: rgba(0,0,0,.35);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+
+  .rowGood {
+    background: linear-gradient(135deg, rgba(16,185,129,.10), rgba(0,0,0,.35) 55%);
+    border-color: rgba(16,185,129,.25);
+  }
+
+  .creator {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  /* Put status pill aligned right under creator */
+  .status {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* Each numeric cell becomes a "label : value" row */
+  .cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-top: 1px solid rgba(255,255,255,.06);
+    text-align: left;
+    font-size: 13px;
+  }
+
+  .cell::before {
+    content: attr(data-label);
+    color: rgba(234,246,255,.62);
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    font-size: 11px;
+    padding-right: 14px;
+  }
+
+  .balance {
+    font-size: 14px;
+  }
+}
+
+/* ---------------------------
+   Level pill styles (0–5)
+   --------------------------- */
+
+.levelCell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.levelPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+
+/* Level 0 (grey) */
+.level0 {
+  color: rgba(234, 246, 255, 0.65);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Level 1 (blue) */
+.level1 {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+/* Level 2 (green) */
+.level2 {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* Level 3 (yellow) */
+.level3 {
+  color: #fde68a;
+  background: rgba(234, 179, 8, 0.16);
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+/* Level 4 (purple) */
+.level4 {
+  color: #d8b4fe;
+  background: rgba(168, 85, 247, 0.16);
+  border-color: rgba(168, 85, 247, 0.35);
+}
+
+/* Level 5 (red) */
+.level5 {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+/* Mobile: make Level line match the label/value layout */
+@media (max-width: 720px) {
+  .levelCell {
+    justify-content: space-between;
+  }
+}
