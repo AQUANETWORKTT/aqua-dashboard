@@ -3,7 +3,7 @@
 import { creators } from "@/data/creators";
 import { incentiveExtras } from "@/data/incentive-extras";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 /* ===================== TYPES ===================== */
 
@@ -26,7 +26,7 @@ type IncentiveStats = {
   top5Count: number;
   calculatedPoints: number;
   extrasPoints: number; // file extras (incentiveExtras)
-  incentiveBalance: number; // calculatedPoints + extrasPoints (BEFORE ladder points)
+  incentiveBalance: number; // calculatedPoints + extrasPoints (BEFORE level points)
 };
 
 /* ===================== SMALL HELPERS ===================== */
@@ -38,6 +38,18 @@ function clamp(n: number, min: number, max: number) {
 function percent(value: number, target: number) {
   if (!target) return 0;
   return clamp((value / target) * 100, 0, 100);
+}
+
+// ✅ points = floor(diamonds / diamondsPerPoint) * rateMultiplier
+function pointsFromDiamondsRate(
+  diamonds: number,
+  diamondsPerPoint: number,
+  rateMultiplier: number
+) {
+  if (!Number.isFinite(diamonds) || diamonds <= 0) return 0;
+  if (!Number.isFinite(diamondsPerPoint) || diamondsPerPoint <= 0) return 0;
+  if (!Number.isFinite(rateMultiplier) || rateMultiplier <= 0) return 0;
+  return Math.floor(diamonds / diamondsPerPoint) * rateMultiplier;
 }
 
 /* ===================== PAGE ===================== */
@@ -261,9 +273,12 @@ export default function CreatorDashboardPage() {
 
   const levels = [
     { level: 2, days: 15, hours: 40, gated: false },
-    { level: 3, days: 20, hours: 60, gated: true },
-    { level: 4, days: 20, hours: 80, gated: true },
-    { level: 5, days: 22, hours: 100, gated: true },
+
+    // Non-stacking rate per level:
+    // L3 = 1x, L4 = 2x, L5 = 3x (but NEVER stacked together)
+    { level: 3, days: 20, hours: 60, gated: true, diamondsPerPoint: 300, rate: 1 },
+    { level: 4, days: 20, hours: 80, gated: true, diamondsPerPoint: 300, rate: 2 },
+    { level: 5, days: 22, hours: 100, gated: true, diamondsPerPoint: 300, rate: 3 },
   ] as const;
 
   const isLevelEligible = (l: (typeof levels)[number]) =>
@@ -271,10 +286,6 @@ export default function CreatorDashboardPage() {
 
   const isLevelAvailable = (l: (typeof levels)[number]) =>
     l.gated ? ladderUnlocked : true;
-
-  // scaling: 150K => 1x, 300K => 2x, 900K => 6x, etc.
-  const diamondScale = Math.max(1, Math.floor(monthlyDiamonds / 150_000));
-  const scaledReward = 500 * diamondScale;
 
   const level2 = levels[0];
   const level3 = levels[1];
@@ -292,28 +303,48 @@ export default function CreatorDashboardPage() {
 
   const baseEligible = isLevelEligible(level2);
 
-  // Preview (always show next level AFTER the current target, faded + locked)
   const targetIndex = targetLevel
     ? levels.findIndex((l) => l.level === targetLevel.level)
     : -1;
+
   const nextLevel =
     targetIndex >= 0 && targetIndex < levels.length - 1
       ? levels[targetIndex + 1]
       : null;
 
-  // ✅ Level points (only 3–5), ✅ unlocked at 150K, ✅ scale by diamonds, ✅ STACK
-  const earnedLevelPoints =
-    (isLevelAvailable(level3) && isLevelEligible(level3) ? scaledReward : 0) +
-    (isLevelAvailable(level4) && isLevelEligible(level4) ? scaledReward : 0) +
-    (isLevelAvailable(level5) && isLevelEligible(level5) ? scaledReward : 0);
+  // Highest completed level among 3–5 (NON-stacking)
+  const completedRateLevel =
+    isLevelAvailable(level5) && isLevelEligible(level5)
+      ? level5
+      : isLevelAvailable(level4) && isLevelEligible(level4)
+      ? level4
+      : isLevelAvailable(level3) && isLevelEligible(level3)
+      ? level3
+      : null;
 
-  // Add earned level points into Incentive Balance + Extras (as requested)
+  const earnedLevelPoints = completedRateLevel
+    ? pointsFromDiamondsRate(
+        monthlyDiamonds,
+        completedRateLevel.diamondsPerPoint,
+        completedRateLevel.rate
+      )
+    : 0;
+
+  // Potential points for NEXT level (shown in faded preview box)
+  const potentialNextPoints =
+    nextLevel && "diamondsPerPoint" in nextLevel && "rate" in nextLevel
+      ? pointsFromDiamondsRate(
+          monthlyDiamonds,
+          (nextLevel as any).diamondsPerPoint,
+          (nextLevel as any).rate
+        )
+      : 0;
+
+  // Add earned level points into Incentive Balance + Extras
   const incentiveBalanceWithLevels =
     (stats?.incentiveBalance ?? 0) + earnedLevelPoints;
-  const extrasWithLevels = (stats?.extrasPoints ?? 0) + earnedLevelPoints;
 
-  const daysRemainingBase = Math.max(0, level2.days - validDaysNow);
-  const hoursRemainingBase = Math.max(0, level2.hours - hoursNow);
+  const extrasWithLevels = (stats?.extrasPoints ?? 0) + earnedLevelPoints;
 
   /* ===================== MONTHLY PROGRESS (ONE BAR + OUTSIDE MILESTONES) ===================== */
 
@@ -379,12 +410,12 @@ export default function CreatorDashboardPage() {
     whiteSpace: "nowrap",
   });
 
-  // Fancy single-number style for Total Diamonds (clean + clear)
   const totalDiamondsNumberStyle: React.CSSProperties = {
     fontSize: 22,
     fontWeight: 900,
     color: "#7cf6ff",
-    textShadow: "0 0 12px rgba(45,224,255,0.55), 0 0 26px rgba(45,224,255,0.28)",
+    textShadow:
+      "0 0 12px rgba(45,224,255,0.55), 0 0 26px rgba(45,224,255,0.28)",
     lineHeight: 1,
     whiteSpace: "nowrap",
   };
@@ -477,19 +508,12 @@ export default function CreatorDashboardPage() {
         >
           <div>
             <div className="dash-card-title">✅ Incentive Requirements</div>
-
-            <div className="glow-text" style={{ marginTop: 6 }}>
-              Level 2 makes you <b>eligible</b> (no points). Levels <b>3–5</b>{" "}
-              unlock at <b>150K</b> and award points that scale with diamonds.
-            </div>
           </div>
 
           <div style={pillStyle(baseEligible)}>
             {baseEligible ? "Eligible" : "Not Eligible"}
           </div>
         </div>
-
-       
 
         <div className="glow-text" style={{ marginTop: 8, opacity: 0.95 }}>
           {ladderUnlocked ? (
@@ -499,6 +523,42 @@ export default function CreatorDashboardPage() {
               🔒 Levels 3–5 unlock when you hit <b>150K</b> monthly diamonds.
             </>
           )}
+        </div>
+
+        {/* ✅ Clean total section (requested) */}
+        <div
+          style={{
+            marginTop: 12,
+            borderRadius: 16,
+            padding: 14,
+            background: "rgba(45,224,255,0.06)",
+            border: "1px solid rgba(45,224,255,0.22)",
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 900,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              marginBottom: 6,
+            }}
+            className="glow-text"
+          >
+            Incentive points earned from levels
+          </div>
+
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 900,
+              color: "#7cf6ff",
+              textShadow:
+                "0 0 12px rgba(45,224,255,0.55), 0 0 26px rgba(45,224,255,0.28)",
+              lineHeight: 1,
+            }}
+          >
+            {earnedLevelPoints.toLocaleString()}
+          </div>
         </div>
 
         <div style={{ marginTop: 14 }}>
@@ -512,9 +572,21 @@ export default function CreatorDashboardPage() {
 
               const isL2 = targetLevel.level === 2;
 
+              const dp =
+                "diamondsPerPoint" in targetLevel
+                  ? (targetLevel as any).diamondsPerPoint
+                  : 0;
+
+              const rate =
+                "rate" in targetLevel ? (targetLevel as any).rate : 0;
+
+              const exactForTarget = isL2
+                ? 0
+                : pointsFromDiamondsRate(monthlyDiamonds, dp, rate);
+
               const rewardText = isL2
                 ? "Eligibility only (0 points)"
-                : `+${scaledReward.toLocaleString()} points`;
+                : `+${exactForTarget.toLocaleString()} points`;
 
               return (
                 <>
@@ -605,13 +677,6 @@ export default function CreatorDashboardPage() {
                     <div className="glow-text" style={{ marginBottom: 10 }}>
                       Target: <b>{targetLevel.days}</b> valid days &{" "}
                       <b>{targetLevel.hours}</b> hours
-                      {!isL2 && (
-                        <>
-                          {" "}
-                          • Diamond scale: <b>{diamondScale}×</b> (150K → 1×,
-                          300K → 2×, 900K → 6×)
-                        </>
-                      )}
                     </div>
 
                     <div style={{ display: "grid", gap: 10 }}>
@@ -730,6 +795,11 @@ export default function CreatorDashboardPage() {
 
                       <div className="glow-text" style={{ marginTop: 6 }}>
                         {nextLevel.days} valid days • {nextLevel.hours} hours
+                        <span style={{ opacity: 0.95 }}>
+                          {" "}
+                          (Potential points:{" "}
+                          <b>{potentialNextPoints.toLocaleString()}</b>)
+                        </span>
                       </div>
                     </div>
                   )}
@@ -749,20 +819,6 @@ export default function CreatorDashboardPage() {
               ✅ All levels completed for this month.
             </div>
           )}
-
-          <div
-            style={{
-              marginTop: 10,
-              padding: "10px 12px",
-              borderRadius: 14,
-              border: "1px solid rgba(45,224,255,0.22)",
-              background: "rgba(45,224,255,0.06)",
-            }}
-            className="glow-text"
-          >
-            🎯 Points earned from Levels 3–5 this month:{" "}
-            <b>{earnedLevelPoints.toLocaleString()}</b>
-          </div>
         </div>
       </section>
 
@@ -787,7 +843,6 @@ export default function CreatorDashboardPage() {
         </div>
 
         <div style={{ marginTop: 14 }}>
-          {/* bar */}
           <div
             style={{
               position: "relative",
@@ -811,7 +866,6 @@ export default function CreatorDashboardPage() {
               }}
             />
 
-            {/* ticks */}
             {milestones.map((m) => {
               const left = milestoneLeftPct(m.value);
               const hit = monthlyDiamonds >= m.value;
@@ -834,7 +888,6 @@ export default function CreatorDashboardPage() {
             })}
           </div>
 
-          {/* outside labels */}
           <div style={{ position: "relative", marginTop: 10, height: 44 }}>
             {milestones.map((m) => {
               const left = milestoneLeftPct(m.value);
