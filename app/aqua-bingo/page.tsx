@@ -11,13 +11,13 @@ type Tile = {
   isCenter?: boolean;
 };
 
-const STORAGE_KEY = "aqua_bingo_checked_ids_v9";
+const STORAGE_KEY = "aqua_bingo_checked_ids_v10";
 
-/* ===== BOARD (with your swaps applied) ===== */
+/* ===== BOARD ===== */
 
 const BOARD: Tile[] = [
   // Row 1
-  { id: 1, text: "Lose a battle by 50,000 points", difficulty: "hard" }, // ← changed
+  { id: 1, text: "Lose a battle by 50,000 points", difficulty: "hard" },
   { id: 2, text: "15,000 match diamonds in 1 day", difficulty: "hard" },
   { id: 3, text: "Gain 100 new followers", difficulty: "hard" },
   { id: 4, text: "Win 15 matches total", difficulty: "hard" },
@@ -38,10 +38,10 @@ const BOARD: Tile[] = [
   { id: 15, text: "📸 Screenshot “🐬” in name or bio", difficulty: "proof" },
 
   // Row 4 (16 ↔ 19 swapped)
-  { id: 16, text: "📸 Screenshot 15 win streak", difficulty: "proof" }, // ← was #19
+  { id: 16, text: "📸 Screenshot 15 win streak", difficulty: "proof" },
   { id: 17, text: "📸 Screenshot live with 250,000+ likes", difficulty: "proof" },
   { id: 18, text: "30 matches played", difficulty: "medium" },
-  { id: 19, text: "25,000 total diamonds", difficulty: "hard" }, // ← was #16
+  { id: 19, text: "25,000 total diamonds", difficulty: "hard" },
   { id: 20, text: "Win 20 matches total", difficulty: "hard" },
 
   // Row 5
@@ -51,7 +51,6 @@ const BOARD: Tile[] = [
   { id: 24, text: "10,000 match diamonds in 1 day", difficulty: "hard" },
   { id: 25, text: "100 matches played total (separate period)", difficulty: "hard" },
 ];
-
 
 /* ===== helpers ===== */
 
@@ -116,7 +115,6 @@ export default function AquaBingoPage() {
   return (
     <main className="bingo-wrapper">
       <div className="bingo-header">
-        {/* MASSIVE title */}
         <div
           style={{
             textAlign: "center",
@@ -164,12 +162,9 @@ export default function AquaBingoPage() {
                 aria-pressed={done}
               >
                 <div className={tagClass(t.difficulty)}>{tagText(t.difficulty)}</div>
-
                 <div className="bingo-text">{t.text}</div>
-
                 <div className="bingo-foot">
                   <span>#{t.id}</span>
-                  <span>{done ? "✅ Marked" : "Tap"}</span>
                 </div>
               </div>
             );
