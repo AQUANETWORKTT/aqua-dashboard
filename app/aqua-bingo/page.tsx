@@ -1,4 +1,3 @@
-// app/aqua-bingo/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -12,48 +11,49 @@ type Tile = {
   isCenter?: boolean;
 };
 
-const STORAGE_KEY = "aqua_bingo_checked_ids_v6";
+const STORAGE_KEY = "aqua_bingo_checked_ids_v9";
 
-/**
- * HARD Aqua Bingo (infinite, device-only)
- * Goal: avoid any "easy" lines. Outside is HARD-heavy.
- */
+/* ===== BOARD (with your swaps applied) ===== */
+
 const BOARD: Tile[] = [
-  // Row 1 (HARD-heavy)
-  { id: 1, text: "25,000 total diamonds", difficulty: "hard" },
+  // Row 1
+  { id: 1, text: "Lose a battle by 50,000 points", difficulty: "hard" }, // ← changed
   { id: 2, text: "15,000 match diamonds in 1 day", difficulty: "hard" },
   { id: 3, text: "Gain 100 new followers", difficulty: "hard" },
   { id: 4, text: "Win 15 matches total", difficulty: "hard" },
   { id: 5, text: "100 matches played total", difficulty: "hard" },
 
-  // Row 2 (no freebies)
-  { id: 6, text: "15,000 total diamonds", difficulty: "hard" },
-  { id: 7, text: "Go live 5 hours (one session)", difficulty: "hard" },
+  // Row 2
+  { id: 6, text: "Gain 50 new followers", difficulty: "medium" },
+  { id: 7, text: "25,000 total diamonds", difficulty: "hard" },
   { id: 8, text: "📸 Screenshot 45+ badge in live", difficulty: "proof" },
-  { id: 9, text: "Gain 50 new followers", difficulty: "medium" },
+  { id: 9, text: "8,000 diamonds from boxes", difficulty: "hard" },
   { id: 10, text: "Valid live day (prove in stats)", difficulty: "medium" },
 
-  // Row 3 (Middle row - harder + grind centre)
-  { id: 11, text: "100 matches played total", difficulty: "hard" },
+  // Row 3
+  { id: 11, text: "120 matches played total", difficulty: "hard" },
   { id: 12, text: "📸 Silent live 5 minutes (screen recording)", difficulty: "proof" },
   { id: 13, text: "25 HOURS live total", difficulty: "hard", isCenter: true },
   { id: 14, text: "📸 Screenshot max boxes filled (multi-guest)", difficulty: "proof" },
-  { id: 15, text: "15,000 total diamonds", difficulty: "hard" },
+  { id: 15, text: "📸 Screenshot “🐬” in name or bio", difficulty: "proof" },
 
-  // Row 4
-  { id: 16, text: "Go live 4 hours (one session)", difficulty: "medium" },
+  // Row 4 (16 ↔ 19 swapped)
+  { id: 16, text: "📸 Screenshot 15 win streak", difficulty: "proof" }, // ← was #19
   { id: 17, text: "📸 Screenshot live with 250,000+ likes", difficulty: "proof" },
   { id: 18, text: "30 matches played", difficulty: "medium" },
-  { id: 19, text: "📸 Screenshot 15 win streak", difficulty: "proof" },
-  { id: 20, text: "📸 Screenshot “🐬” in name or bio", difficulty: "proof" },
+  { id: 19, text: "25,000 total diamonds", difficulty: "hard" }, // ← was #16
+  { id: 20, text: "Win 20 matches total", difficulty: "hard" },
 
-  // Row 5 (HARD-heavy)
+  // Row 5
   { id: 21, text: "30,000 total diamonds", difficulty: "hard" },
-  { id: 22, text: "10,000 match diamonds in 1 day", difficulty: "hard" },
-  { id: 23, text: "8,000 diamonds from boxes", difficulty: "hard" },
-  { id: 24, text: "Gain 150 new followers", difficulty: "hard" },
-  { id: 25, text: "Win 20 matches total", difficulty: "hard" },
+  { id: 22, text: "Gain 150 new followers", difficulty: "hard" },
+  { id: 23, text: "15 valid live days", difficulty: "hard" },
+  { id: 24, text: "10,000 match diamonds in 1 day", difficulty: "hard" },
+  { id: 25, text: "100 matches played total (separate period)", difficulty: "hard" },
 ];
+
+
+/* ===== helpers ===== */
 
 function readIds(): number[] {
   try {
@@ -70,9 +70,7 @@ function readIds(): number[] {
 function writeIds(ids: number[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-  } catch {
-    // ignore
-  }
+  } catch {}
 }
 
 function tagClass(d: Difficulty) {
@@ -88,6 +86,8 @@ function tagText(d: Difficulty) {
   if (d === "easy") return "EASY";
   return "PROOF";
 }
+
+/* ===== page ===== */
 
 export default function AquaBingoPage() {
   const [checked, setChecked] = useState<number[]>([]);
@@ -116,7 +116,7 @@ export default function AquaBingoPage() {
   return (
     <main className="bingo-wrapper">
       <div className="bingo-header">
-        {/* MASSIVE centered hero title */}
+        {/* MASSIVE title */}
         <div
           style={{
             textAlign: "center",
@@ -135,12 +135,11 @@ export default function AquaBingoPage() {
           AQUA BINGO
         </div>
 
-        {/* leave everything below exactly as you liked */}
         <div className="bingo-title">Complete challenges. Get lines. Win prizes.</div>
 
         <div className="bingo-sub">
-          Tap tiles to mark off your progress (saved on your device). When you hit a line,
-          message the owner to verify and claim the prize.
+          Tap tiles to mark off your progress (saved on your device). Only message the owner when you complete a{" "}
+          <b>line</b>, <b>two lines</b>, or the <b>full board</b>.
         </div>
 
         <div className="bingo-sub">
@@ -154,9 +153,7 @@ export default function AquaBingoPage() {
           {BOARD.map((t) => {
             const done = checkedSet.has(t.id);
             const tileClass =
-              "bingo-tile" +
-              (done ? " done" : "") +
-              (t.isCenter ? " bingo-center" : "");
+              "bingo-tile" + (done ? " done" : "") + (t.isCenter ? " bingo-center" : "");
 
             return (
               <div
@@ -165,7 +162,6 @@ export default function AquaBingoPage() {
                 onClick={() => toggle(t.id)}
                 role="button"
                 aria-pressed={done}
-                title="Tap to mark complete"
               >
                 <div className={tagClass(t.difficulty)}>{tagText(t.difficulty)}</div>
 
@@ -186,29 +182,24 @@ export default function AquaBingoPage() {
           <h2>Rules</h2>
           <ul>
             <li>
-              <b>Match diamond challenges</b> must be completed within a single calendar day:
-              <b> 00:00–23:59 UK time</b>.
+              <b>Match diamond challenges</b> must be completed in one day (00:00–23:59 UK).
             </li>
             <li>
-              <b>Screenshot / screen-record challenges</b>: keep the proof ready, but only send it when you hit a result.
+              <b>Screenshot / screen-record challenges</b>: keep proof, only send when you hit a result.
             </li>
             <li>
-              <b>Only message the owner</b> when you complete: <b>1 line</b>, <b>2 lines</b>, or the <b>full board</b>.
-              (Don’t send every single square.)
+              <b>Only message the owner</b> when you complete 1 line, 2 lines, or the full board.
             </li>
             <li>
-              Send your proof to the owner: <b>JamesInTune</b>.
+              Send proof to: <b>JamesInTune</b>.
             </li>
             <li>
-              You must complete the card yourself. If needed, <b>screenshot your board in colour</b> to show progress.
-            </li>
-            <li>
-              When you hit a <b>line</b>, <b>two lines</b>, or the <b>full board</b>, James will verify &amp; award.
+              You must complete the card yourself. Screenshot your board in colour if needed.
             </li>
           </ul>
 
           <div style={{ marginTop: 12, opacity: 0.7, fontSize: 12 }}>
-            Tip: If you clear browser data or swap device, your marks won’t carry over.
+            Clearing browser data or changing device will reset your board.
           </div>
 
           <button
