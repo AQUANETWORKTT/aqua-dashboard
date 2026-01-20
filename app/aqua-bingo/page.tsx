@@ -26,7 +26,7 @@ const BOARD: Tile[] = [
   { id: 7, text: "25,000 total diamonds", difficulty: "hard" },
   { id: 8, text: "📸 Screenshot 45+ badge in live", difficulty: "proof" },
   { id: 9, text: "8,000 diamonds from boxes", difficulty: "hard" },
-  { id: 10, text: "Valid live day (prove in stats)", difficulty: "medium" },
+  { id: 10, text: "Valid live day", difficulty: "medium" },
 
   { id: 11, text: "120 matches played total", difficulty: "hard" },
   { id: 12, text: "📸 Silent live 5 minutes (screen recording)", difficulty: "proof" },
