@@ -16,35 +16,30 @@ const STORAGE_KEY = "aqua_bingo_checked_ids_v10";
 /* ===== BOARD ===== */
 
 const BOARD: Tile[] = [
-  // Row 1
   { id: 1, text: "Lose a battle by 50,000 points", difficulty: "hard" },
   { id: 2, text: "15,000 match diamonds in 1 day", difficulty: "hard" },
   { id: 3, text: "Gain 100 new followers", difficulty: "hard" },
   { id: 4, text: "Win 15 matches total", difficulty: "hard" },
   { id: 5, text: "100 matches played total", difficulty: "hard" },
 
-  // Row 2
   { id: 6, text: "Gain 50 new followers", difficulty: "medium" },
   { id: 7, text: "25,000 total diamonds", difficulty: "hard" },
   { id: 8, text: "📸 Screenshot 45+ badge in live", difficulty: "proof" },
   { id: 9, text: "8,000 diamonds from boxes", difficulty: "hard" },
   { id: 10, text: "Valid live day (prove in stats)", difficulty: "medium" },
 
-  // Row 3
   { id: 11, text: "120 matches played total", difficulty: "hard" },
   { id: 12, text: "📸 Silent live 5 minutes (screen recording)", difficulty: "proof" },
   { id: 13, text: "25 HOURS live total", difficulty: "hard", isCenter: true },
   { id: 14, text: "📸 Screenshot max boxes filled (multi-guest)", difficulty: "proof" },
   { id: 15, text: "📸 Screenshot “🐬” in name or bio", difficulty: "proof" },
 
-  // Row 4 (16 ↔ 19 swapped)
   { id: 16, text: "📸 Screenshot 15 win streak", difficulty: "proof" },
   { id: 17, text: "📸 Screenshot live with 250,000+ likes", difficulty: "proof" },
   { id: 18, text: "30 matches played", difficulty: "medium" },
   { id: 19, text: "25,000 total diamonds", difficulty: "hard" },
   { id: 20, text: "Win 20 matches total", difficulty: "hard" },
 
-  // Row 5
   { id: 21, text: "30,000 total diamonds", difficulty: "hard" },
   { id: 22, text: "Gain 150 new followers", difficulty: "hard" },
   { id: 23, text: "15 valid live days", difficulty: "hard" },
@@ -136,13 +131,7 @@ export default function AquaBingoPage() {
         <div className="bingo-title">Complete challenges. Get lines. Win prizes.</div>
 
         <div className="bingo-sub">
-          Tap tiles to mark off your progress (saved on your device). Only message the owner when you complete a{" "}
-          <b>line</b>, <b>two lines</b>, or the <b>full board</b>.
-        </div>
-
-        <div className="bingo-sub">
-          <b>Completed:</b> {checked.length}/25{" "}
-          <span style={{ opacity: 0.7 }}>(saved on this device)</span>
+          <b>Completed:</b> {checked.length}/25
         </div>
       </div>
 
@@ -192,10 +181,6 @@ export default function AquaBingoPage() {
               You must complete the card yourself. Screenshot your board in colour if needed.
             </li>
           </ul>
-
-          <div style={{ marginTop: 12, opacity: 0.7, fontSize: 12 }}>
-            Clearing browser data or changing device will reset your board.
-          </div>
 
           <button
             onClick={reset}

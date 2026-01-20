@@ -50,6 +50,9 @@ export default async function RootLayout({
 
       <body className="app-body">
         <NavBarClient user={loggedInUser} />
+
+       
+
         {children}
       </body>
     </html>

@@ -1606,3 +1606,80 @@ a {
   margin-top: 4px;
 }
 
+/* ===== Dolphin (proper silhouette) ===== */
+
+.dolphin-wrap {
+  position: fixed;
+  left: -260px;
+  width: 170px;
+  pointer-events: none;
+  user-select: none;
+
+  transition:
+    top 1400ms ease-in-out,
+    opacity 900ms ease-in-out,
+    filter 900ms ease-in-out,
+    transform 1400ms ease-in-out;
+
+  transform: translate3d(0, 0, 0) scale(var(--swim-scale, 1));
+  will-change: transform, top, left;
+  z-index: 2;
+
+  /* Swim across while following a gentle wave */
+  animation: dolphin-across var(--swim-duration, 14s) linear infinite;
+}
+
+/* A wavy path across the screen */
+@keyframes dolphin-across {
+  0%   { left: -260px; transform: translateY(0px) scale(var(--swim-scale, 1)) rotate(-2deg); }
+  20%  { left: 20vw;   transform: translateY(-10px) scale(var(--swim-scale, 1)) rotate(2deg); }
+  45%  { left: 45vw;   transform: translateY(8px) scale(var(--swim-scale, 1)) rotate(-1deg); }
+  70%  { left: 70vw;   transform: translateY(-12px) scale(var(--swim-scale, 1)) rotate(2deg); }
+  100% { left: calc(100vw + 260px); transform: translateY(0px) scale(var(--swim-scale, 1)) rotate(-2deg); }
+}
+
+.dolphin-front {
+  z-index: 9998;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 18px rgba(45, 224, 255, 0.55));
+}
+
+.dolphin-behind {
+  z-index: 2;
+  opacity: 1;
+  filter: blur(0.25px) drop-shadow(0 0 10px rgba(45, 224, 255, 0.18));
+}
+
+.dolphin-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+
+  /* subtle roll + bob so it looks alive */
+  animation: dolphin-bob 2.2s ease-in-out infinite;
+}
+
+@keyframes dolphin-bob {
+  0% { transform: translateY(0px) rotate(-1deg); }
+  50% { transform: translateY(-7px) rotate(1deg); }
+  100% { transform: translateY(0px) rotate(-1deg); }
+}
+
+.dolphin-silhouette {
+  fill: rgba(45, 224, 255, 0.55);
+  stroke: rgba(124, 246, 255, 0.85);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.dolphin-highlight {
+  fill: rgba(183, 252, 255, 0.18);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .dolphin-wrap {
+    display: none;
+  }
+}
+
