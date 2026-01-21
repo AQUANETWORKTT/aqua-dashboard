@@ -404,7 +404,11 @@ export default function ImprovementsClient({
                     )}
                   </div>
 
-                  <Link href={`/creator/${encodeURIComponent(r.username)}`} style={linkStyle}>
+                  {/* ✅ FIXED ROUTE HERE */}
+                  <Link
+                    href={`/dashboard/${encodeURIComponent(r.username)}`}
+                    style={linkStyle}
+                  >
                     View dashboard →
                   </Link>
                 </div>
@@ -437,7 +441,9 @@ export default function ImprovementsClient({
               {/* Under 1h */}
               <div style={centerCell} className="aqua-cell-center" data-label="Under 1h">
                 <div>
-                  <div style={r.underHourDays > 0 ? dangerText : okText}>{r.underHourDays}</div>
+                  <div style={r.underHourDays > 0 ? dangerText : okText}>
+                    {r.underHourDays}
+                  </div>
                   <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", marginTop: 2 }}>
                     under 1h
                   </div>
