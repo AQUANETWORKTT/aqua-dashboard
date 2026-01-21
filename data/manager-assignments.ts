@@ -35,6 +35,7 @@ export const CREATOR_TO_MANAGER: Record<string, Exclude<ManagerName, "All">> = {
   "tt_moko": "Harry",
   "sum.cxx": "Harry",
   "xx._leah._xxx": "Harry",
+  "bloodlustclips": "Harry",
 
   "tolsf.21xx": "Ellie",
   "l.aylafirth": "Ellie",
