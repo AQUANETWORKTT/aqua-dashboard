@@ -11,5 +11,9 @@ export const incentiveExtras: Record<string, number> = {
   "liam......1": 2000,
   lewmxy: 750,
 
+  "kxtie_18_": 500,
+  "keeleylouisex2": 500,
+  "blueeyedblondie_": 500,
+
   // add more below
 };
