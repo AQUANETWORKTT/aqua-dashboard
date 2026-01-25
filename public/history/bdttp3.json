@@ -101,10 +101,10 @@
     },
     {
       "date": "2026-01-23",
-      "daily": 1303,
-      "hours": 9.577222222222222,
-      "lifetime": 0,
-      "lifetimeHours": 0
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1303,
+      "lifetimeHours": 9.577222222222222
     }
   ]
 }
