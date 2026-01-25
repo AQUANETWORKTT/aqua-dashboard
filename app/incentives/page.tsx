@@ -53,6 +53,19 @@ type Row = {
 const ELIGIBLE_DAYS = 15;
 const ELIGIBLE_HOURS = 14;
 
+// ✅ DISPLAY: all blue “points” numbers on this page are shown as x2 with 🪙
+const DISPLAY_POINTS_MULT = 2;
+
+function fmt(n: number) {
+  return (n ?? 0).toLocaleString("en-GB");
+}
+
+function showPoints(n: number) {
+  // display-only multiplier + coin emoji
+  const val = Math.round((n ?? 0) * DISPLAY_POINTS_MULT);
+  return `${fmt(val)}🪙`;
+}
+
 // ----- Option B: load creators from public/creators folder -----
 function loadCreatorsFromPublicCreatorsFolder(): Creator[] {
   const dir = path.join(process.cwd(), "public", "creators");
@@ -136,7 +149,8 @@ function computeDashboardStatsForUser(opts: {
     else if (pos === 4) top5Points += 5;
   });
 
-  const calculatedPoints = diamondPoints + hourPoints + validDayPoints + top5Points;
+  const calculatedPoints =
+    diamondPoints + hourPoints + validDayPoints + top5Points;
 
   const extrasPoints = incentiveExtras[username] ?? 0;
   const incentiveBalance = calculatedPoints + extrasPoints;
@@ -154,9 +168,12 @@ function computeDashboardStatsForUser(opts: {
 
 /**
  * ✅ Ported from your dashboard level-points logic (unchanged).
- * (If you later want these points to follow your new levels system, tell me.)
  */
-function computeEarnedLevelPoints(monthlyDiamonds: number, validDaysNow: number, hoursNow: number) {
+function computeEarnedLevelPoints(
+  monthlyDiamonds: number,
+  validDaysNow: number,
+  hoursNow: number
+) {
   const ladderUnlocked = monthlyDiamonds >= 150_000;
 
   const levels = [
@@ -166,8 +183,10 @@ function computeEarnedLevelPoints(monthlyDiamonds: number, validDaysNow: number,
     { level: 5, days: 22, hours: 100, gated: true },
   ] as const;
 
-  const isLevelEligible = (l: (typeof levels)[number]) => validDaysNow >= l.days && hoursNow >= l.hours;
-  const isLevelAvailable = (l: (typeof levels)[number]) => (l.gated ? ladderUnlocked : true);
+  const isLevelEligible = (l: (typeof levels)[number]) =>
+    validDaysNow >= l.days && hoursNow >= l.hours;
+  const isLevelAvailable = (l: (typeof levels)[number]) =>
+    l.gated ? ladderUnlocked : true;
 
   const diamondScale = Math.max(1, Math.floor(monthlyDiamonds / 150_000));
   const scaledReward = 500 * diamondScale;
@@ -186,15 +205,6 @@ function computeEarnedLevelPoints(monthlyDiamonds: number, validDaysNow: number,
 
 /**
  * ✅ NEW LEVEL SYSTEM (0..5 always)
- *
- * Level 0: under 12 days OR under 25 hours
- * Level 1: 12 days AND 25 hours
- * Level 2: 15 days AND 14 hours
- * Level 3: 20 days AND 16 hours
- * Level 4: 20 days AND 80 hours
- * Level 5: 22 days AND 100 hours
- *
- * We compute highest-to-lowest because Level 2 hours (14) is lower than Level 1 hours (25).
  */
 function getLevelNew(validDays: number, hours: number): number {
   if (validDays >= 22 && hours >= 100) return 5;
@@ -205,16 +215,15 @@ function getLevelNew(validDays: number, hours: number): number {
   return 0;
 }
 
-function fmt(n: number) {
-  return n.toLocaleString("en-GB");
-}
-
 export default function IncentivesPage() {
   const creators = loadCreatorsFromPublicCreatorsFolder();
 
   // Match your dashboard monthKey logic
   const now = new Date();
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}`;
 
   // Load all histories
   const allHistories: Record<string, HistoryEntry[]> = {};
@@ -225,7 +234,9 @@ export default function IncentivesPage() {
   // Month-only histories (startsWith)
   const monthAll: Record<string, HistoryEntry[]> = {};
   for (const u in allHistories) {
-    monthAll[u] = (allHistories[u] || []).filter((e) => e.date?.startsWith(monthKey));
+    monthAll[u] = (allHistories[u] || []).filter((e) =>
+      e.date?.startsWith(monthKey)
+    );
   }
 
   // All dates present in this month across everyone
@@ -256,11 +267,16 @@ export default function IncentivesPage() {
       top5ByDay,
     });
 
-    const earnedLevelPoints = computeEarnedLevelPoints(stats.diamonds, stats.validDays, stats.hours);
+    const earnedLevelPoints = computeEarnedLevelPoints(
+      stats.diamonds,
+      stats.validDays,
+      stats.hours
+    );
     const incentiveBalanceWithLevels = stats.incentiveBalance + earnedLevelPoints;
 
     // payout eligibility remains (15 days + 14 hours)
-    const eligible = stats.validDays >= ELIGIBLE_DAYS && stats.hours >= ELIGIBLE_HOURS;
+    const eligible =
+      stats.validDays >= ELIGIBLE_DAYS && stats.hours >= ELIGIBLE_HOURS;
 
     // NEW LEVEL SYSTEM (0..5)
     const level = getLevelNew(stats.validDays, stats.hours);
@@ -292,9 +308,18 @@ export default function IncentivesPage() {
     return b.incentiveBalanceWithLevels - a.incentiveBalanceWithLevels;
   });
 
-  // Total owed: still only for payout-eligible (15d + 14h)
+  // ✅ Totals
   const eligibleRows = rows.filter((r) => r.eligible);
-  const totalOwed = eligibleRows.reduce((s, r) => s + r.incentiveBalanceWithLevels, 0);
+
+  // "Incentives to pay out" = sum of balances for eligible only
+  const totalPayOut = eligibleRows.reduce((s, r) => s + r.incentiveBalanceWithLevels, 0);
+
+  // "Potential incentives" = sum of balances for NOT eligible (what it would be IF they hit eligibility)
+  const notEligibleRows = rows.filter((r) => !r.eligible);
+  const totalPotential = notEligibleRows.reduce((s, r) => s + r.incentiveBalanceWithLevels, 0);
+
+  // "Agency total" = sum across whole agency (eligible + not)
+  const agencyTotal = rows.reduce((s, r) => s + r.incentiveBalanceWithLevels, 0);
 
   const levelColorClass = (lvl: number) => {
     if (lvl === 5) return styles.level5;
@@ -313,8 +338,8 @@ export default function IncentivesPage() {
             <div>
               <h1 className={styles.title}>Aqua Incentives</h1>
               <p className={styles.sub}>
-                Month key: <span className={styles.mono}>{monthKey}</span> • Total owed uses payout eligibility ={" "}
-                <b>{ELIGIBLE_DAYS} days</b> + <b>{ELIGIBLE_HOURS} hours</b>
+                Month key: <span className={styles.mono}>{monthKey}</span> • Payout eligibility =
+                <b> {ELIGIBLE_DAYS} days</b> + <b>{ELIGIBLE_HOURS} hours</b>
               </p>
             </div>
 
@@ -326,13 +351,33 @@ export default function IncentivesPage() {
             </div>
           </div>
 
+          {/* ✅ NEW: Agency totals bar (eligible vs potential vs total) */}
           <div className={styles.cards}>
             <div className={`${styles.card} ${styles.glow}`}>
-              <div className={styles.cardLabel}>Total incentives owed (eligible)</div>
-              <div className={styles.cardValue}>{fmt(totalOwed)} pts</div>
-              <div className={styles.cardHint}>Uses the same “💰 Incentive Balance” as dashboards</div>
+              <div className={styles.cardLabel}>Incentives to pay out (eligible)</div>
+              <div className={styles.cardValue}>{showPoints(totalPayOut)}</div>
+              <div className={styles.cardHint}>
+                Sum of dashboard balances for creators who hit eligibility
+              </div>
             </div>
 
+            <div className={styles.card}>
+              <div className={styles.cardLabel}>Potential incentives (if others hit eligibility)</div>
+              <div className={styles.cardValue}>{showPoints(totalPotential)}</div>
+              <div className={styles.cardHint}>
+                Not eligible yet — this is what they’d add if they qualify
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardLabel}>Total across whole agency</div>
+              <div className={styles.cardValue}>{showPoints(agencyTotal)}</div>
+              <div className={styles.cardHint}>Eligible + potential combined</div>
+            </div>
+          </div>
+
+          {/* Your existing secondary cards (optional to keep) */}
+          <div className={styles.cards} style={{ marginTop: 12 }}>
             <div className={styles.card}>
               <div className={styles.cardLabel}>Creators source</div>
               <div className={`${styles.cardValue} ${styles.small}`}>/public/creators/*</div>
@@ -344,13 +389,23 @@ export default function IncentivesPage() {
               <div className={`${styles.cardValue} ${styles.small}`}>Level 5 → Level 0</div>
               <div className={styles.cardHint}>Then highest dashboard balance</div>
             </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardLabel}>Display</div>
+              <div className={`${styles.cardValue} ${styles.small}`}>
+                Points shown as x{DISPLAY_POINTS_MULT}🪙
+              </div>
+              <div className={styles.cardHint}>Display only (doesn’t change calculations)</div>
+            </div>
           </div>
         </header>
 
         <section className={styles.tableShell}>
           <div
             className={styles.tableHead}
-            style={{ gridTemplateColumns: "2.2fr 1fr .7fr .7fr .7fr .9fr .8fr .8fr 1fr" }}
+            style={{
+              gridTemplateColumns: "2.2fr 1fr .7fr .7fr .7fr .9fr .8fr .8fr 1fr",
+            }}
           >
             <div className={styles.hCreator}>Creator</div>
             <div className={styles.hStatus}>Status</div>
@@ -372,14 +427,23 @@ export default function IncentivesPage() {
                 <div
                   key={r.username}
                   className={`${styles.row} ${r.eligible ? styles.rowGood : ""}`}
-                  style={{ gridTemplateColumns: "2.2fr 1fr .7fr .7fr .7fr .9fr .8fr .8fr 1fr" }}
+                  style={{
+                    gridTemplateColumns:
+                      "2.2fr 1fr .7fr .7fr .7fr .9fr .8fr .8fr 1fr",
+                  }}
                 >
                   <div className={styles.creator}>
                     <img className={styles.avatar} src={r.avatar} alt={r.username} />
                     <div className={styles.creatorText}>
                       <div className={styles.creatorName}>{r.username}</div>
-                      <div className={`${styles.creatorSub} ${r.eligible ? styles.ok : styles.bad}`}>
-                        {r.eligible ? "Eligible for payout" : `Needs ${needDays} day(s), ${needHours.toFixed(1)} hour(s)`}
+                      <div
+                        className={`${styles.creatorSub} ${
+                          r.eligible ? styles.ok : styles.bad
+                        }`}
+                      >
+                        {r.eligible
+                          ? "Eligible for payout"
+                          : `Needs ${needDays} day(s), ${needHours.toFixed(1)} hour(s)`}
                       </div>
                     </div>
                   </div>
@@ -394,7 +458,9 @@ export default function IncentivesPage() {
 
                   {/* Level pill (always shows L0-L5) */}
                   <div className={`${styles.cell} ${styles.levelCell}`} data-label="Level">
-                    <span className={`${styles.levelPill} ${levelColorClass(r.level)}`}>L{r.level}</span>
+                    <span className={`${styles.levelPill} ${levelColorClass(r.level)}`}>
+                      L{r.level}
+                    </span>
                   </div>
 
                   <div className={`${styles.cell} ${styles.mono}`} data-label="Days">
@@ -403,17 +469,24 @@ export default function IncentivesPage() {
                   <div className={`${styles.cell} ${styles.mono}`} data-label="Hours">
                     {r.hours.toFixed(1)}
                   </div>
+
+                  {/* If these are blue in your CSS, render them as x2 + 🪙 too */}
                   <div className={`${styles.cell} ${styles.mono}`} data-label="Points">
-                    {fmt(r.calculatedPoints)}
+                    {showPoints(r.calculatedPoints)}
                   </div>
                   <div className={`${styles.cell} ${styles.mono}`} data-label="Extras">
-                    {fmt(r.extrasPoints)}
+                    {showPoints(r.extrasPoints)}
                   </div>
                   <div className={`${styles.cell} ${styles.mono}`} data-label="Lvl pts">
-                    {fmt(r.earnedLevelPoints)}
+                    {showPoints(r.earnedLevelPoints)}
                   </div>
-                  <div className={`${styles.cell} ${styles.mono} ${styles.balance}`} data-label="Dashboard balance">
-                    {fmt(r.incentiveBalanceWithLevels)}
+
+                  {/* ✅ Blue "Dashboard balance": x2 + 🪙 */}
+                  <div
+                    className={`${styles.cell} ${styles.mono} ${styles.balance}`}
+                    data-label="Dashboard balance"
+                  >
+                    {showPoints(r.incentiveBalanceWithLevels)}
                   </div>
                 </div>
               );

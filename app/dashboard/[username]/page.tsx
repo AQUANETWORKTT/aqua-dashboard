@@ -472,7 +472,7 @@ export default function CreatorDashboardPage() {
                 }}
               >
                 💰 Incentive Balance:{" "}
-                {incentiveBalanceWithLevels.toLocaleString()}
+		{(incentiveBalanceWithLevels * 2).toLocaleString()}🪙
               </div>
 
               <div>
