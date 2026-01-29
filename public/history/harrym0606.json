@@ -1,0 +1,33 @@
+{
+  "username": "harrym0606",
+  "entries": [
+    {
+      "date": "2026-02-26",
+      "daily": 1429,
+      "hours": 1.1788888888888889,
+      "lifetime": 1429,
+      "lifetimeHours": 1.7172222222222224
+    },
+    {
+      "date": "2026-01-26",
+      "daily": 1429,
+      "hours": 1.1788888888888889,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2026-01-27",
+      "daily": 0,
+      "hours": 0.5383333333333333,
+      "lifetime": 1429,
+      "lifetimeHours": 1.7172222222222224
+    },
+    {
+      "date": "2026-01-25",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1429,
+      "lifetimeHours": 1.7172222222222224
+    }
+  ]
+}

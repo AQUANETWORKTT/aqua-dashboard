@@ -1,0 +1,33 @@
+{
+  "username": "codie.exox",
+  "entries": [
+    {
+      "date": "2026-02-26",
+      "daily": 103,
+      "hours": 0.29277777777777775,
+      "lifetime": 1119,
+      "lifetimeHours": 5.005833333333333
+    },
+    {
+      "date": "2026-01-26",
+      "daily": 103,
+      "hours": 0.29277777777777775,
+      "lifetime": 255,
+      "lifetimeHours": 2.7352777777777777
+    },
+    {
+      "date": "2026-01-27",
+      "daily": 0,
+      "hours": 0.36416666666666664,
+      "lifetime": 1119,
+      "lifetimeHours": 5.005833333333333
+    },
+    {
+      "date": "2026-01-25",
+      "daily": 255,
+      "hours": 2.7352777777777777,
+      "lifetime": 1119,
+      "lifetimeHours": 5.005833333333333
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "username": "tinika28butcher",
+  "entries": [
+    {
+      "date": "2026-02-26",
+      "daily": 277,
+      "hours": 2.3274999999999997,
+      "lifetime": 335,
+      "lifetimeHours": 2.9238888888888885
+    },
+    {
+      "date": "2026-01-26",
+      "daily": 277,
+      "hours": 2.3274999999999997,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2026-01-27",
+      "daily": 58,
+      "hours": 0.596388888888889,
+      "lifetime": 335,
+      "lifetimeHours": 2.9238888888888885
+    },
+    {
+      "date": "2026-01-25",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 335,
+      "lifetimeHours": 2.9238888888888885
+    }
+  ]
+}
