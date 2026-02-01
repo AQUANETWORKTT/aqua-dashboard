@@ -1,7 +1,21 @@
+// app/incentives/page.tsx
 import fs from "fs";
 import path from "path";
+import type { Metadata, Viewport } from "next";
+
 import styles from "./incentives.module.css";
 import { incentiveExtras } from "@/data/incentive-extras";
+
+export const runtime = "nodejs"; // ✅ fs/path require node runtime
+
+// ✅ Move themeColor here (NOT in metadata)
+export const viewport: Viewport = {
+  themeColor: "#00d5ff",
+};
+
+export const metadata: Metadata = {
+  title: "Aqua Incentives",
+};
 
 /* ===================== TYPES ===================== */
 
@@ -94,13 +108,12 @@ function safeMonthKey(input: string | undefined) {
 
 /* ===================== FILE LOADERS ===================== */
 
-// ----- Option B: load creators from public/creators folder -----
+// ✅ IMPORTANT: keep as a function declaration (hoisted) so it can’t go “undefined”
 function loadCreatorsFromPublicCreatorsFolder(): Creator[] {
   const dir = path.join(process.cwd(), "public", "creators");
 
-  if (!fs.existsSync(dir)) {
-    throw new Error("Missing public/creators folder");
-  }
+  // Don’t crash the whole page — return []
+  if (!fs.existsSync(dir)) return [];
 
   const files = fs.readdirSync(dir);
 
@@ -110,10 +123,6 @@ function loadCreatorsFromPublicCreatorsFolder(): Creator[] {
       const username = f.replace(/\.(png|jpg|jpeg|webp)$/i, "");
       return { username, avatar: `/creators/${f}` };
     });
-
-  if (!creators.length) {
-    throw new Error("No images found in public/creators (png/jpg/jpeg/webp)");
-  }
 
   creators.sort((a, b) => a.username.localeCompare(b.username));
   return creators;
@@ -273,17 +282,47 @@ function getLevelAligned(validDays: number, hours: number): number {
 
 /* ===================== PAGE ===================== */
 
-export default function IncentivesPage({
+type SearchParams = { month?: string };
+
+export default async function IncentivesPage({
   searchParams,
 }: {
-  searchParams?: { month?: string };
+  searchParams?: Promise<SearchParams>;
 }) {
+  const sp = (await searchParams) ?? {};
   const creators = loadCreatorsFromPublicCreatorsFolder();
+
+  // Friendly empty state instead of a 500 crash
+  if (!creators.length) {
+    const monthKey = safeMonthKey(sp.month);
+    return (
+      <main className={styles.wrap}>
+        <div className={styles.container}>
+          <header className={styles.hero}>
+            <div className={styles.heroTop}>
+              <div>
+                <h1 className={styles.title}>Aqua Incentives</h1>
+                <p className={styles.sub}>
+                  Month key: <span className={styles.mono}>{monthKey}</span>
+                </p>
+                <p className={styles.sub} style={{ marginTop: 6 }}>
+                  No creator images found in{" "}
+                  <span className={styles.mono}>/public/creators</span>. Add
+                  at least one <span className={styles.mono}>.png/.jpg/.webp</span>{" "}
+                  named as the username.
+                </p>
+              </div>
+            </div>
+          </header>
+        </div>
+      </main>
+    );
+  }
 
   // ✅ Match the dashboard month selection:
   // - default previous month
   // - allow override via ?month=YYYY-MM
-  const monthKey = safeMonthKey(searchParams?.month);
+  const monthKey = safeMonthKey(sp.month);
 
   // Load all histories
   const allHistories: Record<string, HistoryEntry[]> = {};
@@ -310,15 +349,15 @@ export default function IncentivesPage({
   // Build top5ByDay exactly like dashboard
   const top5ByDay: Record<string, string[]> = {};
   [...dates].forEach((date) => {
-    const rows: { username: string; daily: number }[] = [];
+    const dayRows: { username: string; daily: number }[] = [];
 
     for (const u in monthAll) {
       const e = monthAll[u].find((x) => x.date === date);
-      if (e && (e.daily ?? 0) > 0) rows.push({ username: u, daily: e.daily ?? 0 });
+      if (e && (e.daily ?? 0) > 0) dayRows.push({ username: u, daily: e.daily ?? 0 });
     }
 
-    rows.sort((a, b) => b.daily - a.daily);
-    top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
+    dayRows.sort((a, b) => b.daily - a.daily);
+    top5ByDay[date] = dayRows.slice(0, 5).map((r) => r.username);
   });
 
   // Build rows
@@ -412,8 +451,8 @@ export default function IncentivesPage({
                 <b>{ELIGIBLE_HOURS} hours</b>
               </p>
               <p className={styles.sub} style={{ marginTop: 6 }}>
-                Tip: change month with <span className={styles.mono}>?month=YYYY-MM</span>
-                {"  "}
+                Tip: change month with{" "}
+                <span className={styles.mono}>?month=YYYY-MM</span>{" "}
                 (e.g. <span className={styles.mono}>?month=2026-01</span>)
               </p>
             </div>
@@ -457,13 +496,17 @@ export default function IncentivesPage({
           <div className={styles.cards} style={{ marginTop: 12 }}>
             <div className={styles.card}>
               <div className={styles.cardLabel}>Creators source</div>
-              <div className={`${styles.cardValue} ${styles.small}`}>/public/creators/*</div>
+              <div className={`${styles.cardValue} ${styles.small}`}>
+                /public/creators/*
+              </div>
               <div className={styles.cardHint}>Filenames are treated as usernames</div>
             </div>
 
             <div className={styles.card}>
               <div className={styles.cardLabel}>Sort order</div>
-              <div className={`${styles.cardValue} ${styles.small}`}>Level 5 → Level 0</div>
+              <div className={`${styles.cardValue} ${styles.small}`}>
+                Level 5 → Level 0
+              </div>
               <div className={styles.cardHint}>Then highest dashboard balance</div>
             </div>
 
@@ -472,7 +515,9 @@ export default function IncentivesPage({
               <div className={`${styles.cardValue} ${styles.small}`}>
                 Points shown as x{DISPLAY_POINTS_MULT}🪙
               </div>
-              <div className={styles.cardHint}>Display only (doesn’t change calculations)</div>
+              <div className={styles.cardHint}>
+                Display only (doesn’t change calculations)
+              </div>
             </div>
           </div>
         </header>
@@ -529,7 +574,9 @@ export default function IncentivesPage({
                     {r.eligible ? (
                       <span className={`${styles.pill} ${styles.good}`}>Eligible</span>
                     ) : (
-                      <span className={`${styles.pill} ${styles.badPill}`}>Not eligible</span>
+                      <span className={`${styles.pill} ${styles.badPill}`}>
+                        Not eligible
+                      </span>
                     )}
                   </div>
 
