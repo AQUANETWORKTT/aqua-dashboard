@@ -3,6 +3,8 @@ import path from "path";
 import styles from "./incentives.module.css";
 import { incentiveExtras } from "@/data/incentive-extras";
 
+/* ===================== TYPES ===================== */
+
 type Creator = {
   username: string;
   avatar: string;
@@ -46,25 +48,51 @@ type Row = {
   earnedLevelPoints: number;
   incentiveBalanceWithLevels: number;
 
-  eligible: boolean; // payout eligibility (15 days + 14 hours)
+  eligible: boolean; // payout eligibility (aligned to dashboard)
   level: number; // 0..5 (ALWAYS shown)
 };
 
+/* ===================== RULES (ALIGN TO DASHBOARD) ===================== */
+
+// ✅ Dashboard eligibility (you’ve been using 15 days + 40 hours on the dashboards)
 const ELIGIBLE_DAYS = 15;
-const ELIGIBLE_HOURS = 14;
+const ELIGIBLE_HOURS = 40;
 
 // ✅ DISPLAY: all blue “points” numbers on this page are shown as x2 with 🪙
 const DISPLAY_POINTS_MULT = 2;
+
+/* ===================== FORMAT HELPERS ===================== */
 
 function fmt(n: number) {
   return (n ?? 0).toLocaleString("en-GB");
 }
 
 function showPoints(n: number) {
-  // display-only multiplier + coin emoji
   const val = Math.round((n ?? 0) * DISPLAY_POINTS_MULT);
   return `${fmt(val)}🪙`;
 }
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toMonthKey(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+
+// ✅ default = previous month (so on Feb 1 you see Jan automatically)
+function defaultPrevMonthKey() {
+  const now = new Date();
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return toMonthKey(prev);
+}
+
+function safeMonthKey(input: string | undefined) {
+  if (!input) return defaultPrevMonthKey();
+  return /^\d{4}-\d{2}$/.test(input) ? input : defaultPrevMonthKey();
+}
+
+/* ===================== FILE LOADERS ===================== */
 
 // ----- Option B: load creators from public/creators folder -----
 function loadCreatorsFromPublicCreatorsFolder(): Creator[] {
@@ -103,6 +131,20 @@ function loadHistoryFromPublic(username: string): HistoryEntry[] {
   }
 }
 
+/* ===================== DASHBOARD-ALIGNED POINTS ===================== */
+
+// ✅ points = floor(diamonds / diamondsPerPoint) * rateMultiplier
+function pointsFromDiamondsRate(
+  diamonds: number,
+  diamondsPerPoint: number,
+  rateMultiplier: number
+) {
+  if (!Number.isFinite(diamonds) || diamonds <= 0) return 0;
+  if (!Number.isFinite(diamondsPerPoint) || diamondsPerPoint <= 0) return 0;
+  if (!Number.isFinite(rateMultiplier) || rateMultiplier <= 0) return 0;
+  return Math.floor(diamonds / diamondsPerPoint) * rateMultiplier;
+}
+
 /**
  * ✅ Ported 1:1 from your dashboard incentive logic.
  */
@@ -125,6 +167,7 @@ function computeDashboardStatsForUser(opts: {
     if (top5ByDay[e.date]?.includes(username)) top5Count++;
   });
 
+  // ---------- calculated points ----------
   const thousands = Math.floor(diamonds / 1000);
   let diamondPoints = 0;
 
@@ -152,6 +195,7 @@ function computeDashboardStatsForUser(opts: {
   const calculatedPoints =
     diamondPoints + hourPoints + validDayPoints + top5Points;
 
+  // ---------- FILE-BASED EXTRAS ----------
   const extrasPoints = incentiveExtras[username] ?? 0;
   const incentiveBalance = calculatedPoints + extrasPoints;
 
@@ -167,9 +211,12 @@ function computeDashboardStatsForUser(opts: {
 }
 
 /**
- * ✅ Ported from your dashboard level-points logic (unchanged).
+ * ✅ Level points aligned to your (new) dashboard logic:
+ * - Levels 3–5 unlock at 150K diamonds
+ * - Non-stacking: you earn only the highest completed rate level (3 OR 4 OR 5)
+ * - points = floor(monthlyDiamonds / 300) * rate (rate: 1/2/3)
  */
-function computeEarnedLevelPoints(
+function computeEarnedLevelPointsAligned(
   monthlyDiamonds: number,
   validDaysNow: number,
   hoursNow: number
@@ -178,52 +225,65 @@ function computeEarnedLevelPoints(
 
   const levels = [
     { level: 2, days: 15, hours: 40, gated: false },
-    { level: 3, days: 20, hours: 60, gated: true },
-    { level: 4, days: 20, hours: 80, gated: true },
-    { level: 5, days: 22, hours: 100, gated: true },
+    { level: 3, days: 20, hours: 60, gated: true, diamondsPerPoint: 300, rate: 1 },
+    { level: 4, days: 20, hours: 80, gated: true, diamondsPerPoint: 300, rate: 2 },
+    { level: 5, days: 22, hours: 100, gated: true, diamondsPerPoint: 300, rate: 3 },
   ] as const;
 
   const isLevelEligible = (l: (typeof levels)[number]) =>
     validDaysNow >= l.days && hoursNow >= l.hours;
+
   const isLevelAvailable = (l: (typeof levels)[number]) =>
     l.gated ? ladderUnlocked : true;
-
-  const diamondScale = Math.max(1, Math.floor(monthlyDiamonds / 150_000));
-  const scaledReward = 500 * diamondScale;
 
   const level3 = levels[1];
   const level4 = levels[2];
   const level5 = levels[3];
 
-  const earnedLevelPoints =
-    (isLevelAvailable(level3) && isLevelEligible(level3) ? scaledReward : 0) +
-    (isLevelAvailable(level4) && isLevelEligible(level4) ? scaledReward : 0) +
-    (isLevelAvailable(level5) && isLevelEligible(level5) ? scaledReward : 0);
+  const completedRateLevel =
+    isLevelAvailable(level5) && isLevelEligible(level5)
+      ? level5
+      : isLevelAvailable(level4) && isLevelEligible(level4)
+      ? level4
+      : isLevelAvailable(level3) && isLevelEligible(level3)
+      ? level3
+      : null;
 
-  return earnedLevelPoints;
+  if (!completedRateLevel) return 0;
+
+  return pointsFromDiamondsRate(
+    monthlyDiamonds,
+    (completedRateLevel as any).diamondsPerPoint,
+    (completedRateLevel as any).rate
+  );
 }
 
 /**
- * ✅ NEW LEVEL SYSTEM (0..5 always)
+ * ✅ Level indicator (0..5) aligned to dashboard thresholds.
+ * (Level 1 is optional — keep it as an “almost there” tier.)
  */
-function getLevelNew(validDays: number, hours: number): number {
+function getLevelAligned(validDays: number, hours: number): number {
   if (validDays >= 22 && hours >= 100) return 5;
   if (validDays >= 20 && hours >= 80) return 4;
-  if (validDays >= 20 && hours >= 16) return 3;
-  if (validDays >= 15 && hours >= 14) return 2;
+  if (validDays >= 20 && hours >= 60) return 3;
+  if (validDays >= 15 && hours >= 40) return 2;
   if (validDays >= 12 && hours >= 25) return 1;
   return 0;
 }
 
-export default function IncentivesPage() {
+/* ===================== PAGE ===================== */
+
+export default function IncentivesPage({
+  searchParams,
+}: {
+  searchParams?: { month?: string };
+}) {
   const creators = loadCreatorsFromPublicCreatorsFolder();
 
-  // Match your dashboard monthKey logic
-  const now = new Date();
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}`;
+  // ✅ Match the dashboard month selection:
+  // - default previous month
+  // - allow override via ?month=YYYY-MM
+  const monthKey = safeMonthKey(searchParams?.month);
 
   // Load all histories
   const allHistories: Record<string, HistoryEntry[]> = {};
@@ -231,17 +291,21 @@ export default function IncentivesPage() {
     allHistories[c.username] = loadHistoryFromPublic(c.username);
   });
 
-  // Month-only histories (startsWith)
+  // Month-only histories (startsWith) — same as dashboard approach
   const monthAll: Record<string, HistoryEntry[]> = {};
   for (const u in allHistories) {
     monthAll[u] = (allHistories[u] || []).filter((e) =>
-      e.date?.startsWith(monthKey)
+      (e.date ?? "").startsWith(monthKey)
     );
   }
 
   // All dates present in this month across everyone
   const dates = new Set<string>();
-  Object.values(monthAll).forEach((arr) => arr.forEach((e) => dates.add(e.date)));
+  Object.values(monthAll).forEach((arr) =>
+    arr.forEach((e) => {
+      if (e?.date) dates.add(e.date);
+    })
+  );
 
   // Build top5ByDay exactly like dashboard
   const top5ByDay: Record<string, string[]> = {};
@@ -250,7 +314,7 @@ export default function IncentivesPage() {
 
     for (const u in monthAll) {
       const e = monthAll[u].find((x) => x.date === date);
-      if (e && e.daily > 0) rows.push({ username: u, daily: e.daily });
+      if (e && (e.daily ?? 0) > 0) rows.push({ username: u, daily: e.daily ?? 0 });
     }
 
     rows.sort((a, b) => b.daily - a.daily);
@@ -267,19 +331,21 @@ export default function IncentivesPage() {
       top5ByDay,
     });
 
-    const earnedLevelPoints = computeEarnedLevelPoints(
+    // ✅ level points aligned to dashboard (non-stacking rate points)
+    const earnedLevelPoints = computeEarnedLevelPointsAligned(
       stats.diamonds,
       stats.validDays,
       stats.hours
     );
+
     const incentiveBalanceWithLevels = stats.incentiveBalance + earnedLevelPoints;
 
-    // payout eligibility remains (15 days + 14 hours)
+    // ✅ payout eligibility aligned to dashboard (15 days + 40 hours)
     const eligible =
       stats.validDays >= ELIGIBLE_DAYS && stats.hours >= ELIGIBLE_HOURS;
 
-    // NEW LEVEL SYSTEM (0..5)
-    const level = getLevelNew(stats.validDays, stats.hours);
+    // ✅ Level badge aligned to dashboard thresholds
+    const level = getLevelAligned(stats.validDays, stats.hours);
 
     return {
       username: c.username,
@@ -311,14 +377,17 @@ export default function IncentivesPage() {
   // ✅ Totals
   const eligibleRows = rows.filter((r) => r.eligible);
 
-  // "Incentives to pay out" = sum of balances for eligible only
-  const totalPayOut = eligibleRows.reduce((s, r) => s + r.incentiveBalanceWithLevels, 0);
+  const totalPayOut = eligibleRows.reduce(
+    (s, r) => s + r.incentiveBalanceWithLevels,
+    0
+  );
 
-  // "Potential incentives" = sum of balances for NOT eligible (what it would be IF they hit eligibility)
   const notEligibleRows = rows.filter((r) => !r.eligible);
-  const totalPotential = notEligibleRows.reduce((s, r) => s + r.incentiveBalanceWithLevels, 0);
+  const totalPotential = notEligibleRows.reduce(
+    (s, r) => s + r.incentiveBalanceWithLevels,
+    0
+  );
 
-  // "Agency total" = sum across whole agency (eligible + not)
   const agencyTotal = rows.reduce((s, r) => s + r.incentiveBalanceWithLevels, 0);
 
   const levelColorClass = (lvl: number) => {
@@ -338,8 +407,14 @@ export default function IncentivesPage() {
             <div>
               <h1 className={styles.title}>Aqua Incentives</h1>
               <p className={styles.sub}>
-                Month key: <span className={styles.mono}>{monthKey}</span> • Payout eligibility =
-                <b> {ELIGIBLE_DAYS} days</b> + <b>{ELIGIBLE_HOURS} hours</b>
+                Month key: <span className={styles.mono}>{monthKey}</span> • Payout
+                eligibility = <b>{ELIGIBLE_DAYS} days</b> +{" "}
+                <b>{ELIGIBLE_HOURS} hours</b>
+              </p>
+              <p className={styles.sub} style={{ marginTop: 6 }}>
+                Tip: change month with <span className={styles.mono}>?month=YYYY-MM</span>
+                {"  "}
+                (e.g. <span className={styles.mono}>?month=2026-01</span>)
               </p>
             </div>
 
@@ -351,7 +426,7 @@ export default function IncentivesPage() {
             </div>
           </div>
 
-          {/* ✅ NEW: Agency totals bar (eligible vs potential vs total) */}
+          {/* ✅ Agency totals bar (eligible vs potential vs total) */}
           <div className={styles.cards}>
             <div className={`${styles.card} ${styles.glow}`}>
               <div className={styles.cardLabel}>Incentives to pay out (eligible)</div>
@@ -362,7 +437,9 @@ export default function IncentivesPage() {
             </div>
 
             <div className={styles.card}>
-              <div className={styles.cardLabel}>Potential incentives (if others hit eligibility)</div>
+              <div className={styles.cardLabel}>
+                Potential incentives (if others hit eligibility)
+              </div>
               <div className={styles.cardValue}>{showPoints(totalPotential)}</div>
               <div className={styles.cardHint}>
                 Not eligible yet — this is what they’d add if they qualify
@@ -376,7 +453,7 @@ export default function IncentivesPage() {
             </div>
           </div>
 
-          {/* Your existing secondary cards (optional to keep) */}
+          {/* Secondary cards */}
           <div className={styles.cards} style={{ marginTop: 12 }}>
             <div className={styles.card}>
               <div className={styles.cardLabel}>Creators source</div>
@@ -470,7 +547,6 @@ export default function IncentivesPage() {
                     {r.hours.toFixed(1)}
                   </div>
 
-                  {/* If these are blue in your CSS, render them as x2 + 🪙 too */}
                   <div className={`${styles.cell} ${styles.mono}`} data-label="Points">
                     {showPoints(r.calculatedPoints)}
                   </div>
@@ -481,7 +557,6 @@ export default function IncentivesPage() {
                     {showPoints(r.earnedLevelPoints)}
                   </div>
 
-                  {/* ✅ Blue "Dashboard balance": x2 + 🪙 */}
                   <div
                     className={`${styles.cell} ${styles.mono} ${styles.balance}`}
                     data-label="Dashboard balance"

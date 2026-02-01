@@ -1,14 +1,14 @@
 "use client";
 
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import { creators } from "@/data/creators";
 import { incentiveExtras } from "@/data/incentive-extras";
-import { useParams } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
 
 /* ===================== TYPES ===================== */
 
 type HistoryEntry = {
-  date: string;
+  date: string; // "YYYY-MM-DD"
   daily: number;
   lifetime: number;
   hours?: number;
@@ -52,10 +52,38 @@ function pointsFromDiamondsRate(
   return Math.floor(diamonds / diamondsPerPoint) * rateMultiplier;
 }
 
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function toMonthKey(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+}
+
+function parseMonthKey(monthKey: string): { year: number; monthIndex: number } {
+  const [yStr, mStr] = (monthKey || "").split("-");
+  const y = Number(yStr);
+  const m = Number(mStr);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) {
+    const now = new Date();
+    return { year: now.getFullYear(), monthIndex: now.getMonth() };
+  }
+  return { year: y, monthIndex: m - 1 };
+}
+
+// Default to *previous* month so when it flips to Feb, you still see Jan by default.
+function defaultMonthKeyPrevMonth() {
+  const now = new Date();
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return toMonthKey(prev);
+}
+
 /* ===================== PAGE ===================== */
 
 export default function CreatorDashboardPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+
   const username = (params?.username as string) || "";
 
   const creator = creators.find(
@@ -76,11 +104,25 @@ export default function CreatorDashboardPage() {
 
   const rank = rankIndex >= 0 ? rankIndex + 1 : null;
 
+  /* ---------- month selection ---------- */
+  const selectedMonthKey = useMemo(() => {
+    // URL override: ?month=YYYY-MM
+    const fromUrl = searchParams.get("month");
+    return fromUrl && /^\d{4}-\d{2}$/.test(fromUrl)
+      ? fromUrl
+      : defaultMonthKeyPrevMonth();
+  }, [searchParams]);
+
+  const { year: selectedYear, monthIndex: selectedMonthIndex } = useMemo(
+    () => parseMonthKey(selectedMonthKey),
+    [selectedMonthKey]
+  );
+
   /* ---------- state ---------- */
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [allHistories, setAllHistories] = useState<
-    Record<string, HistoryEntry[]>
-  >({});
+  const [allHistories, setAllHistories] = useState<Record<string, HistoryEntry[]>>(
+    {}
+  );
   const [stats, setStats] = useState<IncentiveStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,6 +130,8 @@ export default function CreatorDashboardPage() {
 
   useEffect(() => {
     if (!username) return;
+
+    setLoading(true);
 
     fetch(`/history/${username}.json`, { cache: "no-store" })
       .then((r) => r.json())
@@ -109,8 +153,10 @@ export default function CreatorDashboardPage() {
             });
             if (!r.ok) return;
             const j = (await r.json()) as HistoryFile;
-            out[c.username] = j.entries || [];
-          } catch {}
+            out[c.username] = Array.isArray(j.entries) ? j.entries : [];
+          } catch {
+            // ignore
+          }
         })
       );
 
@@ -120,23 +166,19 @@ export default function CreatorDashboardPage() {
     loadAll();
   }, []);
 
-  /* ===================== INCENTIVE LOGIC (MONTH-ONLY) ===================== */
+  /* ===================== INCENTIVE LOGIC (SELECTED MONTH) ===================== */
 
   useEffect(() => {
-    if (!history.length || !Object.keys(allHistories).length) return;
+    if (!history.length || !Object.keys(allHistories).length || !username) return;
 
-    const now = new Date();
-    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}`;
-
-    const monthHistory = history.filter((e) => e.date.startsWith(monthKey));
+    const monthHistory = history.filter((e) =>
+      (e.date || "").startsWith(selectedMonthKey)
+    );
 
     const monthAll: Record<string, HistoryEntry[]> = {};
     for (const u in allHistories) {
       monthAll[u] = (allHistories[u] || []).filter((e) =>
-        e.date.startsWith(monthKey)
+        (e.date || "").startsWith(selectedMonthKey)
       );
     }
 
@@ -145,24 +187,29 @@ export default function CreatorDashboardPage() {
     let validDays = 0;
     let top5Count = 0;
 
+    // collect all dates seen in month across all users (for top5 each day)
     const dates = new Set<string>();
     Object.values(monthAll).forEach((arr) =>
-      arr.forEach((e) => dates.add(e.date))
+      arr.forEach((e) => {
+        if (e?.date) dates.add(e.date);
+      })
     );
 
+    // top5 by day
     const top5ByDay: Record<string, string[]> = {};
     [...dates].forEach((date) => {
       const rows: { username: string; daily: number }[] = [];
 
       for (const u in monthAll) {
         const e = monthAll[u].find((x) => x.date === date);
-        if (e && e.daily > 0) rows.push({ username: u, daily: e.daily });
+        if (e && (e.daily ?? 0) > 0) rows.push({ username: u, daily: e.daily ?? 0 });
       }
 
       rows.sort((a, b) => b.daily - a.daily);
       top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
     });
 
+    // totals + top5 count
     monthHistory.forEach((e) => {
       diamonds += e.daily ?? 0;
       hours += e.hours ?? 0;
@@ -195,8 +242,7 @@ export default function CreatorDashboardPage() {
       else if (pos === 4) top5Points += 5;
     });
 
-    const calculatedPoints =
-      diamondPoints + hourPoints + validDayPoints + top5Points;
+    const calculatedPoints = diamondPoints + hourPoints + validDayPoints + top5Points;
 
     // ---------- FILE-BASED EXTRAS ----------
     const extrasPoints = incentiveExtras[username] ?? 0;
@@ -213,56 +259,57 @@ export default function CreatorDashboardPage() {
     });
 
     setLoading(false);
-  }, [history, allHistories, username]);
+  }, [history, allHistories, username, selectedMonthKey]);
 
-  /* ===================== MONTH + CALENDAR ===================== */
+  /* ===================== MONTH + CALENDAR (SELECTED MONTH) ===================== */
 
-  function buildMonth() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-
-    const first = new Date(year, month, 1);
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const offset = (first.getDay() + 6) % 7;
+  function buildMonth(year: number, monthIndex: number) {
+    const first = new Date(year, monthIndex, 1);
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+    const offset = (first.getDay() + 6) % 7; // Monday-start
 
     const cells: { day: number | null; dateStr?: string }[] = [];
     for (let i = 0; i < offset; i++) cells.push({ day: null });
 
     for (let d = 1; d <= daysInMonth; d++) {
-      const date = new Date(year, month, d);
+      const date = new Date(year, monthIndex, d);
       cells.push({ day: d, dateStr: date.toISOString().slice(0, 10) });
     }
 
-    return {
-      cells,
-      year,
-      month,
-      label: today.toLocaleString("default", { month: "long" }),
-    };
+    const label = new Date(year, monthIndex, 1).toLocaleString("default", {
+      month: "long",
+    });
+
+    return { cells, year, month: monthIndex, label };
   }
 
-  const { cells, year, month, label } = buildMonth();
+  const { cells, year, month, label } = useMemo(
+    () => buildMonth(selectedYear, selectedMonthIndex),
+    [selectedYear, selectedMonthIndex]
+  );
 
   const historyByDate = useMemo(() => {
     const map: Record<string, HistoryEntry> = {};
-    history.forEach((e) => (map[e.date] = e));
+    history.forEach((e) => {
+      if (e?.date) map[e.date] = e;
+    });
     return map;
   }, [history]);
 
-  const monthlyDiamonds = history.reduce((sum, e) => {
-    const d = new Date(e.date);
-    return d.getFullYear() === year && d.getMonth() === month
-      ? sum + (e.daily ?? 0)
-      : sum;
-  }, 0);
+  const monthlyDiamonds = useMemo(() => {
+    // Fast path using string prefix (same month key as selected)
+    const mk = selectedMonthKey;
+    return history.reduce((sum, e) => {
+      return (e.date || "").startsWith(mk) ? sum + (e.daily ?? 0) : sum;
+    }, 0);
+  }, [history, selectedMonthKey]);
 
-  const monthlyHours = history.reduce((sum, e) => {
-    const d = new Date(e.date);
-    return d.getFullYear() === year && d.getMonth() === month
-      ? sum + (e.hours ?? 0)
-      : sum;
-  }, 0);
+  const monthlyHours = useMemo(() => {
+    const mk = selectedMonthKey;
+    return history.reduce((sum, e) => {
+      return (e.date || "").startsWith(mk) ? sum + (e.hours ?? 0) : sum;
+    }, 0);
+  }, [history, selectedMonthKey]);
 
   /* ===================== INCENTIVE TARGETS (ONE AT A TIME + LOCKED PREVIEW) ===================== */
 
@@ -325,8 +372,8 @@ export default function CreatorDashboardPage() {
   const earnedLevelPoints = completedRateLevel
     ? pointsFromDiamondsRate(
         monthlyDiamonds,
-        completedRateLevel.diamondsPerPoint,
-        completedRateLevel.rate
+        (completedRateLevel as any).diamondsPerPoint,
+        (completedRateLevel as any).rate
       )
     : 0;
 
@@ -440,6 +487,37 @@ export default function CreatorDashboardPage() {
     filter: "saturate(0.85)",
   };
 
+  /* ===================== MONTH PICKER (OPTIONAL UI) ===================== */
+
+  // Builds a simple list of month options (current month + last 11 months)
+  const monthOptions = useMemo(() => {
+    const opts: { key: string; label: string }[] = [];
+    const base = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      const key = toMonthKey(d);
+      const label = `${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`;
+      opts.push({ key, label });
+    }
+    // ensure selected is present even if older than 12 months
+    if (!opts.find((o) => o.key === selectedMonthKey)) {
+      const { year, monthIndex } = parseMonthKey(selectedMonthKey);
+      const d = new Date(year, monthIndex, 1);
+      opts.unshift({
+        key: selectedMonthKey,
+        label: `${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`,
+      });
+    }
+    return opts;
+  }, [selectedMonthKey]);
+
+  function setMonthInUrl(monthKey: string) {
+    // Keep it simple: hard navigate to same path with ?month=
+    const url = new URL(window.location.href);
+    url.searchParams.set("month", monthKey);
+    window.location.href = url.toString();
+  }
+
   /* ===================== UI ===================== */
 
   return (
@@ -454,6 +532,45 @@ export default function CreatorDashboardPage() {
                 Rank #{rank} of {creators.length}
               </div>
             )}
+
+            {/* ✅ Month selector (defaults to previous month, so Feb shows Jan automatically) */}
+            <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <div
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 900,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  color: "rgba(255,255,255,0.85)",
+                }}
+              >
+                Viewing: {selectedMonthKey}
+              </div>
+
+              <select
+                value={selectedMonthKey}
+                onChange={(e) => setMonthInUrl(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  color: "rgba(255,255,255,0.92)",
+                  fontWeight: 800,
+                  outline: "none",
+                }}
+              >
+                {monthOptions.map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -472,7 +589,7 @@ export default function CreatorDashboardPage() {
                 }}
               >
                 💰 Incentive Balance:{" "}
-		{(incentiveBalanceWithLevels * 2).toLocaleString()}🪙
+                {(incentiveBalanceWithLevels * 2).toLocaleString()}🪙
               </div>
 
               <div>
@@ -496,7 +613,7 @@ export default function CreatorDashboardPage() {
         </div>
       </section>
 
-      {/* ✅ Incentive Requirements (one target at a time + locked preview of next) */}
+      {/* ✅ Incentive Requirements */}
       <section className="dash-card">
         <div
           style={{
@@ -525,7 +642,7 @@ export default function CreatorDashboardPage() {
           )}
         </div>
 
-        {/* ✅ Clean total section (requested) */}
+        {/* ✅ Clean total section */}
         <div
           style={{
             marginTop: 12,
@@ -611,13 +728,7 @@ export default function CreatorDashboardPage() {
                         marginBottom: 6,
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                        }}
-                      >
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div
                           style={{
                             fontWeight: 900,
@@ -701,8 +812,7 @@ export default function CreatorDashboardPage() {
                             Valid Days
                           </div>
                           <div style={{ fontWeight: 900 }}>
-                            {Math.min(validDaysNow, targetLevel.days)}/
-                            {targetLevel.days}{" "}
+                            {Math.min(validDaysNow, targetLevel.days)}/{targetLevel.days}{" "}
                             <span style={{ opacity: 0.95 }}>
                               ({Math.round(daysPct)}%)
                             </span>
@@ -711,10 +821,7 @@ export default function CreatorDashboardPage() {
 
                         <div style={barOuter}>
                           <div
-                            style={barInner(
-                              daysPct,
-                              validDaysNow >= targetLevel.days
-                            )}
+                            style={barInner(daysPct, validDaysNow >= targetLevel.days)}
                           />
                         </div>
                       </div>
@@ -749,9 +856,7 @@ export default function CreatorDashboardPage() {
                         </div>
 
                         <div style={barOuter}>
-                          <div
-                            style={barInner(hrsPct, hoursNow >= targetLevel.hours)}
-                          />
+                          <div style={barInner(hrsPct, hoursNow >= targetLevel.hours)} />
                         </div>
                       </div>
                     </div>
@@ -797,8 +902,7 @@ export default function CreatorDashboardPage() {
                         {nextLevel.days} valid days • {nextLevel.hours} hours
                         <span style={{ opacity: 0.95 }}>
                           {" "}
-                          (Potential points:{" "}
-                          <b>{potentialNextPoints.toLocaleString()}</b>)
+                          (Potential points: <b>{potentialNextPoints.toLocaleString()}</b>)
                         </span>
                       </div>
                     </div>
@@ -822,7 +926,7 @@ export default function CreatorDashboardPage() {
         </div>
       </section>
 
-      {/* ✅ Monthly Progress (one bar, clean) */}
+      {/* ✅ Monthly Progress */}
       <section className="dash-card">
         <div
           style={{
@@ -836,9 +940,7 @@ export default function CreatorDashboardPage() {
 
           <div style={{ textAlign: "right" }}>
             <div style={totalDiamondsLabelStyle}>Total Diamonds</div>
-            <div style={totalDiamondsNumberStyle}>
-              {monthlyDiamonds.toLocaleString()}
-            </div>
+            <div style={totalDiamondsNumberStyle}>{monthlyDiamonds.toLocaleString()}</div>
           </div>
         </div>
 
@@ -925,7 +1027,7 @@ export default function CreatorDashboardPage() {
                       lineHeight: 1,
                       opacity: hit ? 0.95 : 0.6,
                     }}
-                  ></div>
+                  />
                 </div>
               );
             })}
