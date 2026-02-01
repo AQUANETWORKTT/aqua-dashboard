@@ -72,8 +72,10 @@ type Row = {
 const ELIGIBLE_DAYS = 15;
 const ELIGIBLE_HOURS = 40;
 
-// ✅ DISPLAY: all blue “points” numbers on this page are shown as x2 with 🪙
+// ✅ Conversion: £6 per 1,000 points (and we keep the same “display points” multiplier concept)
 const DISPLAY_POINTS_MULT = 2;
+const GBP_PER_1000_POINTS = 6;
+const GBP_PER_POINT = GBP_PER_1000_POINTS / 1000; // 0.006
 
 /* ===================== FORMAT HELPERS ===================== */
 
@@ -81,9 +83,22 @@ function fmt(n: number) {
   return (n ?? 0).toLocaleString("en-GB");
 }
 
-function showPoints(n: number) {
-  const val = Math.round((n ?? 0) * DISPLAY_POINTS_MULT);
-  return `${fmt(val)}🪙`;
+function fmtGBP(n: number) {
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: 2,
+  }).format(n ?? 0);
+}
+
+// raw points -> displayed points (x2) -> £
+function pointsToGBP(points: number) {
+  const displayedPoints = Math.round((points ?? 0) * DISPLAY_POINTS_MULT);
+  return displayedPoints * GBP_PER_POINT;
+}
+
+function showGBP(points: number) {
+  return fmtGBP(pointsToGBP(points));
 }
 
 function pad2(n: number) {
@@ -111,8 +126,6 @@ function safeMonthKey(input: string | undefined) {
 // ✅ IMPORTANT: keep as a function declaration (hoisted) so it can’t go “undefined”
 function loadCreatorsFromPublicCreatorsFolder(): Creator[] {
   const dir = path.join(process.cwd(), "public", "creators");
-
-  // Don’t crash the whole page — return []
   if (!fs.existsSync(dir)) return [];
 
   const files = fs.readdirSync(dir);
@@ -307,8 +320,8 @@ export default async function IncentivesPage({
                 </p>
                 <p className={styles.sub} style={{ marginTop: 6 }}>
                   No creator images found in{" "}
-                  <span className={styles.mono}>/public/creators</span>. Add
-                  at least one <span className={styles.mono}>.png/.jpg/.webp</span>{" "}
+                  <span className={styles.mono}>/public/creators</span>. Add at
+                  least one <span className={styles.mono}>.png/.jpg/.webp</span>{" "}
                   named as the username.
                 </p>
               </div>
@@ -353,7 +366,8 @@ export default async function IncentivesPage({
 
     for (const u in monthAll) {
       const e = monthAll[u].find((x) => x.date === date);
-      if (e && (e.daily ?? 0) > 0) dayRows.push({ username: u, daily: e.daily ?? 0 });
+      if (e && (e.daily ?? 0) > 0)
+        dayRows.push({ username: u, daily: e.daily ?? 0 });
     }
 
     dayRows.sort((a, b) => b.daily - a.daily);
@@ -413,7 +427,7 @@ export default async function IncentivesPage({
     return b.incentiveBalanceWithLevels - a.incentiveBalanceWithLevels;
   });
 
-  // ✅ Totals
+  // ✅ Totals (still stored in points, displayed as £)
   const eligibleRows = rows.filter((r) => r.eligible);
 
   const totalPayOut = eligibleRows.reduce(
@@ -452,8 +466,8 @@ export default async function IncentivesPage({
               </p>
               <p className={styles.sub} style={{ marginTop: 6 }}>
                 Tip: change month with{" "}
-                <span className={styles.mono}>?month=YYYY-MM</span>{" "}
-                (e.g. <span className={styles.mono}>?month=2026-01</span>)
+                <span className={styles.mono}>?month=YYYY-MM</span> (e.g.{" "}
+                <span className={styles.mono}>?month=2026-01</span>)
               </p>
             </div>
 
@@ -469,9 +483,9 @@ export default async function IncentivesPage({
           <div className={styles.cards}>
             <div className={`${styles.card} ${styles.glow}`}>
               <div className={styles.cardLabel}>Incentives to pay out (eligible)</div>
-              <div className={styles.cardValue}>{showPoints(totalPayOut)}</div>
+              <div className={styles.cardValue}>{showGBP(totalPayOut)}</div>
               <div className={styles.cardHint}>
-                Sum of dashboard balances for creators who hit eligibility
+                £{GBP_PER_1000_POINTS} per 1,000 points (using x{DISPLAY_POINTS_MULT} display)
               </div>
             </div>
 
@@ -479,15 +493,13 @@ export default async function IncentivesPage({
               <div className={styles.cardLabel}>
                 Potential incentives (if others hit eligibility)
               </div>
-              <div className={styles.cardValue}>{showPoints(totalPotential)}</div>
-              <div className={styles.cardHint}>
-                Not eligible yet — this is what they’d add if they qualify
-              </div>
+              <div className={styles.cardValue}>{showGBP(totalPotential)}</div>
+              <div className={styles.cardHint}>Not eligible yet — value shown in £</div>
             </div>
 
             <div className={styles.card}>
               <div className={styles.cardLabel}>Total across whole agency</div>
-              <div className={styles.cardValue}>{showPoints(agencyTotal)}</div>
+              <div className={styles.cardValue}>{showGBP(agencyTotal)}</div>
               <div className={styles.cardHint}>Eligible + potential combined</div>
             </div>
           </div>
@@ -507,16 +519,16 @@ export default async function IncentivesPage({
               <div className={`${styles.cardValue} ${styles.small}`}>
                 Level 5 → Level 0
               </div>
-              <div className={styles.cardHint}>Then highest dashboard balance</div>
+              <div className={styles.cardHint}>Then highest balance</div>
             </div>
 
             <div className={styles.card}>
-              <div className={styles.cardLabel}>Display</div>
+              <div className={styles.cardLabel}>Conversion</div>
               <div className={`${styles.cardValue} ${styles.small}`}>
-                Points shown as x{DISPLAY_POINTS_MULT}🪙
+                £{GBP_PER_1000_POINTS} / 1,000 pts
               </div>
               <div className={styles.cardHint}>
-                Display only (doesn’t change calculations)
+                Converted from displayed points (x{DISPLAY_POINTS_MULT})
               </div>
             </div>
           </div>
@@ -534,10 +546,10 @@ export default async function IncentivesPage({
             <div className={styles.hNum}>Level</div>
             <div className={styles.hNum}>Days</div>
             <div className={styles.hNum}>Hours</div>
-            <div className={styles.hNum}>Points</div>
-            <div className={styles.hNum}>Extras</div>
-            <div className={styles.hNum}>Lvl pts</div>
-            <div className={styles.hNum}>Dashboard balance</div>
+            <div className={styles.hNum}>£ Points</div>
+            <div className={styles.hNum}>£ Extras</div>
+            <div className={styles.hNum}>£ Lvl</div>
+            <div className={styles.hNum}>£ Balance</div>
           </div>
 
           <div className={styles.rows}>
@@ -594,21 +606,21 @@ export default async function IncentivesPage({
                     {r.hours.toFixed(1)}
                   </div>
 
-                  <div className={`${styles.cell} ${styles.mono}`} data-label="Points">
-                    {showPoints(r.calculatedPoints)}
+                  <div className={`${styles.cell} ${styles.mono}`} data-label="£ Points">
+                    {showGBP(r.calculatedPoints)}
                   </div>
-                  <div className={`${styles.cell} ${styles.mono}`} data-label="Extras">
-                    {showPoints(r.extrasPoints)}
+                  <div className={`${styles.cell} ${styles.mono}`} data-label="£ Extras">
+                    {showGBP(r.extrasPoints)}
                   </div>
-                  <div className={`${styles.cell} ${styles.mono}`} data-label="Lvl pts">
-                    {showPoints(r.earnedLevelPoints)}
+                  <div className={`${styles.cell} ${styles.mono}`} data-label="£ Lvl">
+                    {showGBP(r.earnedLevelPoints)}
                   </div>
 
                   <div
                     className={`${styles.cell} ${styles.mono} ${styles.balance}`}
-                    data-label="Dashboard balance"
+                    data-label="£ Balance"
                   >
-                    {showPoints(r.incentiveBalanceWithLevels)}
+                    {showGBP(r.incentiveBalanceWithLevels)}
                   </div>
                 </div>
               );
