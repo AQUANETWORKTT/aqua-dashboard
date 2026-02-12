@@ -1,0 +1,11 @@
+{
+  "month": "2026-01",
+  "managers": [
+    { "manager": "James", "counts": { "M0.5": 1, "M1": 2, "M2": 1, "M1R": 2 } },
+    { "manager": "Haz",  "counts": { "M2": 1, "M1R": 1 } },
+
+    { "manager": "Alfie", "counts": { "M0.5": 2, "M1": 1 } },
+    { "manager": "Lewis", "counts": { "M0.5": 1 } },
+    { "manager": "Harry", "counts": { "M0.5": 1 } }
+  ]
+}
