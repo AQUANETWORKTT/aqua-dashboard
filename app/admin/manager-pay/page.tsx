@@ -56,13 +56,17 @@ const RATE_MULTIPLIER = 0.7; // your 0.7 rate
 const USD_PER_1K_EFFECTIVE = USD_PER_1K_DIAMONDS * RATE_MULTIPLIER; // $1.05 per 1k
 const USD_PER_DIAMOND = USD_PER_1K_EFFECTIVE / 1000; // $0.00105 per diamond
 
-// ✅ Manager pay %
-// Display stays 40% (first column), but all pay math uses 70%
+// ✅ Manager pay % (display + calculations)
 const DISPLAY_MANAGER_PAY_PCT = 0.7;
 const CALC_MANAGER_PAY_PCT = 0.7;
 
-// ✅ Remove James override entirely
+// ✅ No overrides (and James removed fully)
 const MANAGER_PAY_PCT_OVERRIDE: Record<string, number> = {};
+
+// ✅ Manual TOTAL PAY overrides (USD)
+const MANUAL_TOTAL_PAY_OVERRIDE_USD: Record<string, number> = {
+  Alfie: 584,
+};
 
 // Graduation bonus amounts (flat)
 const GRAD_PAYOUT_USD: Record<GraduationType, number> = {
@@ -236,10 +240,10 @@ export default function ManagerPayPage() {
       .slice()
       .sort((a, b) => a.localeCompare(b));
 
-    // ✅ Displayed pct stays at 40%
+    // ✅ Displayed pct (70%)
     const payPctDisplay = DISPLAY_MANAGER_PAY_PCT;
 
-    // ✅ Calculations use 70% (unless you add overrides later)
+    // ✅ Calculations pct (70%, unless you add overrides later)
     const payPctCalc =
       MANAGER_PAY_PCT_OVERRIDE[manager] ?? CALC_MANAGER_PAY_PCT;
 
@@ -293,12 +297,18 @@ export default function ManagerPayPage() {
       0
     );
 
-    const totalPayUSD = revenueBasedPayUSD + graduationBonusUSD;
+    // Total pay
+    let totalPayUSD = revenueBasedPayUSD + graduationBonusUSD;
+
+    // ✅ Manual override (TOTAL ONLY)
+    if (MANUAL_TOTAL_PAY_OVERRIDE_USD[manager] !== undefined) {
+      totalPayUSD = MANUAL_TOTAL_PAY_OVERRIDE_USD[manager];
+    }
 
     managerRows.push({
       manager,
 
-      // ✅ This is what your table shows (40%)
+      // ✅ This is what your table shows (70%)
       payPct: payPctDisplay,
 
       creatorCount: usernames.length,
@@ -413,9 +423,13 @@ export default function ManagerPayPage() {
             </div>
 
             <div>
-              Default manager pay (display):{" "}
-              <b style={{ color: "#7cf6ff" }}>40%</b> • Calculations:{" "}
+              Default manager pay:{" "}
               <b style={{ color: "#7cf6ff" }}>70%</b>
+            </div>
+
+            <div style={{ marginTop: 6, opacity: 0.9 }}>
+              Manual overrides:{" "}
+              <b style={{ color: "#7cf6ff" }}>Alfie total = $584</b>
             </div>
           </div>
 
