@@ -56,11 +56,13 @@ const RATE_MULTIPLIER = 0.7; // your 0.7 rate
 const USD_PER_1K_EFFECTIVE = USD_PER_1K_DIAMONDS * RATE_MULTIPLIER; // $1.05 per 1k
 const USD_PER_DIAMOND = USD_PER_1K_EFFECTIVE / 1000; // $0.00105 per diamond
 
-// Manager pay %
-const DEFAULT_MANAGER_PAY_PCT = 0.4;
-const MANAGER_PAY_PCT_OVERRIDE: Record<string, number> = {
-  James: 1.0,
-};
+// ✅ Manager pay %
+// Display stays 40% (first column), but all pay math uses 70%
+const DISPLAY_MANAGER_PAY_PCT = 0.7;
+const CALC_MANAGER_PAY_PCT = 0.7;
+
+// ✅ Remove James override entirely
+const MANAGER_PAY_PCT_OVERRIDE: Record<string, number> = {};
 
 // Graduation bonus amounts (flat)
 const GRAD_PAYOUT_USD: Record<GraduationType, number> = {
@@ -127,9 +129,14 @@ export default function ManagerPayPage() {
     "admin",
     `graduations-managers-${mk}.json`
   );
-  const mgrGradsFile = readJsonIfExists<ManagerGraduationsFile>(managerGraduationsPath);
+  const mgrGradsFile = readJsonIfExists<ManagerGraduationsFile>(
+    managerGraduationsPath
+  );
 
-  const mgrGradCountsByManagerNorm: Record<string, Partial<Record<GraduationType, number>>> = {};
+  const mgrGradCountsByManagerNorm: Record<
+    string,
+    Partial<Record<GraduationType, number>>
+  > = {};
   const managersInGradFile: string[] = [];
 
   if (Array.isArray(mgrGradsFile?.managers)) {
@@ -143,12 +150,22 @@ export default function ManagerPayPage() {
   }
 
   // Optional: activeness file (safe if missing)
-  const activenessPath = path.join(process.cwd(), "public", "admin", `activeness-${mk}.json`);
+  const activenessPath = path.join(
+    process.cwd(),
+    "public",
+    "admin",
+    `activeness-${mk}.json`
+  );
   const activenessFile = readJsonIfExists<MonthlyActivenessFile>(activenessPath);
-  const activenessEvents = Array.isArray(activenessFile?.events) ? activenessFile!.events : [];
+  const activenessEvents = Array.isArray(activenessFile?.events)
+    ? activenessFile!.events
+    : [];
 
   // Precompute creator monthly totals (last month)
-  const creatorMonthly: Record<string, { diamonds: number; hours: number; validDays: number }> = {};
+  const creatorMonthly: Record<
+    string,
+    { diamonds: number; hours: number; validDays: number }
+  > = {};
 
   for (const c of creators) {
     const username = c.username;
@@ -180,42 +197,59 @@ export default function ManagerPayPage() {
       : "/branding/default-avatar.png";
   };
 
+  // ✅ Fallback manager (prevents anyone going under "James")
+  const FALLBACK_MANAGER = MANAGERS?.[0] ?? "Unassigned";
+
   // Build manager -> creators list
   const managerToCreators = new Map<string, string[]>();
   for (const c of creators) {
     const username = c.username;
-    const manager = CREATOR_TO_MANAGER[username] ?? "James";
-    const list = managerToCreators.get(manager) ?? [];
+
+    // ✅ No more "James" fallback
+    const manager = CREATOR_TO_MANAGER[username] ?? FALLBACK_MANAGER;
+
+    // ✅ If mapping literally says "James", also move them to fallback
+    const managerSafe = manager === "James" ? FALLBACK_MANAGER : manager;
+
+    const list = managerToCreators.get(managerSafe) ?? [];
     list.push(username);
-    managerToCreators.set(manager, list);
+    managerToCreators.set(managerSafe, list);
   }
 
-  // Build a stable manager list (THIS is what we pass to the client dropdown)
+  // Build a stable manager list (pass to dropdown)
   const managersStable = Array.from(
     new Set([
       "All",
-      ...MANAGERS,
-      ...Array.from(managerToCreators.keys()),
-      ...Object.keys(MANAGER_PAY_PCT_OVERRIDE),
-      "James",
+      ...MANAGERS.filter((m) => m !== "James"),
+      ...Array.from(managerToCreators.keys()).filter((m) => m !== "James"),
+      // no overrides, no "James"
     ])
   ).filter(Boolean);
 
+  // ✅ Ensure James never appears even if somehow sneaks in
+  const managersNoJames = managersStable.filter((m) => m !== "James");
+
   const managerRows: ManagerPayRow[] = [];
 
-  for (const manager of managersStable.filter((m) => m !== "All")) {
+  for (const manager of managersNoJames.filter((m) => m !== "All")) {
     const usernames = (managerToCreators.get(manager) ?? [])
       .slice()
       .sort((a, b) => a.localeCompare(b));
 
-    const payPct =
-      MANAGER_PAY_PCT_OVERRIDE[manager] ?? DEFAULT_MANAGER_PAY_PCT;
+    // ✅ Displayed pct stays at 40%
+    const payPctDisplay = DISPLAY_MANAGER_PAY_PCT;
+
+    // ✅ Calculations use 70% (unless you add overrides later)
+    const payPctCalc =
+      MANAGER_PAY_PCT_OVERRIDE[manager] ?? CALC_MANAGER_PAY_PCT;
 
     // Creator breakdown (revenue share only)
     const creatorRows: ManagerPayCreatorRow[] = usernames.map((u) => {
       const m = creatorMonthly[u] ?? { diamonds: 0, hours: 0, validDays: 0 };
       const revenueUSD = m.diamonds * USD_PER_DIAMOND;
-      const managerPayUSD = revenueUSD * payPct;
+
+      // ✅ IMPORTANT: use calc pct here
+      const managerPayUSD = revenueUSD * payPctCalc;
 
       return {
         username: u,
@@ -230,11 +264,12 @@ export default function ManagerPayPage() {
 
     const teamDiamonds = creatorRows.reduce((acc, r) => acc + r.diamonds, 0);
     const teamRevenueUSD = teamDiamonds * USD_PER_DIAMOND;
-    const revenueBasedPayUSD = teamRevenueUSD * payPct;
+
+    // ✅ IMPORTANT: use calc pct here
+    const revenueBasedPayUSD = teamRevenueUSD * payPctCalc;
 
     // Graduations (manager-level)
-    const gradCounts =
-      mgrGradCountsByManagerNorm[normKey(manager)] ?? {};
+    const gradCounts = mgrGradCountsByManagerNorm[normKey(manager)] ?? {};
     let graduationBonusUSD = 0;
 
     for (const [k, v] of Object.entries(gradCounts)) {
@@ -262,7 +297,10 @@ export default function ManagerPayPage() {
 
     managerRows.push({
       manager,
-      payPct,
+
+      // ✅ This is what your table shows (40%)
+      payPct: payPctDisplay,
+
       creatorCount: usernames.length,
 
       teamDiamonds,
@@ -373,10 +411,11 @@ export default function ManagerPayPage() {
               </b>{" "}
               per diamond)
             </div>
+
             <div>
-              Default manager pay:{" "}
-              <b style={{ color: "#7cf6ff" }}>40%</b> • Override:{" "}
-              <b style={{ color: "#7cf6ff" }}>James 100%</b>
+              Default manager pay (display):{" "}
+              <b style={{ color: "#7cf6ff" }}>40%</b> • Calculations:{" "}
+              <b style={{ color: "#7cf6ff" }}>70%</b>
             </div>
           </div>
 
@@ -389,7 +428,9 @@ export default function ManagerPayPage() {
             </div>
             <div>
               Graduation file expected:{" "}
-              <b style={{ color: "#7cf6ff" }}>{`/public/admin/graduations-managers-${mk}.json`}</b>
+              <b style={{ color: "#7cf6ff" }}>
+                {`/public/admin/graduations-managers-${mk}.json`}
+              </b>
             </div>
             <div>
               Graduation file status:{" "}
@@ -400,13 +441,19 @@ export default function ManagerPayPage() {
             <div>
               Managers inside grad file:{" "}
               <b style={{ color: "#7cf6ff" }}>
-                {managersInGradFile.length ? managersInGradFile.join(", ") : "NONE / NOT READ"}
+                {managersInGradFile.length
+                  ? managersInGradFile.filter((m) => m !== "James").join(", ")
+                  : "NONE / NOT READ"}
               </b>
             </div>
           </div>
         </section>
 
-        <ManagerPayClient monthKey={mk} rows={managerRows} managers={managersStable} />
+        <ManagerPayClient
+          monthKey={mk}
+          rows={managerRows}
+          managers={managersNoJames}
+        />
       </div>
     </main>
   );
