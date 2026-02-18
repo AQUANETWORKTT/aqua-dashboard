@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { creators } from "@/data/creators";
 import { incentiveExtras } from "@/data/incentive-extras";
 
@@ -71,18 +71,10 @@ function parseMonthKey(monthKey: string): { year: number; monthIndex: number } {
   return { year: y, monthIndex: m - 1 };
 }
 
-// Default to *previous* month so when it flips to Feb, you still see Jan by default.
-function defaultMonthKeyPrevMonth() {
-  const now = new Date();
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return toMonthKey(prev);
-}
-
 /* ===================== PAGE ===================== */
 
 export default function CreatorDashboardPage() {
   const params = useParams();
-  const searchParams = useSearchParams();
 
   const username = (params?.username as string) || "";
 
@@ -104,14 +96,11 @@ export default function CreatorDashboardPage() {
 
   const rank = rankIndex >= 0 ? rankIndex + 1 : null;
 
-  /* ---------- month selection ---------- */
+  /* ---------- month selection (CURRENT MONTH ONLY) ---------- */
   const selectedMonthKey = useMemo(() => {
-    // URL override: ?month=YYYY-MM
-    const fromUrl = searchParams.get("month");
-    return fromUrl && /^\d{4}-\d{2}$/.test(fromUrl)
-      ? fromUrl
-      : defaultMonthKeyPrevMonth();
-  }, [searchParams]);
+    // Always show CURRENT month
+    return toMonthKey(new Date());
+  }, []);
 
   const { year: selectedYear, monthIndex: selectedMonthIndex } = useMemo(
     () => parseMonthKey(selectedMonthKey),
@@ -120,9 +109,9 @@ export default function CreatorDashboardPage() {
 
   /* ---------- state ---------- */
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [allHistories, setAllHistories] = useState<Record<string, HistoryEntry[]>>(
-    {}
-  );
+  const [allHistories, setAllHistories] = useState<
+    Record<string, HistoryEntry[]>
+  >({});
   const [stats, setStats] = useState<IncentiveStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -202,7 +191,8 @@ export default function CreatorDashboardPage() {
 
       for (const u in monthAll) {
         const e = monthAll[u].find((x) => x.date === date);
-        if (e && (e.daily ?? 0) > 0) rows.push({ username: u, daily: e.daily ?? 0 });
+        if (e && (e.daily ?? 0) > 0)
+          rows.push({ username: u, daily: e.daily ?? 0 });
       }
 
       rows.sort((a, b) => b.daily - a.daily);
@@ -242,7 +232,8 @@ export default function CreatorDashboardPage() {
       else if (pos === 4) top5Points += 5;
     });
 
-    const calculatedPoints = diamondPoints + hourPoints + validDayPoints + top5Points;
+    const calculatedPoints =
+      diamondPoints + hourPoints + validDayPoints + top5Points;
 
     // ---------- FILE-BASED EXTRAS ----------
     const extrasPoints = incentiveExtras[username] ?? 0;
@@ -297,7 +288,6 @@ export default function CreatorDashboardPage() {
   }, [history]);
 
   const monthlyDiamonds = useMemo(() => {
-    // Fast path using string prefix (same month key as selected)
     const mk = selectedMonthKey;
     return history.reduce((sum, e) => {
       return (e.date || "").startsWith(mk) ? sum + (e.daily ?? 0) : sum;
@@ -487,37 +477,6 @@ export default function CreatorDashboardPage() {
     filter: "saturate(0.85)",
   };
 
-  /* ===================== MONTH PICKER (OPTIONAL UI) ===================== */
-
-  // Builds a simple list of month options (current month + last 11 months)
-  const monthOptions = useMemo(() => {
-    const opts: { key: string; label: string }[] = [];
-    const base = new Date();
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
-      const key = toMonthKey(d);
-      const label = `${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`;
-      opts.push({ key, label });
-    }
-    // ensure selected is present even if older than 12 months
-    if (!opts.find((o) => o.key === selectedMonthKey)) {
-      const { year, monthIndex } = parseMonthKey(selectedMonthKey);
-      const d = new Date(year, monthIndex, 1);
-      opts.unshift({
-        key: selectedMonthKey,
-        label: `${d.toLocaleString("default", { month: "long" })} ${d.getFullYear()}`,
-      });
-    }
-    return opts;
-  }, [selectedMonthKey]);
-
-  function setMonthInUrl(monthKey: string) {
-    // Keep it simple: hard navigate to same path with ?month=
-    const url = new URL(window.location.href);
-    url.searchParams.set("month", monthKey);
-    window.location.href = url.toString();
-  }
-
   /* ===================== UI ===================== */
 
   return (
@@ -533,7 +492,7 @@ export default function CreatorDashboardPage() {
               </div>
             )}
 
-            {/* ✅ Month selector (defaults to previous month, so Feb shows Jan automatically) */}
+            {/* ✅ Month display only (no dropdown) */}
             <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <div
                 style={{
@@ -550,26 +509,6 @@ export default function CreatorDashboardPage() {
               >
                 Viewing: {selectedMonthKey}
               </div>
-
-              <select
-                value={selectedMonthKey}
-                onChange={(e) => setMonthInUrl(e.target.value)}
-                style={{
-                  padding: "8px 12px",
-                  borderRadius: 12,
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  color: "rgba(255,255,255,0.92)",
-                  fontWeight: 800,
-                  outline: "none",
-                }}
-              >
-                {monthOptions.map((o) => (
-                  <option key={o.key} value={o.key}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
         </div>
@@ -940,7 +879,9 @@ export default function CreatorDashboardPage() {
 
           <div style={{ textAlign: "right" }}>
             <div style={totalDiamondsLabelStyle}>Total Diamonds</div>
-            <div style={totalDiamondsNumberStyle}>{monthlyDiamonds.toLocaleString()}</div>
+            <div style={totalDiamondsNumberStyle}>
+              {monthlyDiamonds.toLocaleString()}
+            </div>
           </div>
         </div>
 

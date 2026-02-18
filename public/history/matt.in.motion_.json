@@ -1,0 +1,82 @@
+{
+  "username": "matt.in.motion_",
+  "entries": [
+    {
+      "date": "2026-02-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-08",
+      "daily": 6377,
+      "hours": 2.968055555555556,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-07",
+      "daily": 2,
+      "hours": 1.5188888888888887,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-09",
+      "daily": 224,
+      "hours": 1.1483333333333332,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-11",
+      "daily": 1,
+      "hours": 1.4247222222222222,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-12",
+      "daily": 60,
+      "hours": 1.6444444444444444,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-13",
+      "daily": 1106,
+      "hours": 1.4316666666666666,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-14",
+      "daily": 1012,
+      "hours": 1.5158333333333334,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-15",
+      "daily": 11,
+      "hours": 0.44722222222222224,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-16",
+      "daily": 19,
+      "hours": 1.5030555555555556,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    },
+    {
+      "date": "2026-02-17",
+      "daily": 11,
+      "hours": 1.0569444444444445,
+      "lifetime": 10482,
+      "lifetimeHours": 15.67
+    }
+  ]
+}
