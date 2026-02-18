@@ -4,6 +4,8 @@ import { getManagementData } from "@/lib/management-store";
 import { attendancePercent, type ManagerId } from "@/lib/management-schema";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const VALID_TARGET = 32;
 
@@ -220,7 +222,9 @@ export default async function ManagerPortalPage({
                       >
                         <div>
                           <div style={{ fontWeight: 900 }}>{m.label}</div>
-                          <div style={{ opacity: 0.7, fontSize: 13 }}>{m.dateISO}</div>
+                          <div style={{ opacity: 0.7, fontSize: 13 }}>
+                            {m.dateISO}
+                          </div>
                         </div>
                         <div
                           style={{
