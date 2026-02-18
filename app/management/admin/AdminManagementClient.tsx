@@ -1,15 +1,17 @@
-// app/management/admin/AdminManagementClient.tsx
-
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type {
   ManagementData,
   ManagerId,
   ManagerRow,
   Meeting,
 } from "@/lib/management-schema";
-import { attendancePercent, clampNullableNumber } from "@/lib/management-schema";
+import {
+  DEFAULT_MANAGEMENT_DATA,
+  attendancePercent,
+  clampNullableNumber,
+} from "@/lib/management-schema";
 
 const VALID_TARGET = 32; // %
 const PAY_MAX = 60; // %
@@ -69,21 +71,118 @@ function toneStyles(tone: "neutral" | "red" | "yellow" | "green") {
   };
 }
 
+function isValidShape(x: any): x is ManagementData {
+  return (
+    x &&
+    typeof x.updatedAtISO === "string" &&
+    Array.isArray(x.managers) &&
+    Array.isArray(x.meetings)
+  );
+}
+
+function normalizeData(input: any): ManagementData {
+  // If file is missing fields or managers, we merge with defaults
+  const base = structuredClone(DEFAULT_MANAGEMENT_DATA) as ManagementData;
+
+  if (!isValidShape(input)) return base;
+
+  const byId = new Map<string, any>();
+  for (const m of input.managers ?? []) {
+    if (m?.id) byId.set(String(m.id).toLowerCase(), m);
+  }
+
+  const mergedManagers = base.managers.map((m) => {
+    const src = byId.get(m.id);
+    return {
+      ...m,
+      name: typeof src?.name === "string" ? src.name : m.name,
+      validGoLiveRate:
+        typeof src?.validGoLiveRate === "number" ? src.validGoLiveRate : null,
+      recruitsThisWeek:
+        typeof src?.recruitsThisWeek === "number" ? src.recruitsThisWeek : null,
+      recruitsMTD:
+        typeof src?.recruitsMTD === "number" ? src.recruitsMTD : null,
+      avgDiamondsPerCreator:
+        typeof src?.avgDiamondsPerCreator === "number"
+          ? src.avgDiamondsPerCreator
+          : null,
+      matchesPerCreator:
+        typeof src?.matchesPerCreator === "number" ? src.matchesPerCreator : null,
+      currentPayPercent:
+        typeof src?.currentPayPercent === "number" ? src.currentPayPercent : null,
+      notes: typeof src?.notes === "string" ? src.notes : "",
+    } satisfies ManagerRow;
+  });
+
+  const meetings: Meeting[] = Array.isArray(input.meetings)
+    ? input.meetings
+        .map((m: any) => {
+          if (!m || typeof m !== "object") return null;
+          if (
+            typeof m.id !== "string" ||
+            typeof m.label !== "string" ||
+            typeof m.dateISO !== "string"
+          )
+            return null;
+
+          const attendance = (m.attendance ?? {}) as Record<string, boolean>;
+          const cleanAttendance: any = {};
+          for (const k of Object.keys(attendance)) {
+            cleanAttendance[String(k).toLowerCase()] = !!attendance[k];
+          }
+
+          return {
+            id: m.id,
+            label: m.label,
+            dateISO: m.dateISO,
+            attendance: cleanAttendance,
+          } as Meeting;
+        })
+        .filter(Boolean)
+    : [];
+
+  return {
+    updatedAtISO: typeof input.updatedAtISO === "string"
+      ? input.updatedAtISO
+      : base.updatedAtISO,
+    managers: mergedManagers,
+    meetings,
+  };
+}
+
+function downloadJSON(filename: string, obj: any) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminManagementClient() {
   const [data, setData] = useState<ManagementData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const [activeManager, setActiveManager] = useState<ManagerId | "all">("all");
   const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch("/api/management/get", { cache: "no-store" });
         const json = await res.json();
-        if (json?.ok) setData(json.data);
+        if (json?.ok) setData(normalizeData(json.data));
+        else setData(structuredClone(DEFAULT_MANAGEMENT_DATA));
+      } catch {
+        setData(structuredClone(DEFAULT_MANAGEMENT_DATA));
       } finally {
         setLoading(false);
       }
@@ -92,13 +191,12 @@ export default function AdminManagementClient() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2500);
+    const t = setTimeout(() => setToast(null), 2600);
     return () => clearTimeout(t);
   }, [toast]);
 
   const managers = data?.managers ?? [];
   const meetings = data?.meetings ?? [];
-
   const managerOptions = useMemo(() => managers.map((m) => m.id), [managers]);
 
   const activeMeeting = useMemo(() => {
@@ -180,26 +278,33 @@ export default function AdminManagementClient() {
     setActiveMeetingId(null);
   }
 
-  async function save() {
-    if (!data) return;
-    setSaving(true);
+  function onClickUpload() {
+    fileInputRef.current?.click();
+  }
+
+  async function onFilePicked(file: File | null) {
+    if (!file) return;
     try {
-      const res = await fetch("/api/management/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      if (json?.ok) {
-        setToast("Saved ✅");
-      } else {
-        setToast(`Save failed: ${json?.error ?? "Unknown error"}`);
-      }
-    } catch (e: any) {
-      setToast(`Save failed: ${e?.message ?? "Unknown error"}`);
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const normalized = normalizeData(parsed);
+      setData(normalized);
+      setToast("Uploaded JSON ✅ (remember to Download + commit)");
+    } catch {
+      setToast("Upload failed: invalid JSON file");
     } finally {
-      setSaving(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  }
+
+  function downloadCurrent() {
+    if (!data) return;
+    const stamped: ManagementData = {
+      ...data,
+      updatedAtISO: new Date().toISOString(),
+    };
+    downloadJSON("management-data.json", stamped);
+    setToast("Downloaded JSON ✅ (replace /data/management-data.json)");
   }
 
   if (loading) {
@@ -213,16 +318,22 @@ export default function AdminManagementClient() {
   if (!data) {
     return (
       <main style={{ padding: 22, color: "white" }}>
-        <div style={{ opacity: 0.85 }}>
-          Couldn’t load management data. If KV isn’t set up locally, pages still
-          render defaults, but saves won’t persist.
-        </div>
+        <div style={{ opacity: 0.85 }}>No data loaded.</div>
       </main>
     );
   }
 
   return (
     <main style={{ padding: 18, color: "white" }}>
+      {/* Hidden uploader */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/json"
+        style={{ display: "none" }}
+        onChange={(e) => onFilePicked(e.target.files?.[0] ?? null)}
+      />
+
       {/* Top Bar */}
       <div
         style={{
@@ -256,6 +367,7 @@ export default function AdminManagementClient() {
           </div>
 
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {/* Manager switcher */}
             <select
               value={activeManager}
               onChange={(e) =>
@@ -281,20 +393,35 @@ export default function AdminManagementClient() {
               })}
             </select>
 
+            {/* Upload + Download */}
             <button
-              onClick={save}
-              disabled={saving}
+              onClick={onClickUpload}
               style={{
                 padding: "10px 14px",
                 borderRadius: 12,
                 border: "1px solid rgba(45,224,255,0.55)",
-                background: saving ? "rgba(45,224,255,0.12)" : "transparent",
+                background: "transparent",
                 color: "white",
                 fontWeight: 900,
-                cursor: saving ? "not-allowed" : "pointer",
+                cursor: "pointer",
               }}
             >
-              {saving ? "Saving…" : "Save"}
+              Upload JSON
+            </button>
+
+            <button
+              onClick={downloadCurrent}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: "1px solid rgba(45,224,255,0.55)",
+                background: "rgba(45,224,255,0.10)",
+                color: "white",
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              Download JSON
             </button>
           </div>
         </div>
@@ -406,23 +533,21 @@ export default function AdminManagementClient() {
 
                       <td style={td}>
                         <div style={{ display: "grid", gap: 6 }}>
+                          <NumInput
+                            value={m.validGoLiveRate}
+                            suffix="%"
+                            onChange={(v) =>
+                              updateManager(m.id, { validGoLiveRate: v })
+                            }
+                            boxTone={validTone}
+                          />
                           <div
                             style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 8,
+                              fontSize: 12,
+                              opacity: 0.75,
+                              fontWeight: 800,
                             }}
                           >
-                            <NumInput
-                              value={m.validGoLiveRate}
-                              suffix="%"
-                              onChange={(v) =>
-                                updateManager(m.id, { validGoLiveRate: v })
-                              }
-                              boxTone={validTone}
-                            />
-                          </div>
-                          <div style={{ fontSize: 12, opacity: 0.75, fontWeight: 800 }}>
                             Valid go live rate target is {VALID_TARGET}%
                           </div>
                         </div>
@@ -597,7 +722,12 @@ export default function AdminManagementClient() {
                       padding: 12,
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
                       <div>
                         <div style={{ fontWeight: 900 }}>{activeMeeting.label}</div>
                         <div style={{ opacity: 0.7, fontSize: 13 }}>
@@ -696,9 +826,7 @@ function NumInput({
         }}
         placeholder="—"
       />
-      {suffix ? (
-        <span style={{ opacity: 0.7, fontWeight: 900 }}>{suffix}</span>
-      ) : null}
+      {suffix ? <span style={{ opacity: 0.7, fontWeight: 900 }}>{suffix}</span> : null}
     </div>
   );
 }

@@ -1,6 +1,4 @@
 // app/api/management/get/route.ts
-//
-// ✅ Always returns fresh data (no caching)
 
 import { NextResponse } from "next/server";
 import { getManagementData } from "@/lib/management-store";
@@ -11,15 +9,5 @@ export const revalidate = 0;
 
 export async function GET() {
   const data = await getManagementData();
-
-  return NextResponse.json(
-    { ok: true, data },
-    {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        Pragma: "no-cache",
-        Expires: "0",
-      },
-    }
-  );
+  return NextResponse.json({ ok: true, data });
 }

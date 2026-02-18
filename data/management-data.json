@@ -1,0 +1,97 @@
+{
+  "updatedAtISO": "2026-02-18T19:10:08.153Z",
+  "managers": [
+    {
+      "id": "jamesintune",
+      "name": "JamesInTune",
+      "validGoLiveRate": 36,
+      "recruitsThisWeek": 9,
+      "recruitsMTD": 12,
+      "avgDiamondsPerCreator": 12000,
+      "matchesPerCreator": 35,
+      "currentPayPercent": 40,
+      "notes": "On Track"
+    },
+    {
+      "id": "mavis",
+      "name": "Mavis",
+      "validGoLiveRate": 100,
+      "recruitsThisWeek": 0,
+      "recruitsMTD": 0,
+      "avgDiamondsPerCreator": 0,
+      "matchesPerCreator": 0,
+      "currentPayPercent": 20,
+      "notes": "Training"
+    },
+    {
+      "id": "mattfx",
+      "name": "MattFx",
+      "validGoLiveRate": 100,
+      "recruitsThisWeek": 0,
+      "recruitsMTD": 0,
+      "avgDiamondsPerCreator": 0,
+      "matchesPerCreator": 0,
+      "currentPayPercent": 20,
+      "notes": "Training"
+    },
+    {
+      "id": "elliew",
+      "name": "Ellie W",
+      "validGoLiveRate": 45,
+      "recruitsThisWeek": 3,
+      "recruitsMTD": 4,
+      "avgDiamondsPerCreator": 2000,
+      "matchesPerCreator": 11,
+      "currentPayPercent": 20,
+      "notes": "On track - Increase Match Rate"
+    },
+    {
+      "id": "haz",
+      "name": "haz",
+      "validGoLiveRate": 22,
+      "recruitsThisWeek": 1,
+      "recruitsMTD": 1,
+      "avgDiamondsPerCreator": 42,
+      "matchesPerCreator": 0,
+      "currentPayPercent": 20,
+      "notes": "Recruiting"
+    },
+    {
+      "id": "alfieharnett",
+      "name": "Alfie Harnett",
+      "validGoLiveRate": 55,
+      "recruitsThisWeek": 1,
+      "recruitsMTD": 4,
+      "avgDiamondsPerCreator": 22000,
+      "matchesPerCreator": 9,
+      "currentPayPercent": 20,
+      "notes": "On Track - Recruiting - Increase Match Rate"
+    },
+    {
+      "id": "lewis",
+      "name": "Lewis",
+      "validGoLiveRate": 0,
+      "recruitsThisWeek": 1,
+      "recruitsMTD": 1,
+      "avgDiamondsPerCreator": 0,
+      "matchesPerCreator": 3,
+      "currentPayPercent": 20,
+      "notes": "Recruiting"
+    }
+  ],
+  "meetings": [
+    {
+      "id": "2026-02-16-manager-meeting",
+      "label": "Manager Meeting",
+      "dateISO": "2026-02-16",
+      "attendance": {
+        "lewis": true,
+        "alfieharnett": true,
+        "elliew": true,
+        "mattfx": true,
+        "mavis": true,
+        "jamesintune": true
+      }
+    }
+  ]
+}
