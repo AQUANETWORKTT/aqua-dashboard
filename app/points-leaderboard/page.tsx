@@ -378,24 +378,19 @@ export default function PointsLeaderboardPage() {
           >
             🌙 Monthly Milestones (Manual Rewards)
           </li>
-          <li>• First time hitting 75,000 diamonds → <strong>1000 points</strong></li>
-          <li>• First time hitting 150,000 diamonds → <strong>2,000 points</strong></li>
-          <li>• Second time hitting 150,000 diamonds → <strong>1,750 points</strong></li>
-          <li>• First time hitting 500,000 diamonds → <strong>6,000 points</strong></li>
-
-          <li
-            style={{
-              marginTop: "18px",
-              fontSize: "18px",
-              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            💱 Points Exchange
+          <li>
+            • First time hitting 75,000 diamonds → <strong>1000 points</strong>
           </li>
-          <li>• 1 point = <strong>2p</strong></li>
-          <li>• 1 point = <strong>2 coins</strong></li>
+          <li>
+            • First time hitting 150,000 diamonds → <strong>2,000 points</strong>
+          </li>
+          <li>
+            • Second time hitting 150,000 diamonds →{" "}
+            <strong>1,750 points</strong>
+          </li>
+          <li>
+            • First time hitting 500,000 diamonds → <strong>6,000 points</strong>
+          </li>
         </ul>
       </div>
 
@@ -432,8 +427,7 @@ export default function PointsLeaderboardPage() {
 
               {creator.streakDays > 0 && (
                 <div className="creator-daily">
-                  Streak this month:{" "}
-                  <span>{creator.streakDays} days</span>
+                  Streak this month: <span>{creator.streakDays} days</span>
                 </div>
               )}
             </div>
