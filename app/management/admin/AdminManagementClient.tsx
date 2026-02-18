@@ -100,8 +100,7 @@ function normalizeData(input: any): ManagementData {
         typeof src?.validGoLiveRate === "number" ? src.validGoLiveRate : null,
       recruitsThisWeek:
         typeof src?.recruitsThisWeek === "number" ? src.recruitsThisWeek : null,
-      recruitsMTD:
-        typeof src?.recruitsMTD === "number" ? src.recruitsMTD : null,
+      recruitsMTD: typeof src?.recruitsMTD === "number" ? src.recruitsMTD : null,
       avgDiamondsPerCreator:
         typeof src?.avgDiamondsPerCreator === "number"
           ? src.avgDiamondsPerCreator
@@ -114,9 +113,10 @@ function normalizeData(input: any): ManagementData {
     } satisfies ManagerRow;
   });
 
+  // ✅ FIX: map can return null, so filter with a type-guard to get Meeting[]
   const meetings: Meeting[] = Array.isArray(input.meetings)
     ? input.meetings
-        .map((m: any) => {
+        .map((m: any): Meeting | null => {
           if (!m || typeof m !== "object") return null;
           if (
             typeof m.id !== "string" ||
@@ -126,7 +126,7 @@ function normalizeData(input: any): ManagementData {
             return null;
 
           const attendance = (m.attendance ?? {}) as Record<string, boolean>;
-          const cleanAttendance: any = {};
+          const cleanAttendance: Record<string, boolean> = {};
           for (const k of Object.keys(attendance)) {
             cleanAttendance[String(k).toLowerCase()] = !!attendance[k];
           }
@@ -136,15 +136,14 @@ function normalizeData(input: any): ManagementData {
             label: m.label,
             dateISO: m.dateISO,
             attendance: cleanAttendance,
-          } as Meeting;
+          };
         })
-        .filter(Boolean)
+        .filter((m): m is Meeting => m !== null)
     : [];
 
   return {
-    updatedAtISO: typeof input.updatedAtISO === "string"
-      ? input.updatedAtISO
-      : base.updatedAtISO,
+    updatedAtISO:
+      typeof input.updatedAtISO === "string" ? input.updatedAtISO : base.updatedAtISO,
     managers: mergedManagers,
     meetings,
   };
@@ -826,7 +825,9 @@ function NumInput({
         }}
         placeholder="—"
       />
-      {suffix ? <span style={{ opacity: 0.7, fontWeight: 900 }}>{suffix}</span> : null}
+      {suffix ? (
+        <span style={{ opacity: 0.7, fontWeight: 900 }}>{suffix}</span>
+      ) : null}
     </div>
   );
 }
