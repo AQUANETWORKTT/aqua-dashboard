@@ -1,4 +1,6 @@
 // app/management/[managerId]/page.tsx
+//
+// ✅ Force dynamic so portal always re-reads latest values
 
 import { getManagementData } from "@/lib/management-store";
 import { attendancePercent, type ManagerId } from "@/lib/management-schema";

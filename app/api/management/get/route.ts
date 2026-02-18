@@ -1,4 +1,6 @@
 // app/api/management/get/route.ts
+//
+// ✅ Always returns fresh data (no caching)
 
 import { NextResponse } from "next/server";
 import { getManagementData } from "@/lib/management-store";
