@@ -493,7 +493,14 @@ export default function CreatorDashboardPage() {
             )}
 
             {/* ✅ Month display only (no dropdown) */}
-            <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div
+              style={{
+                marginTop: 10,
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
               <div
                 style={{
                   padding: "6px 10px",
@@ -528,7 +535,8 @@ export default function CreatorDashboardPage() {
                 }}
               >
                 💰 Incentive Balance:{" "}
-                {(incentiveBalanceWithLevels * 2).toLocaleString()}🪙
+                {/* ✅ 1x (no halving) */}
+                {incentiveBalanceWithLevels.toLocaleString()}🪙
               </div>
 
               <div>
@@ -667,7 +675,9 @@ export default function CreatorDashboardPage() {
                         marginBottom: 6,
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{ display: "flex", alignItems: "center", gap: 10 }}
+                      >
                         <div
                           style={{
                             fontWeight: 900,
@@ -751,7 +761,8 @@ export default function CreatorDashboardPage() {
                             Valid Days
                           </div>
                           <div style={{ fontWeight: 900 }}>
-                            {Math.min(validDaysNow, targetLevel.days)}/{targetLevel.days}{" "}
+                            {Math.min(validDaysNow, targetLevel.days)}/
+                            {targetLevel.days}{" "}
                             <span style={{ opacity: 0.95 }}>
                               ({Math.round(daysPct)}%)
                             </span>
@@ -760,7 +771,10 @@ export default function CreatorDashboardPage() {
 
                         <div style={barOuter}>
                           <div
-                            style={barInner(daysPct, validDaysNow >= targetLevel.days)}
+                            style={barInner(
+                              daysPct,
+                              validDaysNow >= targetLevel.days
+                            )}
                           />
                         </div>
                       </div>
@@ -795,7 +809,12 @@ export default function CreatorDashboardPage() {
                         </div>
 
                         <div style={barOuter}>
-                          <div style={barInner(hrsPct, hoursNow >= targetLevel.hours)} />
+                          <div
+                            style={barInner(
+                              hrsPct,
+                              hoursNow >= targetLevel.hours
+                            )}
+                          />
                         </div>
                       </div>
                     </div>
@@ -841,7 +860,8 @@ export default function CreatorDashboardPage() {
                         {nextLevel.days} valid days • {nextLevel.hours} hours
                         <span style={{ opacity: 0.95 }}>
                           {" "}
-                          (Potential points: <b>{potentialNextPoints.toLocaleString()}</b>)
+                          (Potential points:{" "}
+                          <b>{potentialNextPoints.toLocaleString()}</b>)
                         </span>
                       </div>
                     </div>
