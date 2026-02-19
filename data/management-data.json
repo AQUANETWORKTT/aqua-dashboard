@@ -1,5 +1,5 @@
 {
-  "updatedAtISO": "2026-02-18T19:10:08.153Z",
+  "updatedAtISO": "2026-02-19T22:45:55.705Z",
   "managers": [
     {
       "id": "jamesintune",
@@ -42,7 +42,7 @@
       "recruitsMTD": 4,
       "avgDiamondsPerCreator": 2000,
       "matchesPerCreator": 11,
-      "currentPayPercent": 20,
+      "currentPayPercent": 40,
       "notes": "On track - Increase Match Rate"
     },
     {
@@ -64,7 +64,7 @@
       "recruitsMTD": 4,
       "avgDiamondsPerCreator": 22000,
       "matchesPerCreator": 9,
-      "currentPayPercent": 20,
+      "currentPayPercent": 40,
       "notes": "On Track - Recruiting - Increase Match Rate"
     },
     {
@@ -91,6 +91,20 @@
         "mattfx": true,
         "mavis": true,
         "jamesintune": true
+      }
+    },
+    {
+      "id": "2026-02-19-manager-meeting",
+      "label": "Manager Meeting",
+      "dateISO": "2026-02-19",
+      "attendance": {
+        "elliew": true,
+        "haz": true,
+        "alfieharnett": true,
+        "lewis": true,
+        "jamesintune": true,
+        "mattfx": false,
+        "mavis": true
       }
     }
   ]
