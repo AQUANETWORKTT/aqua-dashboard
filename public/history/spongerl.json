@@ -2,11 +2,18 @@
   "username": "spongerl",
   "entries": [
     {
-      "date": "2026-02-19",
+      "date": "2026-02-18",
       "daily": 0,
       "hours": 1.6347222222222222,
       "lifetime": 0,
       "lifetimeHours": 1.6347222222222222
+    },
+    {
+      "date": "2026-02-19",
+      "daily": 0,
+      "hours": 1.2988888888888888,
+      "lifetime": 0,
+      "lifetimeHours": 2.9336111111111114
     }
   ]
 }
