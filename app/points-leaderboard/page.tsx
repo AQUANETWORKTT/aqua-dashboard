@@ -1,4 +1,4 @@
-tsx
+
 // app/points-leaderboard/page.tsx
 
 import fs from "fs";
