@@ -1,3 +1,4 @@
+```tsx
 // app/points-leaderboard/page.tsx
 
 import fs from "fs";
@@ -23,7 +24,7 @@ type CoinsCreator = {
   totalCoins: number;
   totalDailyDiamonds: number;
   totalHoursLive: number;
-  streakDays: number; // valid go live streak (1h+ days)
+  streakDays: number;
 };
 
 // ------------------ Helpers ------------------
@@ -103,10 +104,9 @@ function formatNumber(n: number) {
 
 export default function PointsLeaderboardPage() {
   const now = new Date();
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}`;
+  const monthKey = `${now.getFullYear()}-${String(
+    now.getMonth() + 1
+  ).padStart(2, "0")}`;
 
   const histories: Record<string, HistoryEntry[]> = {};
   creators.forEach((c: any) => {
@@ -208,15 +208,6 @@ export default function PointsLeaderboardPage() {
     whiteSpace: "nowrap",
   };
 
-  const sectionHeaderGradient: React.CSSProperties = {
-    paddingBottom: "8px",
-    borderBottom: "1px solid rgba(45,224,255,0.25)",
-    fontSize: "18px",
-    background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-    WebkitBackgroundClip: "text",
-    color: "transparent",
-  };
-
   return (
     <main className="leaderboard-wrapper">
       {/* Coins System Panel */}
@@ -243,7 +234,7 @@ export default function PointsLeaderboardPage() {
             textShadow: "0 0 4px rgba(45,224,255,0.45)",
           }}
         >
-          Aqua Agency Coins System 🪙
+          Aqua Agency Coins System
         </h2>
 
         <ul
@@ -258,7 +249,18 @@ export default function PointsLeaderboardPage() {
             textShadow: "0 0 3px rgba(255,255,255,0.35)",
           }}
         >
-          <li style={sectionHeaderGradient}>✅ Redeemable Requirements</li>
+          <li
+            style={{
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            ✅ Redeemable Requirements
+          </li>
 
           <li>• At the beginning of the month</li>
 
@@ -286,83 +288,133 @@ export default function PointsLeaderboardPage() {
             within the month
           </li>
 
-          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             💎 Diamond Coins
           </li>
           <li>
-            • First 1,000 diamonds → <span style={coinText}>10 coins 🪙</span>
+            • First 1,000 diamonds → <span style={coinText}>10 coins</span>
           </li>
           <li>
             • Every additional 1,000 diamonds →{" "}
-            <span style={coinText}>5 coins 🪙</span>
+            <span style={coinText}>5 coins</span>
           </li>
 
-          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             ⏱️ Live Hours
           </li>
           <li>
-            • Every full hour streamed → <span style={coinText}>3 coins 🪙</span>
+            • Every full hour streamed → <span style={coinText}>3 coins</span>
           </li>
           <li>
-            • Valid day bonus (1h+) → <span style={coinText}>+3 coins 🪙</span>
+            • Valid day bonus (1h+) → <span style={coinText}>+3 coins</span>
           </li>
 
-          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             🏆 Daily Top Creator Bonuses
           </li>
           <li>
-            • 1st → <span style={coinText}>25 coins 🪙</span>
+            • 1st → <span style={coinText}>25 coins</span>
           </li>
           <li>
-            • 2nd → <span style={coinText}>20 coins 🪙</span>
+            • 2nd → <span style={coinText}>20 coins</span>
           </li>
           <li>
-            • 3rd → <span style={coinText}>15 coins 🪙</span>
+            • 3rd → <span style={coinText}>15 coins</span>
           </li>
           <li>
-            • 4th → <span style={coinText}>10 coins 🪙</span>
+            • 4th → <span style={coinText}>10 coins</span>
           </li>
           <li>
-            • 5th → <span style={coinText}>5 coins 🪙</span>
+            • 5th → <span style={coinText}>5 coins</span>
           </li>
 
-          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             🔥 Valid Go Live Streak Rewards
           </li>
           <li>
-            • 3-day streak → <span style={coinText}>15 coins 🪙</span>
+            • 3-day streak → <span style={coinText}>15 coins</span>
           </li>
           <li>
-            • 5-day streak → <span style={coinText}>25 coins 🪙</span>
+            • 5-day streak → <span style={coinText}>25 coins</span>
           </li>
           <li>
-            • 10-day streak → <span style={coinText}>50 coins 🪙</span>
+            • 10-day streak → <span style={coinText}>50 coins</span>
           </li>
           <li>
-            • 20-day streak → <span style={coinText}>100 coins 🪙</span>
+            • 20-day streak → <span style={coinText}>100 coins</span>
           </li>
           <li>
-            • 30-day streak → <span style={coinText}>150 coins 🪙</span>
+            • 30-day streak → <span style={coinText}>150 coins</span>
           </li>
 
-          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
+          <li
+            style={{
+              marginTop: "18px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(45,224,255,0.25)",
+              fontSize: "18px",
+              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             🌙 Monthly Milestones (Manual Rewards)
           </li>
           <li>
             • First time hitting 75,000 diamonds →{" "}
-            <span style={coinText}>1,000 coins 🪙</span>
+            <span style={coinText}>1,000 coins</span>
           </li>
           <li>
             • First time hitting 150,000 diamonds →{" "}
-            <span style={coinText}>2,000 coins 🪙</span>
+            <span style={coinText}>2,000 coins</span>
           </li>
           <li>
             • Second time hitting 150,000 diamonds →{" "}
-            <span style={coinText}>1,750 coins 🪙</span>
+            <span style={coinText}>1,750 coins</span>
           </li>
           <li>
             • First time hitting 500,000 diamonds →{" "}
-            <span style={coinText}>6,000 coins 🪙</span>
+            <span style={coinText}>6,000 coins</span>
           </li>
         </ul>
       </div>
@@ -396,7 +448,7 @@ export default function PointsLeaderboardPage() {
 
             <div className="creator-diamonds">
               <div className="lifetime-number" style={coinText}>
-                {creator.totalCoins} 🪙
+                {creator.totalCoins}
               </div>
               <div className="lifetime-label">coins this month</div>
 
@@ -413,3 +465,4 @@ export default function PointsLeaderboardPage() {
     </main>
   );
 }
+```
