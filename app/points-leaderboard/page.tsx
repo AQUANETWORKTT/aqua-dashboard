@@ -17,13 +17,13 @@ type HistoryFile = {
   entries: HistoryEntry[];
 };
 
-type PointsCreator = {
+type CoinsCreator = {
   username: string;
   avatar: string;
-  totalPoints: number;
+  totalCoins: number;
   totalDailyDiamonds: number;
   totalHoursLive: number;
-  streakDays: number;
+  streakDays: number; // valid go live streak (1h+ days)
 };
 
 // ------------------ Helpers ------------------
@@ -32,7 +32,7 @@ function parseDate(d: string) {
   return new Date(d + "T00:00:00Z");
 }
 
-// ⭐ FIXED STREAK LOGIC ⭐
+// ⭐ FIXED STREAK LOGIC ⭐ (valid go live streak = consecutive days with 1h+)
 function computeStreak(entries: HistoryEntry[]): number {
   if (!entries.length) return 0;
 
@@ -44,6 +44,7 @@ function computeStreak(entries: HistoryEntry[]): number {
   const last = sorted[sorted.length - 1];
   const lastHours = last.hours ?? 0;
 
+  // If today's entry exists but not yet valid, ignore it for streak purposes
   if (last.date === todayKey && lastHours < 1) {
     return computeStreak(sorted.slice(0, -1));
   }
@@ -68,8 +69,8 @@ function computeStreak(entries: HistoryEntry[]): number {
   return streak;
 }
 
-// Streak rewards
-function streakPoints(days: number) {
+// Streak rewards (coins)
+function streakCoins(days: number) {
   if (days >= 30) return 150;
   if (days >= 20) return 100;
   if (days >= 10) return 50;
@@ -102,9 +103,10 @@ function formatNumber(n: number) {
 
 export default function PointsLeaderboardPage() {
   const now = new Date();
-  const monthKey = `${now.getFullYear()}-${String(
-    now.getMonth() + 1
-  ).padStart(2, "0")}`;
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}`;
 
   const histories: Record<string, HistoryEntry[]> = {};
   creators.forEach((c: any) => {
@@ -120,7 +122,7 @@ export default function PointsLeaderboardPage() {
   );
   const dates = [...dateSet].sort();
 
-  // ------------------ Daily Top 5 Placement Bonuses ------------------
+  // ------------------ Daily Top Creator Bonuses ------------------
 
   const achievementValues = [25, 20, 15, 10, 5];
   const achievementByDay: Record<string, Record<string, number>> = {};
@@ -149,11 +151,11 @@ export default function PointsLeaderboardPage() {
 
   // ------------------ Score creators ------------------
 
-  const scored: PointsCreator[] = creators.map((c) => {
+  const scored: CoinsCreator[] = creators.map((c) => {
     const entries = histories[c.username] || [];
     const monthEntries = entries.filter((e) => e.date.startsWith(monthKey));
 
-    let totalPoints = 0;
+    let totalCoins = 0;
     let totalDailyDiamonds = 0;
     let totalHoursLive = 0;
 
@@ -164,27 +166,27 @@ export default function PointsLeaderboardPage() {
       totalDailyDiamonds += daily;
       totalHoursLive += hrs;
 
-      let diamondPts = 0;
+      let diamondCoins = 0;
       if (daily >= 1000) {
-        diamondPts += 10;
+        diamondCoins += 10;
         const extra = Math.floor(daily / 1000) - 1;
-        if (extra > 0) diamondPts += extra * 5;
+        if (extra > 0) diamondCoins += extra * 5;
       }
 
-      const hourPts = Math.floor(hrs) * 3;
-      const validDayPts = hrs >= 1 ? 3 : 0;
-      const achievePts = achievementByDay[e.date]?.[c.username] ?? 0;
+      const hourCoins = Math.floor(hrs) * 3;
+      const validDayCoins = hrs >= 1 ? 3 : 0;
+      const achieveCoins = achievementByDay[e.date]?.[c.username] ?? 0;
 
-      totalPoints += diamondPts + hourPts + validDayPts + achievePts;
+      totalCoins += diamondCoins + hourCoins + validDayCoins + achieveCoins;
     });
 
     const streakDays = computeStreak(monthEntries);
-    totalPoints += streakPoints(streakDays);
+    totalCoins += streakCoins(streakDays);
 
     return {
       username: c.username,
       avatar: `/creators/${c.username}.jpg`,
-      totalPoints,
+      totalCoins,
       totalDailyDiamonds,
       totalHoursLive,
       streakDays,
@@ -192,16 +194,32 @@ export default function PointsLeaderboardPage() {
   });
 
   const ranked = scored.sort((a, b) =>
-    b.totalPoints !== a.totalPoints
-      ? b.totalPoints - a.totalPoints
+    b.totalCoins !== a.totalCoins
+      ? b.totalCoins - a.totalCoins
       : b.totalDailyDiamonds - a.totalDailyDiamonds
   );
 
   // ------------------ UI ------------------
 
+  const coinText: React.CSSProperties = {
+    color: "#FFD700",
+    fontWeight: 900,
+    textShadow: "0 0 10px rgba(255,215,0,0.75), 0 0 24px rgba(255,215,0,0.25)",
+    whiteSpace: "nowrap",
+  };
+
+  const sectionHeaderGradient: React.CSSProperties = {
+    paddingBottom: "8px",
+    borderBottom: "1px solid rgba(45,224,255,0.25)",
+    fontSize: "18px",
+    background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
+    WebkitBackgroundClip: "text",
+    color: "transparent",
+  };
+
   return (
     <main className="leaderboard-wrapper">
-      {/* Points System Panel */}
+      {/* Coins System Panel */}
       <div
         style={{
           margin: "28px auto",
@@ -225,7 +243,7 @@ export default function PointsLeaderboardPage() {
             textShadow: "0 0 4px rgba(45,224,255,0.45)",
           }}
         >
-          Aqua Agency Points System
+          Aqua Agency Coins System 🪙
         </h2>
 
         <ul
@@ -240,18 +258,7 @@ export default function PointsLeaderboardPage() {
             textShadow: "0 0 3px rgba(255,255,255,0.35)",
           }}
         >
-          <li
-            style={{
-              paddingBottom: "8px",
-              borderBottom: "1px solid rgba(45,224,255,0.25)",
-              fontSize: "18px",
-              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            ✅ Redeemable Requirements
-          </li>
+          <li style={sectionHeaderGradient}>✅ Redeemable Requirements</li>
 
           <li>• At the beginning of the month</li>
 
@@ -279,117 +286,83 @@ export default function PointsLeaderboardPage() {
             within the month
           </li>
 
-          <li
-            style={{
-              marginTop: "18px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid rgba(45,224,255,0.25)",
-              fontSize: "18px",
-              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            💎 Diamond Points
+          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
+            💎 Diamond Coins
           </li>
-          <li>• First 1,000 diamonds → <strong>10 points</strong></li>
-          <li>• Every additional 1,000 diamonds → <strong>5 points</strong></li>
+          <li>
+            • First 1,000 diamonds → <span style={coinText}>10 coins 🪙</span>
+          </li>
+          <li>
+            • Every additional 1,000 diamonds →{" "}
+            <span style={coinText}>5 coins 🪙</span>
+          </li>
 
-          <li
-            style={{
-              marginTop: "18px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid rgba(45,224,255,0.25)",
-              fontSize: "18px",
-              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
+          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
             ⏱️ Live Hours
           </li>
-          <li>• Every full hour streamed → <strong>3 points</strong></li>
-          <li>• Valid day bonus (1h+) → <strong>+3 points</strong></li>
-
-          <li
-            style={{
-              marginTop: "18px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid rgba(45,224,255,0.25)",
-              fontSize: "18px",
-              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            🏆 Daily Top 5 Bonuses
+          <li>
+            • Every full hour streamed → <span style={coinText}>3 coins 🪙</span>
           </li>
-          <li>• 1st → <strong>25 points</strong></li>
-          <li>• 2nd → <strong>20 points</strong></li>
-          <li>• 3rd → <strong>15 points</strong></li>
-          <li>• 4th → <strong>10 points</strong></li>
-          <li>• 5th → <strong>5 points</strong></li>
-
-          <li
-            style={{
-              marginTop: "18px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid rgba(45,224,255,0.25)",
-              fontSize: "18px",
-              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            🔥 Streak Rewards
+          <li>
+            • Valid day bonus (1h+) → <span style={coinText}>+3 coins 🪙</span>
           </li>
-          <li>• 3-day streak → <strong>15 points</strong></li>
-          <li>• 5-day streak → <strong>25 points</strong></li>
-          <li>• 10-day streak → <strong>50 points</strong></li>
-          <li>• 20-day streak → <strong>100 points</strong></li>
-          <li>• 30-day streak → <strong>150 points</strong></li>
 
-          <li
-            style={{
-              marginTop: "18px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid rgba(45,224,255,0.25)",
-              fontSize: "18px",
-              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            ⚔️ Arranged Battles (Manual Rewards)
+          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
+            🏆 Daily Top Creator Bonuses
           </li>
-          <li>• Completing an arranged battle → <strong>100 points</strong></li>
-          <li>• Winning an arranged battle → <strong>150 points</strong></li>
+          <li>
+            • 1st → <span style={coinText}>25 coins 🪙</span>
+          </li>
+          <li>
+            • 2nd → <span style={coinText}>20 coins 🪙</span>
+          </li>
+          <li>
+            • 3rd → <span style={coinText}>15 coins 🪙</span>
+          </li>
+          <li>
+            • 4th → <span style={coinText}>10 coins 🪙</span>
+          </li>
+          <li>
+            • 5th → <span style={coinText}>5 coins 🪙</span>
+          </li>
 
-          <li
-            style={{
-              marginTop: "18px",
-              paddingBottom: "8px",
-              borderBottom: "1px solid rgba(45,224,255,0.25)",
-              fontSize: "18px",
-              background: "linear-gradient(90deg,#2de0ff,#7be8ff)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
+          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
+            🔥 Valid Go Live Streak Rewards
+          </li>
+          <li>
+            • 3-day streak → <span style={coinText}>15 coins 🪙</span>
+          </li>
+          <li>
+            • 5-day streak → <span style={coinText}>25 coins 🪙</span>
+          </li>
+          <li>
+            • 10-day streak → <span style={coinText}>50 coins 🪙</span>
+          </li>
+          <li>
+            • 20-day streak → <span style={coinText}>100 coins 🪙</span>
+          </li>
+          <li>
+            • 30-day streak → <span style={coinText}>150 coins 🪙</span>
+          </li>
+
+          <li style={{ ...sectionHeaderGradient, marginTop: "18px" }}>
             🌙 Monthly Milestones (Manual Rewards)
           </li>
           <li>
-            • First time hitting 75,000 diamonds → <strong>1000 points</strong>
+            • First time hitting 75,000 diamonds →{" "}
+            <span style={coinText}>1,000 coins 🪙</span>
           </li>
           <li>
-            • First time hitting 150,000 diamonds → <strong>2,000 points</strong>
+            • First time hitting 150,000 diamonds →{" "}
+            <span style={coinText}>2,000 coins 🪙</span>
           </li>
           <li>
             • Second time hitting 150,000 diamonds →{" "}
-            <strong>1,750 points</strong>
+            <span style={coinText}>1,750 coins 🪙</span>
           </li>
           <li>
-            • First time hitting 500,000 diamonds → <strong>6,000 points</strong>
+            • First time hitting 500,000 diamonds →{" "}
+            <span style={coinText}>6,000 coins 🪙</span>
           </li>
         </ul>
       </div>
@@ -422,12 +395,15 @@ export default function PointsLeaderboardPage() {
             </div>
 
             <div className="creator-diamonds">
-              <div className="lifetime-number">{creator.totalPoints}</div>
-              <div className="lifetime-label">points this month</div>
+              <div className="lifetime-number" style={coinText}>
+                {creator.totalCoins} 🪙
+              </div>
+              <div className="lifetime-label">coins this month</div>
 
               {creator.streakDays > 0 && (
                 <div className="creator-daily">
-                  Streak this month: <span>{creator.streakDays} days</span>
+                  Valid go live streak this month:{" "}
+                  <span>{creator.streakDays} days</span>
                 </div>
               )}
             </div>

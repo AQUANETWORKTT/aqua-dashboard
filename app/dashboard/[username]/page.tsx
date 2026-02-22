@@ -477,6 +477,15 @@ export default function CreatorDashboardPage() {
     filter: "saturate(0.85)",
   };
 
+  /* ===================== COIN TEXT STYLE ===================== */
+
+  const coinText: React.CSSProperties = {
+    color: "#FFD700",
+    fontWeight: 900,
+    textShadow: "0 0 12px rgba(255,215,0,0.75), 0 0 26px rgba(255,215,0,0.25)",
+    whiteSpace: "nowrap",
+  };
+
   /* ===================== UI ===================== */
 
   return (
@@ -521,29 +530,33 @@ export default function CreatorDashboardPage() {
         </div>
 
         <div className="dash-card">
-          <div className="dash-card-title">💎 Incentive Stats</div>
+          <div className="dash-card-title">🪙 Incentive Coins</div>
           {loading && <div>Loading…</div>}
           {!loading && stats && (
             <>
               <div
                 style={{
                   fontSize: "22px",
-                  fontWeight: 800,
+                  fontWeight: 900,
                   marginBottom: "8px",
-                  color: "#2de0ff",
-                  textShadow: "0 0 10px rgba(45,224,255,0.75)",
+                  ...coinText,
                 }}
               >
-                💰 Incentive Balance:{" "}
-                {/* ✅ 1x (no halving) */}
-                {incentiveBalanceWithLevels.toLocaleString()}🪙
+                🪙 Incentive Coins:{" "}
+                {incentiveBalanceWithLevels.toLocaleString()} 🪙
               </div>
 
               <div>
-                ⚙️ Live-earned points: <b>{stats.calculatedPoints}</b>
+                ⚙️ Live-earned coins:{" "}
+                <span style={coinText}>
+                  {stats.calculatedPoints.toLocaleString()} 🪙
+                </span>
               </div>
               <div>
-                🎓 Graduations & extras: <b>{extrasWithLevels}</b>
+                🎓 Graduations & extras:{" "}
+                <span style={coinText}>
+                  {extrasWithLevels.toLocaleString()} 🪙
+                </span>
               </div>
 
               <div style={{ marginTop: 8 }}>
@@ -608,20 +621,11 @@ export default function CreatorDashboardPage() {
             }}
             className="glow-text"
           >
-            Incentive points earned from levels
+            Incentive coins earned from levels
           </div>
 
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 900,
-              color: "#7cf6ff",
-              textShadow:
-                "0 0 12px rgba(45,224,255,0.55), 0 0 26px rgba(45,224,255,0.28)",
-              lineHeight: 1,
-            }}
-          >
-            {earnedLevelPoints.toLocaleString()}
+          <div style={{ fontSize: 22, fontWeight: 900, ...coinText }}>
+            {earnedLevelPoints.toLocaleString()} 🪙
           </div>
         </div>
 
@@ -649,8 +653,8 @@ export default function CreatorDashboardPage() {
                 : pointsFromDiamondsRate(monthlyDiamonds, dp, rate);
 
               const rewardText = isL2
-                ? "Eligibility only (0 points)"
-                : `+${exactForTarget.toLocaleString()} points`;
+                ? "Eligibility only (0 coins 🪙)"
+                : `+${exactForTarget.toLocaleString()} coins 🪙`;
 
               return (
                 <>
@@ -722,14 +726,7 @@ export default function CreatorDashboardPage() {
                         )}
                       </div>
 
-                      <div
-                        style={{
-                          fontWeight: 900,
-                          color: "#2de0ff",
-                          textShadow: "0 0 10px rgba(45,224,255,0.55)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
+                      <div style={{ fontWeight: 900, ...coinText }}>
                         {rewardText}
                       </div>
                     </div>
@@ -810,10 +807,7 @@ export default function CreatorDashboardPage() {
 
                         <div style={barOuter}>
                           <div
-                            style={barInner(
-                              hrsPct,
-                              hoursNow >= targetLevel.hours
-                            )}
+                            style={barInner(hrsPct, hoursNow >= targetLevel.hours)}
                           />
                         </div>
                       </div>
@@ -860,8 +854,11 @@ export default function CreatorDashboardPage() {
                         {nextLevel.days} valid days • {nextLevel.hours} hours
                         <span style={{ opacity: 0.95 }}>
                           {" "}
-                          (Potential points:{" "}
-                          <b>{potentialNextPoints.toLocaleString()}</b>)
+                          (Potential coins:{" "}
+                          <b style={coinText}>
+                            {potentialNextPoints.toLocaleString()} 🪙
+                          </b>
+                          )
                         </span>
                       </div>
                     </div>
