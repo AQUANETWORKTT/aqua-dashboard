@@ -93,13 +93,6 @@
       "lifetimeHours": 12.17
     },
     {
-      "date": "2026-02-21",
-      "daily": 271,
-      "hours": 0.2477777777777778,
-      "lifetime": 2032,
-      "lifetimeHours": 12.17
-    },
-    {
       "date": "2026-02-20",
       "daily": 0,
       "hours": 0,
@@ -112,6 +105,13 @@
       "hours": 0,
       "lifetime": 2032,
       "lifetimeHours": 12.17
+    },
+    {
+      "date": "2026-02-21",
+      "daily": 271,
+      "hours": 0.2477777777777778,
+      "lifetime": 2303,
+      "lifetimeHours": 12.417777777777777
     }
   ]
 }
