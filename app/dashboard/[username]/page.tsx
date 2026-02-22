@@ -530,7 +530,7 @@ export default function CreatorDashboardPage() {
         </div>
 
         <div className="dash-card">
-          <div className="dash-card-title">🪙 Incentive Coins</div>
+          <div className="dash-card-title">Incentive Coins</div>
           {loading && <div>Loading…</div>}
           {!loading && stats && (
             <>
@@ -542,31 +542,28 @@ export default function CreatorDashboardPage() {
                   ...coinText,
                 }}
               >
-                🪙 Incentive Coins:{" "}
-                {incentiveBalanceWithLevels.toLocaleString()} 🪙
+                Incentive Coins: {incentiveBalanceWithLevels.toLocaleString()}
               </div>
 
               <div>
-                ⚙️ Live-earned coins:{" "}
+                Live-earned coins:{" "}
                 <span style={coinText}>
-                  {stats.calculatedPoints.toLocaleString()} 🪙
+                  {stats.calculatedPoints.toLocaleString()}
                 </span>
               </div>
               <div>
-                🎓 Graduations & extras:{" "}
-                <span style={coinText}>
-                  {extrasWithLevels.toLocaleString()} 🪙
-                </span>
+                Graduations & extras:{" "}
+                <span style={coinText}>{extrasWithLevels.toLocaleString()}</span>
               </div>
 
               <div style={{ marginTop: 8 }}>
-                💎 Diamonds: <b>{stats.diamonds.toLocaleString()}</b>
+                Diamonds: <b>{stats.diamonds.toLocaleString()}</b>
                 <br />
-                ⏱️ Hours: <b>{stats.hours.toFixed(1)}h</b>
+                Hours: <b>{stats.hours.toFixed(1)}h</b>
                 <br />
-                ✅ Valid days: <b>{stats.validDays}</b>
+                Valid days: <b>{stats.validDays}</b>
                 <br />
-                🏆 Top-5 finishes: <b>{stats.top5Count}</b>
+                Top-5 finishes: <b>{stats.top5Count}</b>
               </div>
             </>
           )}
@@ -584,7 +581,7 @@ export default function CreatorDashboardPage() {
           }}
         >
           <div>
-            <div className="dash-card-title">✅ Incentive Requirements</div>
+            <div className="dash-card-title">Incentive Requirements</div>
           </div>
 
           <div style={pillStyle(baseEligible)}>
@@ -594,10 +591,10 @@ export default function CreatorDashboardPage() {
 
         <div className="glow-text" style={{ marginTop: 8, opacity: 0.95 }}>
           {ladderUnlocked ? (
-            <>🔓 Levels 3–5 are unlocked (150K reached).</>
+            <>Levels 3–5 are unlocked (150K reached).</>
           ) : (
             <>
-              🔒 Levels 3–5 unlock when you hit <b>150K</b> monthly diamonds.
+              Levels 3–5 unlock when you hit <b>150K</b> monthly diamonds.
             </>
           )}
         </div>
@@ -625,7 +622,7 @@ export default function CreatorDashboardPage() {
           </div>
 
           <div style={{ fontSize: 22, fontWeight: 900, ...coinText }}>
-            {earnedLevelPoints.toLocaleString()} 🪙
+            {earnedLevelPoints.toLocaleString()}
           </div>
         </div>
 
@@ -653,8 +650,8 @@ export default function CreatorDashboardPage() {
                 : pointsFromDiamondsRate(monthlyDiamonds, dp, rate);
 
               const rewardText = isL2
-                ? "Eligibility only (0 coins 🪙)"
-                : `+${exactForTarget.toLocaleString()} coins 🪙`;
+                ? "Eligibility only (0 coins)"
+                : `+${exactForTarget.toLocaleString()} coins`;
 
               return (
                 <>
@@ -704,7 +701,7 @@ export default function CreatorDashboardPage() {
                               border: "1px solid rgba(255,255,255,0.12)",
                             }}
                           >
-                            🔒 Locked (needs 150K)
+                            Locked (needs 150K)
                           </span>
                         )}
 
@@ -721,7 +718,7 @@ export default function CreatorDashboardPage() {
                               textShadow: "0 0 8px rgba(124,246,255,0.35)",
                             }}
                           >
-                            ✅ Completed
+                            Completed
                           </span>
                         )}
                       </div>
@@ -846,7 +843,7 @@ export default function CreatorDashboardPage() {
                             border: "1px solid rgba(255,255,255,0.12)",
                           }}
                         >
-                          🔒 Locked
+                          Locked
                         </div>
                       </div>
 
@@ -856,7 +853,7 @@ export default function CreatorDashboardPage() {
                           {" "}
                           (Potential coins:{" "}
                           <b style={coinText}>
-                            {potentialNextPoints.toLocaleString()} 🪙
+                            {potentialNextPoints.toLocaleString()}
                           </b>
                           )
                         </span>
@@ -876,7 +873,7 @@ export default function CreatorDashboardPage() {
               }}
               className="glow-text"
             >
-              ✅ All levels completed for this month.
+              All levels completed for this month.
             </div>
           )}
         </div>
