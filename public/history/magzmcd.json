@@ -2,18 +2,18 @@
   "username": "magzmcd",
   "entries": [
     {
-      "date": "2026-02-22",
+      "date": "2026-02-21",
       "daily": 0,
       "hours": 0,
       "lifetime": 0,
       "lifetimeHours": 0
     },
     {
-      "date": "2026-02-21",
-      "daily": 0,
-      "hours": 0,
-      "lifetime": 0,
-      "lifetimeHours": 0
+      "date": "2026-02-22",
+      "daily": 205,
+      "hours": 2.6341666666666668,
+      "lifetime": 205,
+      "lifetimeHours": 2.6341666666666668
     }
   ]
 }
