@@ -20,7 +20,9 @@ export default function HomePage() {
             <span className="hero-title-accent"> in one dashboard.</span>
           </h1>
 
-          <p className="hero-subtitle">Flowing Toward Your Full Potential.</p>
+          <p className="hero-subtitle">
+            The dashboard is currently under maintenance.
+          </p>
 
           <div className="hero-buttons">
             <Link href="/login" className="btn-primary">
@@ -48,8 +50,10 @@ export default function HomePage() {
 
               <div className="glow-stat compact">
                 <div className="glow-stat-label">Status</div>
-                <div className="glow-stat-value status-live">Live</div>
-                <div className="glow-stat-sub">SYSTEM OPERATIONAL</div>
+                <div className="glow-stat-value status-maintenance">
+                  Under Maintenance
+                </div>
+                <div className="glow-stat-sub">TEMPORARILY UNAVAILABLE</div>
               </div>
             </div>
 
