@@ -1,0 +1,19 @@
+{
+  "username": "abz_2408",
+  "entries": [
+    {
+      "date": "2026-02-24",
+      "daily": 27,
+      "hours": 0.2611111111111111,
+      "lifetime": 240,
+      "lifetimeHours": 1.0183333333333333
+    },
+    {
+      "date": "2026-02-25",
+      "daily": 213,
+      "hours": 0.7572222222222222,
+      "lifetime": 240,
+      "lifetimeHours": 1.0183333333333333
+    }
+  ]
+}
