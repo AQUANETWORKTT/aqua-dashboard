@@ -20,36 +20,32 @@ type HistoryFile = {
 };
 
 type IncentiveStats = {
-  diamonds: number; // month diamonds (calculated)
-  hours: number; // month hours (calculated)
-  validDays: number; // month valid days (calculated)
+  diamonds: number; // month diamonds
+  hours: number; // month hours
+  validDays: number; // month valid days (>= 1h)
   top5Count: number;
-  calculatedPoints: number;
-  extrasPoints: number; // file extras (incentiveExtras)
-  incentiveBalance: number; // calculatedPoints + extrasPoints (BEFORE level points)
+  calculatedPoints: number; // derived points
+  extrasPoints: number; // incentiveExtras
+};
+
+type TierConfig = {
+  id: number; // 1..10
+  min: number; // diamonds threshold (monthly)
+  label: string;
+  color: string; // border + text
+  incentiveCoins: number;
+};
+
+type ActivenessRule = {
+  level: number; // 1..5
+  days: number;
+  hours: number;
 };
 
 /* ===================== SMALL HELPERS ===================== */
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
-}
-
-function percent(value: number, target: number) {
-  if (!target) return 0;
-  return clamp((value / target) * 100, 0, 100);
-}
-
-// ✅ points = floor(diamonds / diamondsPerPoint) * rateMultiplier
-function pointsFromDiamondsRate(
-  diamonds: number,
-  diamondsPerPoint: number,
-  rateMultiplier: number
-) {
-  if (!Number.isFinite(diamonds) || diamonds <= 0) return 0;
-  if (!Number.isFinite(diamondsPerPoint) || diamondsPerPoint <= 0) return 0;
-  if (!Number.isFinite(rateMultiplier) || rateMultiplier <= 0) return 0;
-  return Math.floor(diamonds / diamondsPerPoint) * rateMultiplier;
 }
 
 function pad2(n: number) {
@@ -71,18 +67,71 @@ function parseMonthKey(monthKey: string): { year: number; monthIndex: number } {
   return { year: y, monthIndex: m - 1 };
 }
 
+function formatTierMin(min: number) {
+  if (min >= 1_000_000) {
+    const v = min / 1_000_000;
+    const dp = min % 1_000_000 === 0 ? 0 : 1;
+    return `${v.toFixed(dp)}M`;
+  }
+  if (min >= 1000) return `${Math.round(min / 1000)}K`;
+  return String(min);
+}
+
+/* ===================== CONFIG ===================== */
+
+const TIERS: TierConfig[] = [
+  { id: 1, label: "Tier 1", min: 0, color: "#9CA3AF", incentiveCoins: 0 },
+  { id: 2, label: "Tier 2", min: 100_000, color: "#84cc16", incentiveCoins: 2_100 },
+  { id: 3, label: "Tier 3", min: 200_000, color: "#06b6d4", incentiveCoins: 4_200 },
+  { id: 4, label: "Tier 4", min: 300_000, color: "#3b82f6", incentiveCoins: 6_300 },
+  { id: 5, label: "Tier 5", min: 500_000, color: "#6366f1", incentiveCoins: 10_500 },
+  { id: 6, label: "Tier 6", min: 700_000, color: "#8b5cf6", incentiveCoins: 14_700 },
+  { id: 7, label: "Tier 7", min: 1_000_000, color: "#d946ef", incentiveCoins: 21_000 },
+  { id: 8, label: "Tier 8", min: 1_600_000, color: "#f43f5e", incentiveCoins: 33_600 },
+  { id: 9, label: "Tier 9", min: 2_500_000, color: "#f97316", incentiveCoins: 52_500 },
+  { id: 10, label: "Tier 10", min: 5_000_000, color: "#f59e0b", incentiveCoins: 105_000 },
+];
+
+// still used ONLY to compute activeness level label
+const ACTIVENESS_RULES: ActivenessRule[] = [
+  { level: 1, days: 8, hours: 20 },
+  { level: 2, days: 11, hours: 30 },
+  { level: 3, days: 15, hours: 40 },
+  { level: 4, days: 18, hours: 60 },
+  { level: 5, days: 22, hours: 80 },
+];
+
+// ✅ minimum requirements for incentives (single target bar)
+const MIN_VALID_DAYS = 15;
+const MIN_HOURS = 40;
+
+function getTier(monthlyDiamonds: number) {
+  let current = TIERS[0];
+  for (const t of TIERS) if (monthlyDiamonds >= t.min) current = t;
+
+  const idx = TIERS.findIndex((t) => t.id === current.id);
+  const next = idx >= 0 && idx < TIERS.length - 1 ? TIERS[idx + 1] : null;
+
+  return { current, next };
+}
+
+function getActivenessLevel(validDays: number, hours: number) {
+  let level = 0;
+  for (const r of ACTIVENESS_RULES) {
+    if (validDays >= r.days && hours >= r.hours) level = r.level;
+  }
+  return level;
+}
+
 /* ===================== PAGE ===================== */
 
 export default function CreatorDashboardPage() {
   const params = useParams();
-
   const username = (params?.username as string) || "";
 
   const creator = creators.find(
     (c) => c.username.toLowerCase() === username.toLowerCase()
   );
-
-  const yesterdayDiamonds = creator?.daily ?? 0;
 
   /* ---------- rank ---------- */
   const sorted = useMemo(
@@ -97,11 +146,7 @@ export default function CreatorDashboardPage() {
   const rank = rankIndex >= 0 ? rankIndex + 1 : null;
 
   /* ---------- month selection (CURRENT MONTH ONLY) ---------- */
-  const selectedMonthKey = useMemo(() => {
-    // Always show CURRENT month
-    return toMonthKey(new Date());
-  }, []);
-
+  const selectedMonthKey = useMemo(() => toMonthKey(new Date()), []);
   const { year: selectedYear, monthIndex: selectedMonthIndex } = useMemo(
     () => parseMonthKey(selectedMonthKey),
     [selectedMonthKey]
@@ -109,9 +154,9 @@ export default function CreatorDashboardPage() {
 
   /* ---------- state ---------- */
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [allHistories, setAllHistories] = useState<
-    Record<string, HistoryEntry[]>
-  >({});
+  const [allHistories, setAllHistories] = useState<Record<string, HistoryEntry[]>>(
+    {}
+  );
   const [stats, setStats] = useState<IncentiveStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -124,9 +169,7 @@ export default function CreatorDashboardPage() {
 
     fetch(`/history/${username}.json`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((j: HistoryFile) =>
-        setHistory(Array.isArray(j.entries) ? j.entries : [])
-      )
+      .then((j: HistoryFile) => setHistory(Array.isArray(j.entries) ? j.entries : []))
       .catch(() => setHistory([]));
   }, [username]);
 
@@ -137,9 +180,7 @@ export default function CreatorDashboardPage() {
       await Promise.all(
         creators.map(async (c) => {
           try {
-            const r = await fetch(`/history/${c.username}.json`, {
-              cache: "no-store",
-            });
+            const r = await fetch(`/history/${c.username}.json`, { cache: "no-store" });
             if (!r.ok) return;
             const j = (await r.json()) as HistoryFile;
             out[c.username] = Array.isArray(j.entries) ? j.entries : [];
@@ -155,20 +196,26 @@ export default function CreatorDashboardPage() {
     loadAll();
   }, []);
 
-  /* ===================== INCENTIVE LOGIC (SELECTED MONTH) ===================== */
+  /* ===================== MONTH TOTALS ===================== */
+
+  const monthHistory = useMemo(() => {
+    const mk = selectedMonthKey;
+    return history.filter((e) => (e.date || "").startsWith(mk));
+  }, [history, selectedMonthKey]);
+
+  const monthlyDiamonds = useMemo(() => {
+    return monthHistory.reduce((sum, e) => sum + (e.daily ?? 0), 0);
+  }, [monthHistory]);
+
+  /* ===================== INCENTIVE LOGIC (MONTH) ===================== */
 
   useEffect(() => {
-    if (!history.length || !Object.keys(allHistories).length || !username) return;
+    if (!monthHistory.length || !Object.keys(allHistories).length || !username) return;
 
-    const monthHistory = history.filter((e) =>
-      (e.date || "").startsWith(selectedMonthKey)
-    );
-
+    const mk = selectedMonthKey;
     const monthAll: Record<string, HistoryEntry[]> = {};
     for (const u in allHistories) {
-      monthAll[u] = (allHistories[u] || []).filter((e) =>
-        (e.date || "").startsWith(selectedMonthKey)
-      );
+      monthAll[u] = (allHistories[u] || []).filter((e) => (e.date || "").startsWith(mk));
     }
 
     let diamonds = 0;
@@ -176,7 +223,6 @@ export default function CreatorDashboardPage() {
     let validDays = 0;
     let top5Count = 0;
 
-    // collect all dates seen in month across all users (for top5 each day)
     const dates = new Set<string>();
     Object.values(monthAll).forEach((arr) =>
       arr.forEach((e) => {
@@ -184,33 +230,31 @@ export default function CreatorDashboardPage() {
       })
     );
 
-    // top5 by day
     const top5ByDay: Record<string, string[]> = {};
     [...dates].forEach((date) => {
       const rows: { username: string; daily: number }[] = [];
 
       for (const u in monthAll) {
         const e = monthAll[u].find((x) => x.date === date);
-        if (e && (e.daily ?? 0) > 0)
-          rows.push({ username: u, daily: e.daily ?? 0 });
+        if (e && (e.daily ?? 0) > 0) rows.push({ username: u, daily: e.daily ?? 0 });
       }
 
       rows.sort((a, b) => b.daily - a.daily);
       top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
     });
 
-    // totals + top5 count
     monthHistory.forEach((e) => {
       diamonds += e.daily ?? 0;
       hours += e.hours ?? 0;
+
       if ((e.hours ?? 0) >= 1) validDays++;
+
       if (top5ByDay[e.date]?.includes(username)) top5Count++;
     });
 
-    // ---------- calculated points ----------
+    // base calculated points (unchanged)
     const thousands = Math.floor(diamonds / 1000);
     let diamondPoints = 0;
-
     if (thousands >= 1) {
       diamondPoints += 10;
       diamondPoints += Math.max(0, thousands - 1) * 5;
@@ -232,12 +276,9 @@ export default function CreatorDashboardPage() {
       else if (pos === 4) top5Points += 5;
     });
 
-    const calculatedPoints =
-      diamondPoints + hourPoints + validDayPoints + top5Points;
+    const calculatedPoints = diamondPoints + hourPoints + validDayPoints + top5Points;
 
-    // ---------- FILE-BASED EXTRAS ----------
     const extrasPoints = incentiveExtras[username] ?? 0;
-    const incentiveBalance = calculatedPoints + extrasPoints;
 
     setStats({
       diamonds,
@@ -246,13 +287,35 @@ export default function CreatorDashboardPage() {
       top5Count,
       calculatedPoints,
       extrasPoints,
-      incentiveBalance,
     });
 
     setLoading(false);
-  }, [history, allHistories, username, selectedMonthKey]);
+  }, [monthHistory, allHistories, username, selectedMonthKey]);
 
-  /* ===================== MONTH + CALENDAR (SELECTED MONTH) ===================== */
+  /* ===================== TIER + ACTIVENESS ===================== */
+
+  const validDaysNow = stats?.validDays ?? 0;
+  const hoursNow = stats?.hours ?? 0;
+
+  const { current: currentTier, next: nextTier } = useMemo(
+    () => getTier(monthlyDiamonds),
+    [monthlyDiamonds]
+  );
+
+  // ✅ still compute the level, but we do NOT show a levels table / multi-target UI
+  const activenessLevel = useMemo(
+    () => getActivenessLevel(validDaysNow, hoursNow),
+    [validDaysNow, hoursNow]
+  );
+
+  const tierCoins = currentTier?.incentiveCoins ?? 0;
+  const liveEarnedCoins = stats?.calculatedPoints ?? 0;
+  const extrasCoins = stats?.extrasPoints ?? 0;
+
+  // ✅ removed activeness bonus from incentive coins
+  const incentiveCoinsTotal = liveEarnedCoins + extrasCoins + tierCoins;
+
+  /* ===================== CALENDAR (MONTH) ===================== */
 
   function buildMonth(year: number, monthIndex: number) {
     const first = new Date(year, monthIndex, 1);
@@ -263,18 +326,15 @@ export default function CreatorDashboardPage() {
     for (let i = 0; i < offset; i++) cells.push({ day: null });
 
     for (let d = 1; d <= daysInMonth; d++) {
-      const date = new Date(year, monthIndex, d);
-      cells.push({ day: d, dateStr: date.toISOString().slice(0, 10) });
+      const dateStr = `${year}-${pad2(monthIndex + 1)}-${pad2(d)}`;
+      cells.push({ day: d, dateStr });
     }
 
-    const label = new Date(year, monthIndex, 1).toLocaleString("default", {
-      month: "long",
-    });
-
+    const label = new Date(year, monthIndex, 1).toLocaleString("default", { month: "long" });
     return { cells, year, month: monthIndex, label };
   }
 
-  const { cells, year, month, label } = useMemo(
+  const { cells, year, label } = useMemo(
     () => buildMonth(selectedYear, selectedMonthIndex),
     [selectedYear, selectedMonthIndex]
   );
@@ -287,147 +347,14 @@ export default function CreatorDashboardPage() {
     return map;
   }, [history]);
 
-  const monthlyDiamonds = useMemo(() => {
-    const mk = selectedMonthKey;
-    return history.reduce((sum, e) => {
-      return (e.date || "").startsWith(mk) ? sum + (e.daily ?? 0) : sum;
-    }, 0);
-  }, [history, selectedMonthKey]);
+  /* ===================== UI STYLES ===================== */
 
-  const monthlyHours = useMemo(() => {
-    const mk = selectedMonthKey;
-    return history.reduce((sum, e) => {
-      return (e.date || "").startsWith(mk) ? sum + (e.hours ?? 0) : sum;
-    }, 0);
-  }, [history, selectedMonthKey]);
-
-  /* ===================== INCENTIVE TARGETS (ONE AT A TIME + LOCKED PREVIEW) ===================== */
-
-  const validDaysNow = stats?.validDays ?? 0;
-  const hoursNow = stats?.hours ?? 0;
-
-  const ladderUnlocked = monthlyDiamonds >= 150_000;
-
-  const levels = [
-    { level: 2, days: 15, hours: 40, gated: false },
-
-    // Non-stacking rate per level:
-    // L3 = 1x, L4 = 2x, L5 = 3x (but NEVER stacked together)
-    { level: 3, days: 20, hours: 60, gated: true, diamondsPerPoint: 300, rate: 1 },
-    { level: 4, days: 20, hours: 80, gated: true, diamondsPerPoint: 300, rate: 2 },
-    { level: 5, days: 22, hours: 100, gated: true, diamondsPerPoint: 300, rate: 3 },
-  ] as const;
-
-  const isLevelEligible = (l: (typeof levels)[number]) =>
-    validDaysNow >= l.days && hoursNow >= l.hours;
-
-  const isLevelAvailable = (l: (typeof levels)[number]) =>
-    l.gated ? ladderUnlocked : true;
-
-  const level2 = levels[0];
-  const level3 = levels[1];
-  const level4 = levels[2];
-  const level5 = levels[3];
-
-  let targetLevel: (typeof levels)[number] | null = null;
-
-  if (!isLevelEligible(level2)) targetLevel = level2;
-  else if (!ladderUnlocked) targetLevel = level3; // show next target but locked
-  else if (!isLevelEligible(level3)) targetLevel = level3;
-  else if (!isLevelEligible(level4)) targetLevel = level4;
-  else if (!isLevelEligible(level5)) targetLevel = level5;
-  else targetLevel = null;
-
-  const baseEligible = isLevelEligible(level2);
-
-  const targetIndex = targetLevel
-    ? levels.findIndex((l) => l.level === targetLevel.level)
-    : -1;
-
-  const nextLevel =
-    targetIndex >= 0 && targetIndex < levels.length - 1
-      ? levels[targetIndex + 1]
-      : null;
-
-  // Highest completed level among 3–5 (NON-stacking)
-  const completedRateLevel =
-    isLevelAvailable(level5) && isLevelEligible(level5)
-      ? level5
-      : isLevelAvailable(level4) && isLevelEligible(level4)
-      ? level4
-      : isLevelAvailable(level3) && isLevelEligible(level3)
-      ? level3
-      : null;
-
-  const earnedLevelPoints = completedRateLevel
-    ? pointsFromDiamondsRate(
-        monthlyDiamonds,
-        (completedRateLevel as any).diamondsPerPoint,
-        (completedRateLevel as any).rate
-      )
-    : 0;
-
-  // Potential points for NEXT level (shown in faded preview box)
-  const potentialNextPoints =
-    nextLevel && "diamondsPerPoint" in nextLevel && "rate" in nextLevel
-      ? pointsFromDiamondsRate(
-          monthlyDiamonds,
-          (nextLevel as any).diamondsPerPoint,
-          (nextLevel as any).rate
-        )
-      : 0;
-
-  // Add earned level points into Incentive Balance + Extras
-  const incentiveBalanceWithLevels =
-    (stats?.incentiveBalance ?? 0) + earnedLevelPoints;
-
-  const extrasWithLevels = (stats?.extrasPoints ?? 0) + earnedLevelPoints;
-
-  /* ===================== MONTHLY PROGRESS (ONE BAR + OUTSIDE MILESTONES) ===================== */
-
-  const maxDiamonds = 500_000;
-  const progressPct = clamp((monthlyDiamonds / maxDiamonds) * 100, 0, 100);
-
-  const milestones = [
-    { value: 75_000, label: "75K" },
-    { value: 150_000, label: "150K" },
-    { value: 500_000, label: "500K" },
-  ];
-
-  const milestoneLeftPct = (value: number) =>
-    clamp((value / maxDiamonds) * 100, 0, 100);
-
-  function milestoneLabelStyle(value: number): React.CSSProperties {
-    if (value === 75_000)
-      return { transform: "translateX(0%)", textAlign: "left" };
-    if (value === 500_000)
-      return { transform: "translateX(-100%)", textAlign: "right" };
-    return { transform: "translateX(-50%)", textAlign: "center" };
-  }
-
-  /* ===================== SHARED BAR STYLES ===================== */
-
-  const barOuter: React.CSSProperties = {
-    width: "100%",
-    height: 12,
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.10)",
-    overflow: "hidden",
+  const coinText: React.CSSProperties = {
+    color: "#FFD700",
+    fontWeight: 900,
+    textShadow: "0 0 12px rgba(255,215,0,0.75), 0 0 26px rgba(255,215,0,0.25)",
+    whiteSpace: "nowrap",
   };
-
-  const barInner = (p: number, done: boolean): React.CSSProperties => ({
-    height: "100%",
-    width: `${p}%`,
-    borderRadius: 999,
-    background: done
-      ? "linear-gradient(90deg, rgba(45,224,255,0.95), rgba(123,232,255,0.85))"
-      : "linear-gradient(90deg, rgba(255,77,77,0.95), rgba(255,140,140,0.75))",
-    boxShadow: done
-      ? "0 0 10px rgba(45,224,255,0.45)"
-      : "0 0 10px rgba(255,77,77,0.35)",
-    transition: "width 350ms ease",
-  });
 
   const pillStyle = (ok: boolean): React.CSSProperties => ({
     padding: "6px 12px",
@@ -438,78 +365,73 @@ export default function CreatorDashboardPage() {
     textTransform: "uppercase",
     color: ok ? "#7cf6ff" : "#ff4d4d",
     background: ok ? "rgba(124,246,255,0.10)" : "rgba(255,77,77,0.10)",
-    border: ok
-      ? "1px solid rgba(124,246,255,0.55)"
-      : "1px solid rgba(255,77,77,0.55)",
-    textShadow: ok
-      ? "0 0 8px rgba(124,246,255,0.55)"
-      : "0 0 8px rgba(255,77,77,0.45)",
+    border: ok ? "1px solid rgba(124,246,255,0.55)" : "1px solid rgba(255,77,77,0.55)",
+    textShadow: ok ? "0 0 8px rgba(124,246,255,0.55)" : "0 0 8px rgba(255,77,77,0.45)",
     whiteSpace: "nowrap",
   });
 
-  const totalDiamondsNumberStyle: React.CSSProperties = {
-    fontSize: 22,
-    fontWeight: 900,
-    color: "#7cf6ff",
-    textShadow:
-      "0 0 12px rgba(45,224,255,0.55), 0 0 26px rgba(45,224,255,0.28)",
-    lineHeight: 1,
-    whiteSpace: "nowrap",
+  const barOuter: React.CSSProperties = {
+    width: "100%",
+    height: 12,
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.10)",
+    overflow: "hidden",
   };
 
-  const totalDiamondsLabelStyle: React.CSSProperties = {
-    fontSize: 11,
-    fontWeight: 900,
-    letterSpacing: "0.10em",
-    textTransform: "uppercase",
-    color: "rgba(255,255,255,0.75)",
-    textShadow: "0 0 6px rgba(45,224,255,0.12)",
-    lineHeight: 1.1,
-  };
+  const barInner = (p: number, accent: string): React.CSSProperties => ({
+    height: "100%",
+    width: `${clamp(p, 0, 100)}%`,
+    borderRadius: 999,
+    background: `linear-gradient(90deg, ${accent}, rgba(123,232,255,0.55))`,
+    boxShadow: `0 0 10px ${accent}55`,
+    transition: "width 350ms ease",
+  });
 
-  const lockedPreviewStyle: React.CSSProperties = {
-    marginTop: 10,
-    borderRadius: 16,
-    padding: 12,
-    background: "rgba(255,255,255,0.02)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    opacity: 0.55,
-    filter: "saturate(0.85)",
-  };
+  const okReq = validDaysNow >= MIN_VALID_DAYS && hoursNow >= MIN_HOURS;
 
-  /* ===================== COIN TEXT STYLE ===================== */
-
-  const coinText: React.CSSProperties = {
-    color: "#FFD700",
-    fontWeight: 900,
-    textShadow: "0 0 12px rgba(255,215,0,0.75), 0 0 26px rgba(255,215,0,0.25)",
-    whiteSpace: "nowrap",
-  };
+  const daysPct = (clamp(validDaysNow, 0, MIN_VALID_DAYS) / MIN_VALID_DAYS) * 100;
+  const hrsPct = (clamp(hoursNow, 0, MIN_HOURS) / MIN_HOURS) * 100;
 
   /* ===================== UI ===================== */
 
   return (
     <main className="dashboard-wrapper">
+      {/* HEADER */}
       <section className="dash-header">
         <div className="dash-profile">
           <img src={`/creators/${username}.jpg`} className="dash-avatar" />
           <div>
             <div className="dash-username">{username}</div>
+
             {rank && (
               <div className="dash-rank">
                 Rank #{rank} of {creators.length}
               </div>
             )}
 
-            {/* ✅ Month display only (no dropdown) */}
+            {/* Clean monthly diamonds box under profile */}
             <div
               style={{
                 marginTop: 10,
-                display: "flex",
+                display: "inline-flex",
+                alignItems: "center",
                 gap: 10,
-                flexWrap: "wrap",
+                padding: "10px 12px",
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.10)",
               }}
             >
+              <div className="glow-text" style={{ opacity: 0.9, fontWeight: 900 }}>
+                This month’s diamonds:
+              </div>
+              <div style={{ fontWeight: 900, fontSize: 18 }}>
+                {monthlyDiamonds.toLocaleString()}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <div
                 style={{
                   padding: "6px 10px",
@@ -525,490 +447,228 @@ export default function CreatorDashboardPage() {
               >
                 Viewing: {selectedMonthKey}
               </div>
+
+              <div
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 900,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  background: `${currentTier.color}20`,
+                  border: `1px solid ${currentTier.color}66`,
+                  color: currentTier.color,
+                }}
+              >
+                {currentTier.label} • ≥ {formatTierMin(currentTier.min)}
+              </div>
+
+              <div
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 900,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  background: "rgba(124,246,255,0.10)",
+                  border: "1px solid rgba(124,246,255,0.45)",
+                  color: "#7cf6ff",
+                }}
+              >
+                Activeness level: {activenessLevel}
+              </div>
+
+              <div style={pillStyle(okReq)}>{okReq ? "Incentives Unlocked" : "Requirements Not Met"}</div>
             </div>
           </div>
         </div>
 
+        {/* Incentive Coins card */}
         <div className="dash-card">
           <div className="dash-card-title">Incentive Coins</div>
           {loading && <div>Loading…</div>}
+
           {!loading && stats && (
             <>
-              <div
-                style={{
-                  fontSize: "22px",
-                  fontWeight: 900,
-                  marginBottom: "8px",
-                  ...coinText,
-                }}
-              >
-                Incentive Coins: {incentiveBalanceWithLevels.toLocaleString()}
+              <div style={{ fontSize: "22px", fontWeight: 900, marginBottom: "8px", ...coinText }}>
+                Incentive Coins: {incentiveCoinsTotal.toLocaleString()}
               </div>
 
               <div>
-                Live-earned coins:{" "}
-                <span style={coinText}>
-                  {stats.calculatedPoints.toLocaleString()}
-                </span>
+                Live-earned coins: <span style={coinText}>{liveEarnedCoins.toLocaleString()}</span>
               </div>
               <div>
-                Graduations & extras:{" "}
-                <span style={coinText}>{extrasWithLevels.toLocaleString()}</span>
+                Extras: <span style={coinText}>{extrasCoins.toLocaleString()}</span>
+              </div>
+              <div>
+                Tier bonus: <span style={coinText}>{tierCoins.toLocaleString()}</span>
               </div>
 
-              <div style={{ marginTop: 8 }}>
+              <div style={{ marginTop: 10 }}>
                 Diamonds: <b>{stats.diamonds.toLocaleString()}</b>
                 <br />
                 Hours: <b>{stats.hours.toFixed(1)}h</b>
                 <br />
                 Valid days: <b>{stats.validDays}</b>
-                <br />
-                Top-5 finishes: <b>{stats.top5Count}</b>
               </div>
             </>
           )}
         </div>
       </section>
 
-      {/* ✅ Incentive Requirements */}
+      {/* Tier */}
       <section className="dash-card">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-          }}
-        >
-          <div>
-            <div className="dash-card-title">Incentive Requirements</div>
-          </div>
+        <div className="dash-card-title">Tier</div>
 
-          <div style={pillStyle(baseEligible)}>
-            {baseEligible ? "Eligible" : "Not Eligible"}
-          </div>
-        </div>
-
-        <div className="glow-text" style={{ marginTop: 8, opacity: 0.95 }}>
-          {ladderUnlocked ? (
-            <>Levels 3–5 are unlocked (150K reached).</>
-          ) : (
-            <>
-              Levels 3–5 unlock when you hit <b>150K</b> monthly diamonds.
-            </>
-          )}
-        </div>
-
-        {/* ✅ Clean total section */}
-        <div
-          style={{
-            marginTop: 12,
-            borderRadius: 16,
-            padding: 14,
-            background: "rgba(45,224,255,0.06)",
-            border: "1px solid rgba(45,224,255,0.22)",
-          }}
-        >
+        {/* Thin ladder bar */}
+        <div style={{ marginTop: 12 }}>
           <div
             style={{
-              fontWeight: 900,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              marginBottom: 6,
-            }}
-            className="glow-text"
-          >
-            Incentive coins earned from levels
-          </div>
-
-          <div style={{ fontSize: 22, fontWeight: 900, ...coinText }}>
-            {earnedLevelPoints.toLocaleString()}
-          </div>
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          {targetLevel ? (
-            (() => {
-              const available = isLevelAvailable(targetLevel);
-              const done = isLevelEligible(targetLevel);
-
-              const daysPct = percent(validDaysNow, targetLevel.days);
-              const hrsPct = percent(hoursNow, targetLevel.hours);
-
-              const isL2 = targetLevel.level === 2;
-
-              const dp =
-                "diamondsPerPoint" in targetLevel
-                  ? (targetLevel as any).diamondsPerPoint
-                  : 0;
-
-              const rate =
-                "rate" in targetLevel ? (targetLevel as any).rate : 0;
-
-              const exactForTarget = isL2
-                ? 0
-                : pointsFromDiamondsRate(monthlyDiamonds, dp, rate);
-
-              const rewardText = isL2
-                ? "Eligibility only (0 coins)"
-                : `+${exactForTarget.toLocaleString()} coins`;
-
-              return (
-                <>
-                  {/* CURRENT TARGET */}
-                  <div
-                    style={{
-                      borderRadius: 16,
-                      padding: 14,
-                      background: available
-                        ? "rgba(255,255,255,0.04)"
-                        : "rgba(255,255,255,0.02)",
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      opacity: available ? 1 : 0.75,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 12,
-                        marginBottom: 6,
-                      }}
-                    >
-                      <div
-                        style={{ display: "flex", alignItems: "center", gap: 10 }}
-                      >
-                        <div
-                          style={{
-                            fontWeight: 900,
-                            letterSpacing: "0.06em",
-                            textTransform: "uppercase",
-                          }}
-                          className="glow-text"
-                        >
-                          Target: Level {targetLevel.level}
-                        </div>
-
-                        {!available && (
-                          <span
-                            style={{
-                              padding: "4px 10px",
-                              borderRadius: 999,
-                              fontSize: 11,
-                              fontWeight: 900,
-                              background: "rgba(255,255,255,0.06)",
-                              border: "1px solid rgba(255,255,255,0.12)",
-                            }}
-                          >
-                            Locked (needs 150K)
-                          </span>
-                        )}
-
-                        {available && done && (
-                          <span
-                            style={{
-                              padding: "4px 10px",
-                              borderRadius: 999,
-                              fontSize: 11,
-                              fontWeight: 900,
-                              background: "rgba(124,246,255,0.10)",
-                              border: "1px solid rgba(124,246,255,0.45)",
-                              color: "#7cf6ff",
-                              textShadow: "0 0 8px rgba(124,246,255,0.35)",
-                            }}
-                          >
-                            Completed
-                          </span>
-                        )}
-                      </div>
-
-                      <div style={{ fontWeight: 900, ...coinText }}>
-                        {rewardText}
-                      </div>
-                    </div>
-
-                    <div className="glow-text" style={{ marginBottom: 10 }}>
-                      Target: <b>{targetLevel.days}</b> valid days &{" "}
-                      <b>{targetLevel.hours}</b> hours
-                    </div>
-
-                    <div style={{ display: "grid", gap: 10 }}>
-                      {/* Valid Days */}
-                      <div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            marginBottom: 8,
-                          }}
-                          className="glow-text"
-                        >
-                          <div
-                            style={{
-                              fontWeight: 900,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.06em",
-                            }}
-                          >
-                            Valid Days
-                          </div>
-                          <div style={{ fontWeight: 900 }}>
-                            {Math.min(validDaysNow, targetLevel.days)}/
-                            {targetLevel.days}{" "}
-                            <span style={{ opacity: 0.95 }}>
-                              ({Math.round(daysPct)}%)
-                            </span>
-                          </div>
-                        </div>
-
-                        <div style={barOuter}>
-                          <div
-                            style={barInner(
-                              daysPct,
-                              validDaysNow >= targetLevel.days
-                            )}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Hours */}
-                      <div>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            marginBottom: 8,
-                          }}
-                          className="glow-text"
-                        >
-                          <div
-                            style={{
-                              fontWeight: 900,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.06em",
-                            }}
-                          >
-                            Hours Live
-                          </div>
-                          <div style={{ fontWeight: 900 }}>
-                            {Math.min(hoursNow, targetLevel.hours).toFixed(1)}/
-                            {targetLevel.hours}{" "}
-                            <span style={{ opacity: 0.95 }}>
-                              ({Math.round(hrsPct)}%)
-                            </span>
-                          </div>
-                        </div>
-
-                        <div style={barOuter}>
-                          <div
-                            style={barInner(hrsPct, hoursNow >= targetLevel.hours)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* LOCKED PREVIEW (NEXT TARGET) */}
-                  {nextLevel && (
-                    <div style={lockedPreviewStyle}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: 12,
-                        }}
-                      >
-                        <div
-                          className="glow-text"
-                          style={{
-                            fontWeight: 900,
-                            letterSpacing: "0.06em",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Next: Level {nextLevel.level}
-                        </div>
-
-                        <div
-                          style={{
-                            padding: "4px 10px",
-                            borderRadius: 999,
-                            fontSize: 11,
-                            fontWeight: 900,
-                            background: "rgba(255,255,255,0.06)",
-                            border: "1px solid rgba(255,255,255,0.12)",
-                          }}
-                        >
-                          Locked
-                        </div>
-                      </div>
-
-                      <div className="glow-text" style={{ marginTop: 6 }}>
-                        {nextLevel.days} valid days • {nextLevel.hours} hours
-                        <span style={{ opacity: 0.95 }}>
-                          {" "}
-                          (Potential coins:{" "}
-                          <b style={coinText}>
-                            {potentialNextPoints.toLocaleString()}
-                          </b>
-                          )
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              );
-            })()
-          ) : (
-            <div
-              style={{
-                borderRadius: 16,
-                padding: 14,
-                background: "rgba(45,224,255,0.06)",
-                border: "1px solid rgba(45,224,255,0.22)",
-              }}
-              className="glow-text"
-            >
-              All levels completed for this month.
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ✅ Monthly Progress */}
-      <section className="dash-card">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-end",
-            gap: 12,
-          }}
-        >
-          <div className="dash-card-title">Monthly Progress</div>
-
-          <div style={{ textAlign: "right" }}>
-            <div style={totalDiamondsLabelStyle}>Total Diamonds</div>
-            <div style={totalDiamondsNumberStyle}>
-              {monthlyDiamonds.toLocaleString()}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              height: 14,
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+              padding: 8,
               borderRadius: 999,
-              background: "rgba(255,255,255,0.08)",
+              background: "rgba(255,255,255,0.03)",
               border: "1px solid rgba(255,255,255,0.10)",
-              overflow: "hidden",
             }}
           >
-            <div
-              style={{
-                height: "100%",
-                width: `${progressPct}%`,
-                borderRadius: 999,
-                background:
-                  "linear-gradient(90deg, rgba(45,224,255,0.95), rgba(123,232,255,0.85))",
-                boxShadow: "0 0 10px rgba(45,224,255,0.45)",
-                transition: "width 350ms ease",
-              }}
-            />
-
-            {milestones.map((m) => {
-              const left = milestoneLeftPct(m.value);
-              const hit = monthlyDiamonds >= m.value;
+            {TIERS.map((t) => {
+              const active = t.id === currentTier.id;
               return (
                 <div
-                  key={m.value}
+                  key={`tier-strip-${t.id}`}
+                  title={`${t.label} • ≥ ${formatTierMin(t.min)} • ${t.incentiveCoins.toLocaleString()} coins`}
                   style={{
-                    position: "absolute",
-                    top: 0,
-                    left: `${left}%`,
-                    height: "100%",
-                    width: 2,
-                    transform: "translateX(-50%)",
-                    background: hit
-                      ? "rgba(255,255,255,0.95)"
-                      : "rgba(255,255,255,0.65)",
+                    height: 10,
+                    flex: 1,
+                    borderRadius: 999,
+                    background: t.color,
+                    opacity: active ? 1 : 0.45,
+                    boxShadow: active ? `0 0 14px ${t.color}66` : "none",
+                    outline: active ? `2px solid ${t.color}AA` : "none",
+                    outlineOffset: 2,
                   }}
                 />
               );
             })}
           </div>
+        </div>
 
-          <div style={{ position: "relative", marginTop: 10, height: 44 }}>
-            {milestones.map((m) => {
-              const left = milestoneLeftPct(m.value);
-              const hit = monthlyDiamonds >= m.value;
-              const edgeStyle = milestoneLabelStyle(m.value);
-
-              return (
-                <div
-                  key={`out-${m.value}`}
-                  style={{
-                    position: "absolute",
-                    left: `${left}%`,
-                    top: 0,
-                    width: 110,
-                    maxWidth: "40vw",
-                    ...edgeStyle,
-                  }}
-                >
-                  <div
-                    className="glow-text"
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 900,
-                      opacity: hit ? 1 : 0.85,
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {m.label}
-                  </div>
-                  <div
-                    className="glow-text"
-                    style={{
-                      marginTop: 2,
-                      fontSize: 14,
-                      lineHeight: 1,
-                      opacity: hit ? 0.95 : 0.6,
-                    }}
-                  />
+        {/* Next tier only */}
+        <div style={{ marginTop: 14 }}>
+          {nextTier ? (
+            <div
+              style={{
+                borderRadius: 16,
+                padding: 14,
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.10)",
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div className="glow-text" style={{ fontWeight: 900, letterSpacing: "0.06em" }}>
+                  Next: <span style={{ color: nextTier.color }}>{nextTier.label}</span> (≥{" "}
+                  {formatTierMin(nextTier.min)})
                 </div>
-              );
-            })}
+                <div style={{ fontWeight: 900, ...coinText }}>
+                  {nextTier.incentiveCoins.toLocaleString()} coins
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              {(() => {
+                const from = currentTier.min;
+                const to = nextTier.min;
+                const span = Math.max(1, to - from);
+                const now = clamp(monthlyDiamonds - from, 0, span);
+                const pct = (now / span) * 100;
+
+                return (
+                  <>
+                    <div style={barOuter}>
+                      <div style={barInner(pct, currentTier.color)} />
+                    </div>
+                    <div className="glow-text" style={{ opacity: 0.9 }}>
+                      {monthlyDiamonds.toLocaleString()} / {nextTier.min.toLocaleString()} diamonds
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          ) : (
+            <div className="glow-text" style={{ marginTop: 10 }}>
+              You’re at the maximum tier 🎉
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Activeness requirements (single target only) */}
+      <section className="dash-card">
+        <div className="dash-card-title">Activeness</div>
+        <div className="glow-text" style={{ marginTop: 8, opacity: 0.95 }}>
+          Minimum requirements for incentives: <b>{MIN_VALID_DAYS} days</b> and <b>{MIN_HOURS} hours</b>.
+        </div>
+
+        <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
+          {/* Days */}
+          <div
+            style={{
+              borderRadius: 16,
+              padding: 14,
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }}
+          >
+            <div className="glow-text" style={{ fontWeight: 900, letterSpacing: "0.06em" }}>
+              Valid days
+            </div>
+            <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 18, fontWeight: 900 }}>
+                {Math.min(validDaysNow, MIN_VALID_DAYS)}/{MIN_VALID_DAYS}
+              </div>
+              <div style={pillStyle(validDaysNow >= MIN_VALID_DAYS)}>
+                {validDaysNow >= MIN_VALID_DAYS ? "Met" : "Not Met"}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 10, ...barOuter }}>
+              <div style={barInner(daysPct, "#7cf6ff")} />
+            </div>
+          </div>
+
+          {/* Hours */}
+          <div
+            style={{
+              borderRadius: 16,
+              padding: 14,
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }}
+          >
+            <div className="glow-text" style={{ fontWeight: 900, letterSpacing: "0.06em" }}>
+              Hours live
+            </div>
+            <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 18, fontWeight: 900 }}>
+                {Math.min(hoursNow, MIN_HOURS).toFixed(1)}/{MIN_HOURS}
+              </div>
+              <div style={pillStyle(hoursNow >= MIN_HOURS)}>{hoursNow >= MIN_HOURS ? "Met" : "Not Met"}</div>
+            </div>
+
+            <div style={{ marginTop: 10, ...barOuter }}>
+              <div style={barInner(hrsPct, "#7cf6ff")} />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ✅ Summary grid */}
-      <section className="dash-summary-grid">
-        <div className="dash-mini-card">
-          <div className="mini-label">Yesterday’s diamonds</div>
-          <div className="mini-value">{yesterdayDiamonds.toLocaleString()}</div>
-        </div>
-
-        <div className="dash-mini-card">
-          <div className="mini-label">This month’s diamonds</div>
-          <div className="mini-value">{monthlyDiamonds.toLocaleString()}</div>
-        </div>
-
-        <div className="dash-mini-card">
-          <div className="mini-label">Total hours (this month)</div>
-          <div className="mini-value">{monthlyHours.toFixed(1)}h</div>
-        </div>
-      </section>
-
-      {/* Calendar */}
+      {/* CALENDAR */}
       <section className="dash-card">
         <div className="dash-card-title">
           {label} {year} Activity
@@ -1027,24 +687,65 @@ export default function CreatorDashboardPage() {
 
           <div className="calendar-grid">
             {cells.map((cell, i) => {
-              if (!cell.day) {
-                return <div key={i} className="calendar-cell empty" />;
-              }
+              if (!cell.day) return <div key={`empty-${i}`} className="calendar-cell empty" />;
 
               const e = historyByDate[cell.dateStr!];
               const hrs = e?.hours ?? 0;
+              const daily = e?.daily ?? 0;
+
+              const hourMet = hrs >= 1;
 
               return (
                 <div
                   key={cell.dateStr}
-                  className={
-                    "calendar-cell day-cell" + (hrs >= 1 ? " day-active" : "")
-                  }
+                  className={"calendar-cell day-cell" + (hourMet ? " day-active" : "")}
+                  style={{
+                    padding: 10,
+                  }}
                 >
-                  <div className="day-number">{cell.day}</div>
-                  <div className="day-metrics compact">
-                    <span>💎 {e?.daily?.toLocaleString() ?? "-"}</span>
-                    <span>{hrs > 0 ? `⏱ ${hrs.toFixed(1)}h` : ""}</span>
+                  {/* bigger day number */}
+                  <div className="day-number" style={{ fontSize: 16, fontWeight: 900, opacity: 0.95 }}>
+                    {cell.day}
+                  </div>
+
+                  {/* bigger metrics */}
+                  <div
+                    style={{
+                      marginTop: 8,
+                      display: "grid",
+                      gap: 8,
+                      fontSize: 13,
+                      fontWeight: 900,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                      <span style={{ opacity: 0.9 }}>💎</span>
+                      <span style={{ flex: 1, textAlign: "right" }}>{daily ? daily.toLocaleString() : "-"}</span>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                      <span style={{ opacity: 0.9 }}>⏱</span>
+                      <span style={{ flex: 1, textAlign: "right" }}>
+                        {hrs > 0 ? `${hrs.toFixed(1)}h / 1h` : "-"}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 2,
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        fontSize: 11,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        textAlign: "center",
+                        color: hourMet ? "#7cf6ff" : "rgba(255,255,255,0.75)",
+                        background: hourMet ? "rgba(124,246,255,0.10)" : "rgba(255,255,255,0.05)",
+                        border: hourMet ? "1px solid rgba(124,246,255,0.45)" : "1px solid rgba(255,255,255,0.10)",
+                      }}
+                    >
+                      {hourMet ? "Hour achieved" : "Hour not achieved"}
+                    </div>
                   </div>
                 </div>
               );

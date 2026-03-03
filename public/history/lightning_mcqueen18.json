@@ -1,0 +1,26 @@
+{
+  "username": "lightning_mcqueen18",
+  "entries": [
+    {
+      "date": "2026-03-01",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2026-02-02",
+      "daily": 8211,
+      "hours": 11.861388888888888,
+      "lifetime": 8211,
+      "lifetimeHours": 11.861388888888888
+    },
+    {
+      "date": "2026-03-02",
+      "daily": 8211,
+      "hours": 11.861388888888888,
+      "lifetime": 8211,
+      "lifetimeHours": 11.861388888888888
+    }
+  ]
+}

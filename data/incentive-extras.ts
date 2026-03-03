@@ -3,8 +3,8 @@
 export const incentiveExtras: Record<string, number> = {
   // username: extra points (graduations, bonuses, manual rewards)
 
-  livburns5: 3000,
-  mavismim: 5500,
+  livburns5: 0,
+  mavismim: 0,
 
   // add more below
 };

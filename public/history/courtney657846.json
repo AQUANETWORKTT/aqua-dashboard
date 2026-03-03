@@ -1,0 +1,26 @@
+{
+  "username": "courtney657846",
+  "entries": [
+    {
+      "date": "2026-03-01",
+      "daily": 625,
+      "hours": 1.2486111111111111,
+      "lifetime": 625,
+      "lifetimeHours": 1.2486111111111111
+    },
+    {
+      "date": "2026-02-02",
+      "daily": 181,
+      "hours": 1.0733333333333333,
+      "lifetime": 806,
+      "lifetimeHours": 2.321944444444444
+    },
+    {
+      "date": "2026-03-02",
+      "daily": 181,
+      "hours": 1.0733333333333333,
+      "lifetime": 806,
+      "lifetimeHours": 2.321944444444444
+    }
+  ]
+}

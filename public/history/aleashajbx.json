@@ -1,0 +1,26 @@
+{
+  "username": "aleashajbx",
+  "entries": [
+    {
+      "date": "2026-03-01",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2026-02-02",
+      "daily": 1330,
+      "hours": 2.3847222222222224,
+      "lifetime": 1330,
+      "lifetimeHours": 2.3847222222222224
+    },
+    {
+      "date": "2026-03-02",
+      "daily": 1330,
+      "hours": 2.3847222222222224,
+      "lifetime": 1330,
+      "lifetimeHours": 2.3847222222222224
+    }
+  ]
+}
