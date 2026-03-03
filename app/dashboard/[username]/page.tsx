@@ -20,11 +20,11 @@ type HistoryFile = {
 };
 
 type IncentiveStats = {
-  diamonds: number; // month diamonds
-  hours: number; // month hours
+  diamonds: number; // month diamonds (calculated)
+  hours: number; // month hours (calculated)
   validDays: number; // month valid days (>= 1h)
   top5Count: number;
-  calculatedPoints: number; // derived points
+  calculatedPoints: number;
   extrasPoints: number; // incentiveExtras
 };
 
@@ -32,7 +32,7 @@ type TierConfig = {
   id: number; // 1..10
   min: number; // diamonds threshold (monthly)
   label: string;
-  color: string; // border + text
+  color: string;
   incentiveCoins: number;
 };
 
@@ -79,6 +79,7 @@ function formatTierMin(min: number) {
 
 /* ===================== CONFIG ===================== */
 
+// Tier ladder (monthly diamonds)
 const TIERS: TierConfig[] = [
   { id: 1, label: "Tier 1", min: 0, color: "#9CA3AF", incentiveCoins: 0 },
   { id: 2, label: "Tier 2", min: 100_000, color: "#84cc16", incentiveCoins: 2_100 },
@@ -92,7 +93,7 @@ const TIERS: TierConfig[] = [
   { id: 10, label: "Tier 10", min: 5_000_000, color: "#f59e0b", incentiveCoins: 105_000 },
 ];
 
-// still used ONLY to compute activeness level label
+// Only used to compute "Activeness level" label (no levels UI shown)
 const ACTIVENESS_RULES: ActivenessRule[] = [
   { level: 1, days: 8, hours: 20 },
   { level: 2, days: 11, hours: 30 },
@@ -101,7 +102,7 @@ const ACTIVENESS_RULES: ActivenessRule[] = [
   { level: 5, days: 22, hours: 80 },
 ];
 
-// ✅ minimum requirements for incentives (single target bar)
+// Minimum requirements for incentives (single target)
 const MIN_VALID_DAYS = 15;
 const MIN_HOURS = 40;
 
@@ -142,7 +143,6 @@ export default function CreatorDashboardPage() {
   const rankIndex = sorted.findIndex(
     (c) => c.username.toLowerCase() === username.toLowerCase()
   );
-
   const rank = rankIndex >= 0 ? rankIndex + 1 : null;
 
   /* ---------- month selection (CURRENT MONTH ONLY) ---------- */
@@ -212,6 +212,7 @@ export default function CreatorDashboardPage() {
   useEffect(() => {
     if (!monthHistory.length || !Object.keys(allHistories).length || !username) return;
 
+    // month histories for all users (for top-5 per day)
     const mk = selectedMonthKey;
     const monthAll: Record<string, HistoryEntry[]> = {};
     for (const u in allHistories) {
@@ -223,6 +224,7 @@ export default function CreatorDashboardPage() {
     let validDays = 0;
     let top5Count = 0;
 
+    // collect all dates seen in month across all users (for top5 each day)
     const dates = new Set<string>();
     Object.values(monthAll).forEach((arr) =>
       arr.forEach((e) => {
@@ -230,6 +232,7 @@ export default function CreatorDashboardPage() {
       })
     );
 
+    // top5 by day
     const top5ByDay: Record<string, string[]> = {};
     [...dates].forEach((date) => {
       const rows: { username: string; daily: number }[] = [];
@@ -243,16 +246,18 @@ export default function CreatorDashboardPage() {
       top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
     });
 
+    // totals + top5 count
     monthHistory.forEach((e) => {
       diamonds += e.daily ?? 0;
       hours += e.hours ?? 0;
 
+      // valid day definition (>=1h)
       if ((e.hours ?? 0) >= 1) validDays++;
 
       if (top5ByDay[e.date]?.includes(username)) top5Count++;
     });
 
-    // base calculated points (unchanged)
+    // base calculated points (keep your existing feel)
     const thousands = Math.floor(diamonds / 1000);
     let diamondPoints = 0;
     if (thousands >= 1) {
@@ -302,7 +307,6 @@ export default function CreatorDashboardPage() {
     [monthlyDiamonds]
   );
 
-  // ✅ still compute the level, but we do NOT show a levels table / multi-target UI
   const activenessLevel = useMemo(
     () => getActivenessLevel(validDaysNow, hoursNow),
     [validDaysNow, hoursNow]
@@ -312,26 +316,25 @@ export default function CreatorDashboardPage() {
   const liveEarnedCoins = stats?.calculatedPoints ?? 0;
   const extrasCoins = stats?.extrasPoints ?? 0;
 
-  // ✅ removed activeness bonus from incentive coins
   const incentiveCoinsTotal = liveEarnedCoins + extrasCoins + tierCoins;
 
   /* ===================== CALENDAR (MONTH) ===================== */
 
   function buildMonth(year: number, monthIndex: number) {
-    const first = new Date(year, monthIndex, 1);
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    const offset = (first.getDay() + 6) % 7; // Monday-start
+ 	 const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
 
-    const cells: { day: number | null; dateStr?: string }[] = [];
-    for (let i = 0; i < offset; i++) cells.push({ day: null });
+ 	 const cells: { day: number; dateStr: string }[] = [];
 
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${pad2(monthIndex + 1)}-${pad2(d)}`;
-      cells.push({ day: d, dateStr });
-    }
+ 	 for (let d = 1; d <= daysInMonth; d++) {
+ 	   const dateStr = `${year}-${pad2(monthIndex + 1)}-${pad2(d)}`;
+ 	   cells.push({ day: d, dateStr });
+ 	 }
 
-    const label = new Date(year, monthIndex, 1).toLocaleString("default", { month: "long" });
-    return { cells, year, month: monthIndex, label };
+	  const label = new Date(year, monthIndex, 1).toLocaleString("default", {
+	    month: "long",
+	  });
+
+	  return { cells, year, month: monthIndex, label };
   }
 
   const { cells, year, label } = useMemo(
@@ -388,10 +391,21 @@ export default function CreatorDashboardPage() {
     transition: "width 350ms ease",
   });
 
+  /* Requirements met? */
   const okReq = validDaysNow >= MIN_VALID_DAYS && hoursNow >= MIN_HOURS;
 
   const daysPct = (clamp(validDaysNow, 0, MIN_VALID_DAYS) / MIN_VALID_DAYS) * 100;
   const hrsPct = (clamp(hoursNow, 0, MIN_HOURS) / MIN_HOURS) * 100;
+
+  /* Tier progress */
+  const nextTierProgress = useMemo(() => {
+    if (!nextTier) return { pct: 100, text: "Max Tier" };
+    const from = currentTier.min;
+    const to = nextTier.min;
+    const span = Math.max(1, to - from);
+    const now = clamp(monthlyDiamonds - from, 0, span);
+    return { pct: (now / span) * 100, text: `${monthlyDiamonds.toLocaleString()} / ${to.toLocaleString()} diamonds` };
+  }, [currentTier.min, monthlyDiamonds, nextTier]);
 
   /* ===================== UI ===================== */
 
@@ -410,7 +424,7 @@ export default function CreatorDashboardPage() {
               </div>
             )}
 
-            {/* Clean monthly diamonds box under profile */}
+            {/* Monthly diamonds box under profile */}
             <div
               style={{
                 marginTop: 10,
@@ -492,8 +506,8 @@ export default function CreatorDashboardPage() {
 
           {!loading && stats && (
             <>
-              <div style={{ fontSize: "22px", fontWeight: 900, marginBottom: "8px", ...coinText }}>
-                Incentive Coins: {incentiveCoinsTotal.toLocaleString()}
+              <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 8, ...coinText }}>
+                {incentiveCoinsTotal.toLocaleString()} Coins
               </div>
 
               <div>
@@ -518,7 +532,7 @@ export default function CreatorDashboardPage() {
         </div>
       </section>
 
-      {/* Tier */}
+      {/* TIER */}
       <section className="dash-card">
         <div className="dash-card-title">Tier</div>
 
@@ -580,25 +594,13 @@ export default function CreatorDashboardPage() {
                 </div>
               </div>
 
-              {/* Progress bar */}
-              {(() => {
-                const from = currentTier.min;
-                const to = nextTier.min;
-                const span = Math.max(1, to - from);
-                const now = clamp(monthlyDiamonds - from, 0, span);
-                const pct = (now / span) * 100;
+              <div style={barOuter}>
+                <div style={barInner(nextTierProgress.pct, currentTier.color)} />
+              </div>
 
-                return (
-                  <>
-                    <div style={barOuter}>
-                      <div style={barInner(pct, currentTier.color)} />
-                    </div>
-                    <div className="glow-text" style={{ opacity: 0.9 }}>
-                      {monthlyDiamonds.toLocaleString()} / {nextTier.min.toLocaleString()} diamonds
-                    </div>
-                  </>
-                );
-              })()}
+              <div className="glow-text" style={{ opacity: 0.9 }}>
+                {nextTierProgress.text}
+              </div>
             </div>
           ) : (
             <div className="glow-text" style={{ marginTop: 10 }}>
@@ -608,7 +610,7 @@ export default function CreatorDashboardPage() {
         </div>
       </section>
 
-      {/* Activeness requirements (single target only) */}
+      {/* ACTIVENESS (single target only) */}
       <section className="dash-card">
         <div className="dash-card-title">Activeness</div>
         <div className="glow-text" style={{ marginTop: 8, opacity: 0.95 }}>
@@ -632,9 +634,7 @@ export default function CreatorDashboardPage() {
               <div style={{ fontSize: 18, fontWeight: 900 }}>
                 {Math.min(validDaysNow, MIN_VALID_DAYS)}/{MIN_VALID_DAYS}
               </div>
-              <div style={pillStyle(validDaysNow >= MIN_VALID_DAYS)}>
-                {validDaysNow >= MIN_VALID_DAYS ? "Met" : "Not Met"}
-              </div>
+              <div style={pillStyle(validDaysNow >= MIN_VALID_DAYS)}>{validDaysNow >= MIN_VALID_DAYS ? "Met" : "Not Met"}</div>
             </div>
 
             <div style={{ marginTop: 10, ...barOuter }}>
@@ -668,24 +668,14 @@ export default function CreatorDashboardPage() {
         </div>
       </section>
 
-      {/* CALENDAR */}
+      {/* CALENDAR (no weekday row, no extra gap) */}
       <section className="dash-card">
         <div className="dash-card-title">
           {label} {year} Activity
         </div>
 
-        <div className="calendar">
-          <div className="calendar-weekdays">
-            <div>Mon</div>
-            <div>Tue</div>
-            <div>Wed</div>
-            <div>Thu</div>
-            <div>Fri</div>
-            <div>Sat</div>
-            <div>Sun</div>
-          </div>
-
-          <div className="calendar-grid">
+        <div className="calendar" style={{ marginTop: 10, paddingTop: 0 }}>
+          <div className="calendar-grid" style={{ marginTop: 0 }}>
             {cells.map((cell, i) => {
               if (!cell.day) return <div key={`empty-${i}`} className="calendar-cell empty" />;
 
@@ -699,28 +689,18 @@ export default function CreatorDashboardPage() {
                 <div
                   key={cell.dateStr}
                   className={"calendar-cell day-cell" + (hourMet ? " day-active" : "")}
-                  style={{
-                    padding: 10,
-                  }}
+                  style={{ padding: 10 }}
                 >
-                  {/* bigger day number */}
                   <div className="day-number" style={{ fontSize: 16, fontWeight: 900, opacity: 0.95 }}>
                     {cell.day}
                   </div>
 
-                  {/* bigger metrics */}
-                  <div
-                    style={{
-                      marginTop: 8,
-                      display: "grid",
-                      gap: 8,
-                      fontSize: 13,
-                      fontWeight: 900,
-                    }}
-                  >
+                  <div style={{ marginTop: 8, display: "grid", gap: 8, fontSize: 13, fontWeight: 900 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                       <span style={{ opacity: 0.9 }}>💎</span>
-                      <span style={{ flex: 1, textAlign: "right" }}>{daily ? daily.toLocaleString() : "-"}</span>
+                      <span style={{ flex: 1, textAlign: "right" }}>
+                        {daily ? daily.toLocaleString() : "-"}
+                      </span>
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>

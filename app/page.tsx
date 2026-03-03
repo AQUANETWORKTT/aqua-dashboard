@@ -21,7 +21,7 @@ export default function HomePage() {
           </h1>
 
           <p className="hero-subtitle">
-            The dashboard is currently under maintenance.
+            The dashboard is now live.
           </p>
 
           <div className="hero-buttons">
@@ -50,10 +50,10 @@ export default function HomePage() {
 
               <div className="glow-stat compact">
                 <div className="glow-stat-label">Status</div>
-                <div className="glow-stat-value status-maintenance">
-                  Under Maintenance
+                <div className="glow-stat-value status-live">
+                  Live
                 </div>
-                <div className="glow-stat-sub">TEMPORARILY UNAVAILABLE</div>
+                <div className="glow-stat-sub">FULLY OPERATIONAL</div>
               </div>
             </div>
 
