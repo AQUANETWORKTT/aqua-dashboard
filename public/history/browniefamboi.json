@@ -1,0 +1,26 @@
+{
+  "username": "browniefamboi",
+  "entries": [
+    {
+      "date": "2026-03-03",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 3231,
+      "lifetimeHours": 10.449722222222222
+    },
+    {
+      "date": "2026-03-04",
+      "daily": 2357,
+      "hours": 5.373333333333333,
+      "lifetime": 3231,
+      "lifetimeHours": 10.449722222222222
+    },
+    {
+      "date": "2026-03-05",
+      "daily": 874,
+      "hours": 5.076388888888888,
+      "lifetime": 3231,
+      "lifetimeHours": 10.449722222222222
+    }
+  ]
+}

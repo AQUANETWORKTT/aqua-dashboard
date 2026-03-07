@@ -1,0 +1,26 @@
+{
+  "username": "amzymooxox1",
+  "entries": [
+    {
+      "date": "2026-03-03",
+      "daily": 1,
+      "hours": 1.0208333333333333,
+      "lifetime": 15975,
+      "lifetimeHours": 14.060833333333335
+    },
+    {
+      "date": "2026-03-04",
+      "daily": 13755,
+      "hours": 6.382777777777777,
+      "lifetime": 15975,
+      "lifetimeHours": 14.060833333333335
+    },
+    {
+      "date": "2026-03-05",
+      "daily": 2219,
+      "hours": 6.657222222222223,
+      "lifetime": 15975,
+      "lifetimeHours": 14.060833333333335
+    }
+  ]
+}
