@@ -1,14 +1,42 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { creators } from "@/data/creators";
 
+function CreatorAvatar({ username }: { username: string }) {
+  const originalSrc = `/creators/${encodeURIComponent(username)}.jpg`;
+  const fallbackSrc = "/creators/default.jpg";
+
+  const [src, setSrc] = useState(fallbackSrc);
+
+  useEffect(() => {
+    const img = new window.Image();
+
+    img.src = originalSrc;
+
+    img.onload = () => {
+      setSrc(originalSrc);
+    };
+
+    img.onerror = () => {
+      setSrc(fallbackSrc);
+    };
+  }, [originalSrc]);
+
+  return (
+    <img
+      src={src}
+      alt={`${username} avatar`}
+      className="leaderboard-avatar"
+    />
+  );
+}
+
 export default function LeaderboardPage() {
-  // Sort creators by monthly diamonds (highest → lowest)
   const sorted = [...creators].sort((a, b) => b.lifetime - a.lifetime);
 
   return (
     <main className="leaderboard-wrapper">
-      {/* Banner Image */}
       <div className="leaderboard-title-image">
         <img
           src="/branding/creator-leaderboard.png"
@@ -17,38 +45,27 @@ export default function LeaderboardPage() {
         />
       </div>
 
-      {/* Leaderboard List */}
       <div className="leaderboard-list">
         {sorted.map((creator, index) => (
           <div key={creator.username} className="leaderboard-row">
-            {/* LEFT SIDE */}
             <div className="leaderboard-left">
-              {/* Rank */}
               <div className="rank-number">{index + 1}</div>
 
-              {/* Avatar */}
-              <img
-                src={`/creators/${creator.username}.jpg`}
-                className="leaderboard-avatar"
-                alt={`${creator.username} avatar`}
-              />
+              <CreatorAvatar username={creator.username} />
 
-              {/* Username + Badge */}
               <div className="creator-info">
                 <div className="creator-username glow-text">
                   {creator.username}
                 </div>
 
                 {creator.username === "alfie.harnett" && (
-  		<div className="campaign-winner-text">
-  		  Aqua Ascension Campaign Winner
-		  </div>
-		)}
-
+                  <div className="campaign-winner-text">
+                    Aqua Ascension Campaign Winner
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* RIGHT SIDE */}
             <div className="leaderboard-right">
               <div className="leaderboard-lifetime">
                 {creator.lifetime.toLocaleString()}
@@ -58,7 +75,7 @@ export default function LeaderboardPage() {
               <div className="leaderboard-yesterday">
                 {creator.daily.toLocaleString()}
               </div>
-              <div className="leaderboard-yesterday-label">yesterday</div>
+              <div className="leaderboard-yesterday-label">Yesterday</div>
             </div>
           </div>
         ))}
