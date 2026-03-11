@@ -273,6 +273,20 @@
       "hours": 1.8933333333333333,
       "lifetime": 174590,
       "lifetimeHours": 6.77
+    },
+    {
+      "date": "2026-03-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 174590,
+      "lifetimeHours": 6.77
+    },
+    {
+      "date": "2026-03-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 174590,
+      "lifetimeHours": 6.77
     }
   ]
 }
