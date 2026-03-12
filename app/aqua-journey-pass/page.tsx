@@ -257,7 +257,7 @@ export default function AquaJourneyPassPage() {
           <div className="journey-top-left">
             <div className="journey-user-chip">
               <span className="journey-user-dot" />
-              <span>{displayName}</span>
+              <span className="journey-user-text">{displayName}</span>
             </div>
           </div>
 
@@ -451,9 +451,9 @@ export default function AquaJourneyPassPage() {
         .stars {
           inset: 0;
           background-image:
-            radial-gradient(circle at 15% 20%, rgba(255,255,255,0.45) 0 1px, transparent 1.5px),
-            radial-gradient(circle at 75% 14%, rgba(255,255,255,0.35) 0 1px, transparent 1.5px),
-            radial-gradient(circle at 62% 28%, rgba(255,255,255,0.25) 0 1px, transparent 1.5px);
+            radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.45) 0 1px, transparent 1.5px),
+            radial-gradient(circle at 75% 14%, rgba(255, 255, 255, 0.35) 0 1px, transparent 1.5px),
+            radial-gradient(circle at 62% 28%, rgba(255, 255, 255, 0.25) 0 1px, transparent 1.5px);
           opacity: 0.8;
         }
 
@@ -526,37 +526,52 @@ export default function AquaJourneyPassPage() {
           align-items: flex-start;
           justify-content: flex-end;
           gap: 16px;
-          padding: 2px 0;
-          min-height: 52px;
+          padding: 2px 24px 0 24px;
+          min-height: 60px;
         }
 
         .journey-top-left {
-          position: absolute;
-          left: 24px;
-          top: 0;
+          position: relative;
+          left: auto;
+          top: auto;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
           gap: 6px;
           text-align: left;
+          margin-right: auto;
+          max-width: calc(100% - 110px);
+          min-width: 0;
         }
 
         .journey-user-chip {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          width: fit-content;
+          width: 100%;
+          max-width: 100%;
           min-height: 30px;
           padding: 0 10px;
           border-radius: 999px;
           color: #a9eeff;
           font-size: 14px;
           font-weight: 700;
+          min-width: 0;
+        }
+
+        .journey-user-text {
+          display: block;
+          min-width: 0;
+          max-width: 100%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .journey-user-dot {
           width: 8px;
           height: 8px;
+          flex: 0 0 auto;
           border-radius: 50%;
           background: #2de0ff;
           box-shadow: 0 0 12px rgba(124, 246, 255, 0.8);
@@ -566,6 +581,9 @@ export default function AquaJourneyPassPage() {
           display: flex;
           gap: 10px;
           align-items: center;
+          flex-shrink: 0;
+          position: relative;
+          z-index: 3;
         }
 
         .journey-nav-btn {
@@ -577,6 +595,7 @@ export default function AquaJourneyPassPage() {
           border-radius: 999px;
           font-size: 13px;
           font-weight: 700;
+          white-space: nowrap;
         }
 
         .journey-nav-btn.muted {
@@ -792,18 +811,35 @@ export default function AquaJourneyPassPage() {
         }
 
         @keyframes driftA {
-          0%, 100% { transform: rotate(-8deg) translateY(0px); }
-          50% { transform: rotate(-4deg) translateY(12px); }
+          0%,
+          100% {
+            transform: rotate(-8deg) translateY(0px);
+          }
+          50% {
+            transform: rotate(-4deg) translateY(12px);
+          }
         }
 
         @keyframes driftB {
-          0%, 100% { transform: rotate(7deg) translateY(0px); }
-          50% { transform: rotate(10deg) translateY(-10px); }
+          0%,
+          100% {
+            transform: rotate(7deg) translateY(0px);
+          }
+          50% {
+            transform: rotate(10deg) translateY(-10px);
+          }
         }
 
         @keyframes pulseGlow {
-          0%, 100% { opacity: 0.7; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.06); }
+          0%,
+          100% {
+            opacity: 0.7;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.06);
+          }
         }
 
         @media (max-width: 980px) {
@@ -811,13 +847,13 @@ export default function AquaJourneyPassPage() {
             padding: 8px 14px 18px;
           }
 
-          .journey-top-left {
-            left: 14px;
+          .journey-nav-shell {
+            padding: 2px 14px 0 14px;
+            min-height: 60px;
           }
 
-          .journey-nav-shell {
-            justify-content: flex-end;
-            min-height: 58px;
+          .journey-top-left {
+            max-width: calc(100% - 92px);
           }
 
           .journey-stage-inner {
@@ -864,6 +900,15 @@ export default function AquaJourneyPassPage() {
         }
 
         @media (max-width: 560px) {
+          .journey-nav-shell {
+            gap: 10px;
+            min-height: 56px;
+          }
+
+          .journey-top-left {
+            max-width: calc(100% - 82px);
+          }
+
           .journey-nav-btn {
             min-height: 32px;
             padding: 0 12px;
@@ -871,6 +916,7 @@ export default function AquaJourneyPassPage() {
 
           .journey-user-chip {
             font-size: 13px;
+            padding: 0 8px;
           }
 
           .level-label {
