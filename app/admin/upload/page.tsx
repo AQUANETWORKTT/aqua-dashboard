@@ -100,12 +100,10 @@ export default function AdminUploadPage() {
   return (
     <main className="admin-wrapper">
       <div className="admin-card">
-
         {/* ---------------- STATS UPLOAD ---------------- */}
         <h1 className="admin-title">Upload Stats</h1>
 
         <form onSubmit={handleStatsSubmit} className="admin-form">
-
           <label className="admin-label">
             Admin Password
             <input
@@ -142,6 +140,19 @@ export default function AdminUploadPage() {
             />
           </label>
 
+          <p
+            style={{
+              marginTop: -8,
+              marginBottom: 8,
+              fontSize: "0.92rem",
+              opacity: 0.8,
+              lineHeight: 1.5,
+            }}
+          >
+            Daily sheet should include username, daily diamonds, hours, and
+            matches. Existing upload flow stays the same.
+          </p>
+
           <label className="admin-label">
             Lifetime Excel
             <input
@@ -160,10 +171,11 @@ export default function AdminUploadPage() {
         </form>
 
         {/* ---------------- BATTLE UPLOAD ---------------- */}
-        <h2 className="glow-text" style={{ marginTop: 40 }}>Add Arranged Battle</h2>
+        <h2 className="glow-text" style={{ marginTop: 40 }}>
+          Add Arranged Battle
+        </h2>
 
         <form onSubmit={handleBattleSubmit} className="admin-form">
-
           <label className="admin-label">
             Date
             <input
@@ -258,7 +270,6 @@ export default function AdminUploadPage() {
 
           {battleStatus && <p className="admin-status">{battleStatus}</p>}
         </form>
-
       </div>
     </main>
   );
