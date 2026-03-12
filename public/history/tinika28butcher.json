@@ -86,13 +86,6 @@
       "lifetimeHours": 0
     },
     {
-      "date": "2026-02-11",
-      "daily": 0,
-      "hours": 0,
-      "lifetime": 0,
-      "lifetimeHours": 0
-    },
-    {
       "date": "2026-02-12",
       "daily": 0,
       "hours": 0,
@@ -276,6 +269,20 @@
     },
     {
       "date": "2026-03-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2026-02-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0
+    },
+    {
+      "date": "2026-03-11",
       "daily": 0,
       "hours": 0,
       "lifetime": 0,
