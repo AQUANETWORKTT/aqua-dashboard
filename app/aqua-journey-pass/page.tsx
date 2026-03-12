@@ -91,9 +91,12 @@ export default function AquaJourneyPassPage() {
   useEffect(() => {
     if (!username) {
       setHistory(null);
+      setError(null);
+      setLoading(false);
       return;
     }
 
+    const safeUsername: string = username;
     let cancelled = false;
 
     async function loadCreator() {
@@ -101,22 +104,27 @@ export default function AquaJourneyPassPage() {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`/history/${encodeURIComponent(username)}.json`, {
-          cache: "no-store",
-        });
+        const res = await fetch(
+          `/history/${encodeURIComponent(safeUsername)}.json`,
+          {
+            cache: "no-store",
+          }
+        );
 
         if (!res.ok) {
-          throw new Error(`Could not load creator history for "${username}"`);
+          throw new Error(`Could not load creator history for "${safeUsername}"`);
         }
 
-        const json = await res.json();
+        const json: HistoryFile = await res.json();
 
         if (!cancelled) {
           setHistory(json);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!cancelled) {
-          setError(err.message || "Failed to load creator history.");
+          const message =
+            err instanceof Error ? err.message : "Failed to load creator history.";
+          setError(message);
           setHistory(null);
         }
       } finally {
@@ -326,7 +334,8 @@ export default function AquaJourneyPassPage() {
             <div className="small-stat-row">
               <span>Diamonds</span>
               <strong>
-                {stats.monthlyDiamonds.toLocaleString()} / {nextLevel.diamonds.toLocaleString()}
+                {stats.monthlyDiamonds.toLocaleString()} /{" "}
+                {nextLevel.diamonds.toLocaleString()}
               </strong>
             </div>
 
@@ -482,7 +491,12 @@ export default function AquaJourneyPassPage() {
           bottom: 0;
           height: 34%;
           background:
-            linear-gradient(180deg, rgba(23, 86, 118, 0.02), rgba(23, 125, 168, 0.08) 35%, rgba(7, 30, 42, 0.8));
+            linear-gradient(
+              180deg,
+              rgba(23, 86, 118, 0.02),
+              rgba(23, 125, 168, 0.08) 35%,
+              rgba(7, 30, 42, 0.8)
+            );
           filter: blur(1px);
         }
 
@@ -741,7 +755,7 @@ export default function AquaJourneyPassPage() {
         .clean-section {
           max-width: 700px;
           width: 100%;
-          margin: 10px auto 0;
+          margin: 20px auto 0;
           padding-top: 0;
           position: relative;
           z-index: 5;
@@ -837,7 +851,7 @@ export default function AquaJourneyPassPage() {
           }
 
           .clean-section {
-            margin: 16px auto 0;
+            margin: 20px auto 0;
           }
 
           .clean-section.smaller {
@@ -887,7 +901,7 @@ export default function AquaJourneyPassPage() {
           }
 
           .clean-section {
-            margin: 18px auto 0;
+            margin: 22px auto 0;
           }
 
           .clean-section.smaller {
