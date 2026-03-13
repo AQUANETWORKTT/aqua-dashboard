@@ -82,15 +82,15 @@ function formatTierMin(min: number) {
 // Tier ladder (monthly diamonds)
 const TIERS: TierConfig[] = [
   { id: 1, label: "Tier 1", min: 0, color: "#9CA3AF", incentiveCoins: 0 },
-  { id: 2, label: "Tier 2", min: 100_000, color: "#84cc16", incentiveCoins: 2_100 },
-  { id: 3, label: "Tier 3", min: 200_000, color: "#06b6d4", incentiveCoins: 4_200 },
-  { id: 4, label: "Tier 4", min: 300_000, color: "#3b82f6", incentiveCoins: 6_300 },
-  { id: 5, label: "Tier 5", min: 500_000, color: "#6366f1", incentiveCoins: 10_500 },
-  { id: 6, label: "Tier 6", min: 700_000, color: "#8b5cf6", incentiveCoins: 14_700 },
-  { id: 7, label: "Tier 7", min: 1_000_000, color: "#d946ef", incentiveCoins: 21_000 },
-  { id: 8, label: "Tier 8", min: 1_600_000, color: "#f43f5e", incentiveCoins: 33_600 },
-  { id: 9, label: "Tier 9", min: 2_500_000, color: "#f97316", incentiveCoins: 52_500 },
-  { id: 10, label: "Tier 10", min: 5_000_000, color: "#f59e0b", incentiveCoins: 105_000 },
+  { id: 2, label: "Tier 2", min: 100_000, color: "#84cc16", incentiveCoins: 1_500 },
+  { id: 3, label: "Tier 3", min: 200_000, color: "#06b6d4", incentiveCoins: 3_000 },
+  { id: 4, label: "Tier 4", min: 300_000, color: "#3b82f6", incentiveCoins: 4_500 },
+  { id: 5, label: "Tier 5", min: 500_000, color: "#6366f1", incentiveCoins: 6_000 },
+  { id: 6, label: "Tier 6", min: 700_000, color: "#8b5cf6", incentiveCoins: 7_500 },
+  { id: 7, label: "Tier 7", min: 1_000_000, color: "#d946ef", incentiveCoins: 9_000 },
+  { id: 8, label: "Tier 8", min: 1_600_000, color: "#f43f5e", incentiveCoins: 10_500 },
+  { id: 9, label: "Tier 9", min: 2_500_000, color: "#f97316", incentiveCoins: 12_000 },
+  { id: 10, label: "Tier 10", min: 5_000_000, color: "#f59e0b", incentiveCoins: 13_500 },
 ];
 
 // Only used to compute "Activeness level" label (no levels UI shown)
