@@ -70,6 +70,12 @@ export default function LeaderboardPage() {
                     FEBRUARY FINALE H2D WINNER
                   </div>
                 )}
+
+		{creator.username === "browniefamboi" && (
+  		  <div className="deep-dive-winner-text">
+    		    THE DEEP DIVE CAMPAIGN WINNER
+  		  </div>
+		)}
               </div>
             </div>
 
