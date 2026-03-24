@@ -1,0 +1,33 @@
+{
+  "username": "olivia.hackett",
+  "entries": [
+    {
+      "date": "2026-03-20",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 57,
+      "lifetimeHours": 1.0322222222222222
+    },
+    {
+      "date": "2026-03-21",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 57,
+      "lifetimeHours": 1.0322222222222222
+    },
+    {
+      "date": "2026-03-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 57,
+      "lifetimeHours": 1.0322222222222222
+    },
+    {
+      "date": "2026-03-23",
+      "daily": 57,
+      "hours": 1.0322222222222222,
+      "lifetime": 57,
+      "lifetimeHours": 1.0322222222222222
+    }
+  ]
+}

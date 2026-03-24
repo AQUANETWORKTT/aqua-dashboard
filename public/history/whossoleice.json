@@ -1,0 +1,33 @@
+{
+  "username": "whossoleice",
+  "entries": [
+    {
+      "date": "2026-03-20",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2514,
+      "lifetimeHours": 4.4719444444444445
+    },
+    {
+      "date": "2026-03-21",
+      "daily": 1241,
+      "hours": 2.0052777777777777,
+      "lifetime": 2514,
+      "lifetimeHours": 4.4719444444444445
+    },
+    {
+      "date": "2026-03-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2514,
+      "lifetimeHours": 4.4719444444444445
+    },
+    {
+      "date": "2026-03-23",
+      "daily": 1273,
+      "hours": 2.466666666666667,
+      "lifetime": 2514,
+      "lifetimeHours": 4.4719444444444445
+    }
+  ]
+}

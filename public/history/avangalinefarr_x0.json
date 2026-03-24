@@ -1,0 +1,33 @@
+{
+  "username": "avangalinefarr_x0",
+  "entries": [
+    {
+      "date": "2026-03-20",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 908,
+      "lifetimeHours": 5.120555555555555
+    },
+    {
+      "date": "2026-03-21",
+      "daily": 171,
+      "hours": 1.8105555555555557,
+      "lifetime": 908,
+      "lifetimeHours": 5.120555555555555
+    },
+    {
+      "date": "2026-03-22",
+      "daily": 118,
+      "hours": 0.31166666666666665,
+      "lifetime": 908,
+      "lifetimeHours": 5.120555555555555
+    },
+    {
+      "date": "2026-03-23",
+      "daily": 619,
+      "hours": 2.9983333333333335,
+      "lifetime": 908,
+      "lifetimeHours": 5.120555555555555
+    }
+  ]
+}

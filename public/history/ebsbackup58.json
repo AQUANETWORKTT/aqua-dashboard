@@ -1,0 +1,33 @@
+{
+  "username": "ebsbackup58",
+  "entries": [
+    {
+      "date": "2026-03-20",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2,
+      "lifetimeHours": 0.13555555555555554
+    },
+    {
+      "date": "2026-03-21",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2,
+      "lifetimeHours": 0.13555555555555554
+    },
+    {
+      "date": "2026-03-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2,
+      "lifetimeHours": 0.13555555555555554
+    },
+    {
+      "date": "2026-03-23",
+      "daily": 2,
+      "hours": 0.13555555555555554,
+      "lifetime": 2,
+      "lifetimeHours": 0.13555555555555554
+    }
+  ]
+}

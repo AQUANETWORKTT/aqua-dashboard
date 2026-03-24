@@ -1,0 +1,33 @@
+{
+  "username": "caitlinmaisie_",
+  "entries": [
+    {
+      "date": "2026-03-20",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 306,
+      "lifetimeHours": 2.0822222222222226
+    },
+    {
+      "date": "2026-03-21",
+      "daily": 0,
+      "hours": 0.07111111111111111,
+      "lifetime": 306,
+      "lifetimeHours": 2.0822222222222226
+    },
+    {
+      "date": "2026-03-22",
+      "daily": 72,
+      "hours": 0.5911111111111111,
+      "lifetime": 306,
+      "lifetimeHours": 2.0822222222222226
+    },
+    {
+      "date": "2026-03-23",
+      "daily": 234,
+      "hours": 1.4200000000000002,
+      "lifetime": 306,
+      "lifetimeHours": 2.0822222222222226
+    }
+  ]
+}
