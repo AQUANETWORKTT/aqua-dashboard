@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   async function handleLogin(e: React.FormEvent) {
@@ -17,19 +18,26 @@ export default function LoginPage() {
       return;
     }
 
+    if (!password.trim()) {
+      setError("Please enter your password.");
+      return;
+    }
+
     const res = await fetch("/api/login", {
       method: "POST",
-      body: JSON.stringify({ username }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, password }),
     });
 
     const data = await res.json();
 
     if (!res.ok || !data.username) {
-      setError("Login failed. Make sure your creator username is correct.");
+      setError("Login failed. Check your username and password.");
       return;
     }
 
-    // ✅ Replace + refresh so the server layout re-reads cookies and the NavBar shows instantly
     router.replace(`/dashboard/${data.username}`);
     router.refresh();
   }
@@ -49,6 +57,14 @@ export default function LoginPage() {
             placeholder="Your TikTok username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+          />
+
+          <input
+            type="password"
+            className="login-input"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
 
           {error && <p className="login-error">{error}</p>}
