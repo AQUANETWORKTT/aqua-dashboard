@@ -28,6 +28,13 @@
       "hours": 2.9983333333333335,
       "lifetime": 908,
       "lifetimeHours": 5.120555555555555
+    },
+    {
+      "date": "2026-03-24",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 908,
+      "lifetimeHours": 5.120555555555555
     }
   ]
 }
