@@ -61,13 +61,13 @@ export default function LeaderboardPage() {
 
                 {creator.username === "dylanjinks" && (
                   <div className="box-battle-winner-text">
-                    BOX BATTLE WINNER
+                    2 X BOX BATTLE WINNER
                   </div>
                 )}
 
                 {creator.username === "mavismim" && (
                   <div className="h2h-winner-text">
-                    FEBRUARY FINALE H2D WINNER
+                    FEBRUARY FINALE H2H WINNER
                   </div>
                 )}
 
