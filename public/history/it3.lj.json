@@ -1,0 +1,19 @@
+{
+  "username": "it3.lj",
+  "entries": [
+    {
+      "date": "2026-04-01",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 0.25
+    },
+    {
+      "date": "2026-04-02",
+      "daily": 0,
+      "hours": 0.25,
+      "lifetime": 0,
+      "lifetimeHours": 0.25
+    }
+  ]
+}
