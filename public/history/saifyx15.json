@@ -2,11 +2,25 @@
   "username": "saifyx15",
   "entries": [
     {
-      "date": "2026-04-04",
+      "date": "2026-04-03",
       "daily": 103,
       "hours": 0.5886111111111112,
-      "lifetime": 103,
-      "lifetimeHours": 0.5886111111111112
+      "lifetime": 130,
+      "lifetimeHours": 2.2080555555555557
+    },
+    {
+      "date": "2026-04-04",
+      "daily": 26,
+      "hours": 1.4933333333333334,
+      "lifetime": 130,
+      "lifetimeHours": 2.2080555555555557
+    },
+    {
+      "date": "2026-04-05",
+      "daily": 1,
+      "hours": 0.12611111111111112,
+      "lifetime": 130,
+      "lifetimeHours": 2.2080555555555557
     }
   ]
 }
