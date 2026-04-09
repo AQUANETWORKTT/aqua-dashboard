@@ -1,0 +1,26 @@
+{
+  "username": "nathan.r2008",
+  "entries": [
+    {
+      "date": "2026-04-06",
+      "daily": 729,
+      "hours": 2.5741666666666663,
+      "lifetime": 920,
+      "lifetimeHours": 5.061388888888889
+    },
+    {
+      "date": "2026-04-07",
+      "daily": 88,
+      "hours": 1.488611111111111,
+      "lifetime": 920,
+      "lifetimeHours": 5.061388888888889
+    },
+    {
+      "date": "2026-04-08",
+      "daily": 103,
+      "hours": 0.998611111111111,
+      "lifetime": 920,
+      "lifetimeHours": 5.061388888888889
+    }
+  ]
+}
