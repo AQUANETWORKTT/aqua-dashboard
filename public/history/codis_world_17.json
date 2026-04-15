@@ -1,0 +1,47 @@
+{
+  "username": "codis_world_17",
+  "entries": [
+    {
+      "date": "2026-04-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1,
+      "lifetimeHours": 0.46611111111111114
+    },
+    {
+      "date": "2026-04-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1,
+      "lifetimeHours": 0.46611111111111114
+    },
+    {
+      "date": "2026-04-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1,
+      "lifetimeHours": 0.46611111111111114
+    },
+    {
+      "date": "2026-04-12",
+      "daily": 1,
+      "hours": 0.46611111111111114,
+      "lifetime": 1,
+      "lifetimeHours": 0.46611111111111114
+    },
+    {
+      "date": "2026-04-13",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1,
+      "lifetimeHours": 0.46611111111111114
+    },
+    {
+      "date": "2026-04-14",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1,
+      "lifetimeHours": 0.46611111111111114
+    }
+  ]
+}

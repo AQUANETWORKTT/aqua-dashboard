@@ -1,0 +1,47 @@
+{
+  "username": "snt5z",
+  "entries": [
+    {
+      "date": "2026-04-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 3860,
+      "lifetimeHours": 10.446111111111112
+    },
+    {
+      "date": "2026-04-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 3860,
+      "lifetimeHours": 10.446111111111112
+    },
+    {
+      "date": "2026-04-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 3860,
+      "lifetimeHours": 10.446111111111112
+    },
+    {
+      "date": "2026-04-12",
+      "daily": 2171,
+      "hours": 4.825555555555555,
+      "lifetime": 3860,
+      "lifetimeHours": 10.446111111111112
+    },
+    {
+      "date": "2026-04-13",
+      "daily": 977,
+      "hours": 3.5552777777777775,
+      "lifetime": 3860,
+      "lifetimeHours": 10.446111111111112
+    },
+    {
+      "date": "2026-04-14",
+      "daily": 712,
+      "hours": 2.0652777777777778,
+      "lifetime": 3860,
+      "lifetimeHours": 10.446111111111112
+    }
+  ]
+}

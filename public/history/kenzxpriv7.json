@@ -1,0 +1,47 @@
+{
+  "username": "kenzxpriv7",
+  "entries": [
+    {
+      "date": "2026-04-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 6975,
+      "lifetimeHours": 5.97
+    },
+    {
+      "date": "2026-04-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 6975,
+      "lifetimeHours": 5.97
+    },
+    {
+      "date": "2026-04-11",
+      "daily": 273,
+      "hours": 0.5219444444444445,
+      "lifetime": 6975,
+      "lifetimeHours": 5.97
+    },
+    {
+      "date": "2026-04-12",
+      "daily": 6096,
+      "hours": 2.9908333333333332,
+      "lifetime": 6975,
+      "lifetimeHours": 5.97
+    },
+    {
+      "date": "2026-04-13",
+      "daily": 603,
+      "hours": 0.8258333333333333,
+      "lifetime": 6975,
+      "lifetimeHours": 5.97
+    },
+    {
+      "date": "2026-04-14",
+      "daily": 3,
+      "hours": 1.631388888888889,
+      "lifetime": 6975,
+      "lifetimeHours": 5.97
+    }
+  ]
+}

@@ -280,6 +280,48 @@
       "hours": 0,
       "lifetime": 1956,
       "lifetimeHours": 1.9308333333333332
+    },
+    {
+      "date": "2026-04-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2370,
+      "lifetimeHours": 4.4625
+    },
+    {
+      "date": "2026-04-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2370,
+      "lifetimeHours": 4.4625
+    },
+    {
+      "date": "2026-04-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2370,
+      "lifetimeHours": 4.4625
+    },
+    {
+      "date": "2026-04-12",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 2370,
+      "lifetimeHours": 4.4625
+    },
+    {
+      "date": "2026-04-13",
+      "daily": 277,
+      "hours": 1.4330555555555555,
+      "lifetime": 2370,
+      "lifetimeHours": 4.4625
+    },
+    {
+      "date": "2026-04-14",
+      "daily": 137,
+      "hours": 1.098611111111111,
+      "lifetime": 2370,
+      "lifetimeHours": 4.4625
     }
   ]
 }

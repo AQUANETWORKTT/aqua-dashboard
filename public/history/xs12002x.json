@@ -1,0 +1,47 @@
+{
+  "username": "xs12002x",
+  "entries": [
+    {
+      "date": "2026-04-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 61,
+      "lifetimeHours": 1.9641666666666666
+    },
+    {
+      "date": "2026-04-10",
+      "daily": 61,
+      "hours": 1.6855555555555555,
+      "lifetime": 61,
+      "lifetimeHours": 1.9641666666666666
+    },
+    {
+      "date": "2026-04-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 61,
+      "lifetimeHours": 1.9641666666666666
+    },
+    {
+      "date": "2026-04-12",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 61,
+      "lifetimeHours": 1.9641666666666666
+    },
+    {
+      "date": "2026-04-13",
+      "daily": 0,
+      "hours": 0.2786111111111111,
+      "lifetime": 61,
+      "lifetimeHours": 1.9641666666666666
+    },
+    {
+      "date": "2026-04-14",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 61,
+      "lifetimeHours": 1.9641666666666666
+    }
+  ]
+}

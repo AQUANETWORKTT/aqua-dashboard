@@ -1,0 +1,47 @@
+{
+  "username": "accountforlive2",
+  "entries": [
+    {
+      "date": "2026-04-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 32,
+      "lifetimeHours": 1.3244444444444445
+    },
+    {
+      "date": "2026-04-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 32,
+      "lifetimeHours": 1.3244444444444445
+    },
+    {
+      "date": "2026-04-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 32,
+      "lifetimeHours": 1.3244444444444445
+    },
+    {
+      "date": "2026-04-12",
+      "daily": 30,
+      "hours": 0,
+      "lifetime": 32,
+      "lifetimeHours": 1.3244444444444445
+    },
+    {
+      "date": "2026-04-13",
+      "daily": 2,
+      "hours": 1.2941666666666665,
+      "lifetime": 32,
+      "lifetimeHours": 1.3244444444444445
+    },
+    {
+      "date": "2026-04-14",
+      "daily": 0,
+      "hours": 0.03027777777777778,
+      "lifetime": 32,
+      "lifetimeHours": 1.3244444444444445
+    }
+  ]
+}

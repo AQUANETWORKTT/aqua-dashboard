@@ -1,0 +1,47 @@
+{
+  "username": "isymaix",
+  "entries": [
+    {
+      "date": "2026-04-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 183,
+      "lifetimeHours": 0.8658333333333333
+    },
+    {
+      "date": "2026-04-10",
+      "daily": 183,
+      "hours": 0.8436111111111112,
+      "lifetime": 183,
+      "lifetimeHours": 0.8658333333333333
+    },
+    {
+      "date": "2026-04-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 183,
+      "lifetimeHours": 0.8658333333333333
+    },
+    {
+      "date": "2026-04-12",
+      "daily": 0,
+      "hours": 0.022222222222222223,
+      "lifetime": 183,
+      "lifetimeHours": 0.8658333333333333
+    },
+    {
+      "date": "2026-04-13",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 183,
+      "lifetimeHours": 0.8658333333333333
+    },
+    {
+      "date": "2026-04-14",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 183,
+      "lifetimeHours": 0.8658333333333333
+    }
+  ]
+}

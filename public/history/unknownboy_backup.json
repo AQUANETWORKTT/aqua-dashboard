@@ -1,0 +1,47 @@
+{
+  "username": "unknownboy_backup",
+  "entries": [
+    {
+      "date": "2026-04-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 100,
+      "lifetimeHours": 4.665
+    },
+    {
+      "date": "2026-04-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 100,
+      "lifetimeHours": 4.665
+    },
+    {
+      "date": "2026-04-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 100,
+      "lifetimeHours": 4.665
+    },
+    {
+      "date": "2026-04-12",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 100,
+      "lifetimeHours": 4.665
+    },
+    {
+      "date": "2026-04-13",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 100,
+      "lifetimeHours": 4.665
+    },
+    {
+      "date": "2026-04-14",
+      "daily": 100,
+      "hours": 4.665,
+      "lifetime": 100,
+      "lifetimeHours": 4.665
+    }
+  ]
+}
