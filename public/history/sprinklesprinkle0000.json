@@ -1,0 +1,26 @@
+{
+  "username": "sprinklesprinkle0000",
+  "entries": [
+    {
+      "date": "2026-04-15",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 35,
+      "lifetimeHours": 3.1877777777777774
+    },
+    {
+      "date": "2026-04-16",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 35,
+      "lifetimeHours": 3.1877777777777774
+    },
+    {
+      "date": "2026-04-17",
+      "daily": 35,
+      "hours": 3.1877777777777774,
+      "lifetime": 35,
+      "lifetimeHours": 3.1877777777777774
+    }
+  ]
+}

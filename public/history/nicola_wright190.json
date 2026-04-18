@@ -1,0 +1,26 @@
+{
+  "username": "nicola_wright190",
+  "entries": [
+    {
+      "date": "2026-04-15",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 0,
+      "lifetimeHours": 1.8630555555555557
+    },
+    {
+      "date": "2026-04-16",
+      "daily": 0,
+      "hours": 0.15416666666666667,
+      "lifetime": 0,
+      "lifetimeHours": 1.8630555555555557
+    },
+    {
+      "date": "2026-04-17",
+      "daily": 0,
+      "hours": 1.708888888888889,
+      "lifetime": 0,
+      "lifetimeHours": 1.8630555555555557
+    }
+  ]
+}
