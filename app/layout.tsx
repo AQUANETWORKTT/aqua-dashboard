@@ -20,7 +20,9 @@ export const metadata = {
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
   },
 };
 
@@ -42,16 +44,16 @@ export default async function RootLayout({
   return (
     <html lang="en" className={poppins.variable}>
       <head>
-        {/* PWA */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#22d3ee" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
 
       <body className="app-body">
-        <NavBarClient user={loggedInUser} />
-
-       
+        {/* Only show Aqua navbar outside manager pages */}
+        <div id="main-site-navbar">
+          <NavBarClient user={loggedInUser} />
+        </div>
 
         {children}
       </body>
