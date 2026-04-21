@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 type ManagerRow = {
   name: string;
   recruitPoints: number;
   submissionPoints: number;
+};
+
+type ManagerPointsDbRow = {
+  name: string;
+  recruit_points: number;
+  submission_points: number;
 };
 
 const defaultManagers: ManagerRow[] = [
@@ -27,6 +34,7 @@ export default function ManagerPointsPage() {
   const [rows, setRows] = useState<ManagerRow[]>(defaultManagers);
   const [message, setMessage] = useState("");
   const [checkedAccess, setCheckedAccess] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -37,17 +45,40 @@ export default function ManagerPointsPage() {
       return;
     }
 
-    const saved = localStorage.getItem("manager_points_v2");
+    setCheckedAccess(true);
+    loadPoints();
+  }, [router]);
 
-    if (saved) {
-      setRows(JSON.parse(saved));
-    } else {
-      localStorage.setItem("manager_points_v2", JSON.stringify(defaultManagers));
-      setRows(defaultManagers);
+  const loadPoints = async () => {
+    setLoading(true);
+    setMessage("");
+
+    const { data, error } = await submissionsSupabase
+      .from("manager_points")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) {
+      setMessage(error.message);
+      setLoading(false);
+      return;
     }
 
-    setCheckedAccess(true);
-  }, [router]);
+    const dbRows = (data || []) as ManagerPointsDbRow[];
+
+    const mergedRows = defaultManagers.map((manager) => {
+      const existing = dbRows.find((row) => row.name === manager.name);
+
+      return {
+        name: manager.name,
+        recruitPoints: existing?.recruit_points ?? 0,
+        submissionPoints: existing?.submission_points ?? 0,
+      };
+    });
+
+    setRows(mergedRows);
+    setLoading(false);
+  };
 
   const updateRow = (
     name: string,
@@ -63,9 +94,26 @@ export default function ManagerPointsPage() {
     );
   };
 
-  const savePoints = () => {
-    localStorage.setItem("manager_points_v2", JSON.stringify(rows));
+  const savePoints = async () => {
+    setMessage("Saving...");
+
+    const payload = rows.map((row) => ({
+      name: row.name,
+      recruit_points: row.recruitPoints,
+      submission_points: row.submissionPoints,
+    }));
+
+    const { error } = await submissionsSupabase
+      .from("manager_points")
+      .upsert(payload, { onConflict: "name" });
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
     setMessage("Points saved.");
+    await loadPoints();
   };
 
   if (!checkedAccess) return null;
@@ -92,8 +140,9 @@ export default function ManagerPointsPage() {
             type="button"
             className="manager-button"
             onClick={savePoints}
+            disabled={loading}
           >
-            Save Points
+            {loading ? "Loading..." : "Save Points"}
           </button>
         </div>
       </div>
@@ -104,49 +153,55 @@ export default function ManagerPointsPage() {
         </div>
       ) : null}
 
-      <div className="manager-form">
-        {rows.map((row) => (
-          <div key={row.name} className="manager-card">
-            <div className="manager-card-title">
-              {row.name.toUpperCase()}
-            </div>
+      {loading ? (
+        <div className="manager-card">
+          <p className="manager-card-sub">Loading points...</p>
+        </div>
+      ) : (
+        <div className="manager-form">
+          {rows.map((row) => (
+            <div key={row.name} className="manager-card">
+              <div className="manager-card-title">
+                {row.name.toUpperCase()}
+              </div>
 
-            <div
-              style={{
-                display: "grid",
-                gap: "12px",
-                marginTop: "12px",
-              }}
-            >
-              <label className="manager-label">
-                Recruit Points
-                <input
-                  type="number"
-                  min="0"
-                  value={row.recruitPoints}
-                  onChange={(e) =>
-                    updateRow(row.name, "recruitPoints", e.target.value)
-                  }
-                  className="manager-input"
-                />
-              </label>
+              <div
+                style={{
+                  display: "grid",
+                  gap: "12px",
+                  marginTop: "12px",
+                }}
+              >
+                <label className="manager-label">
+                  Recruit Points
+                  <input
+                    type="number"
+                    min="0"
+                    value={row.recruitPoints}
+                    onChange={(e) =>
+                      updateRow(row.name, "recruitPoints", e.target.value)
+                    }
+                    className="manager-input"
+                  />
+                </label>
 
-              <label className="manager-label">
-                Submission Points
-                <input
-                  type="number"
-                  min="0"
-                  value={row.submissionPoints}
-                  onChange={(e) =>
-                    updateRow(row.name, "submissionPoints", e.target.value)
-                  }
-                  className="manager-input"
-                />
-              </label>
+                <label className="manager-label">
+                  Submission Points
+                  <input
+                    type="number"
+                    min="0"
+                    value={row.submissionPoints}
+                    onChange={(e) =>
+                      updateRow(row.name, "submissionPoints", e.target.value)
+                    }
+                    className="manager-input"
+                  />
+                </label>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
