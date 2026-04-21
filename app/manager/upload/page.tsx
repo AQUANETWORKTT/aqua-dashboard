@@ -1,17 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
-type Submission = {
-  id: string;
-  username: string;
-  status: "pending" | "approved" | "rejected";
-  createdAt: string;
-  imageNames: string[];
-  imageUrls: string[];
-  imageCount: number;
-  points: number;
-};
+import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 function getPointsFromImageCount(count: number) {
   return Math.min(Math.floor(count / 2), 3);
@@ -21,6 +11,7 @@ export default function UploadPage() {
   const [username, setUsername] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const user = localStorage.getItem("manager_username");
@@ -30,12 +21,12 @@ export default function UploadPage() {
   const points = useMemo(() => getPointsFromImageCount(files.length), [files]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
+    const selectedFiles = Array.from(e.target.files || []).slice(0, 4);
     setFiles(selectedFiles);
     setMessage("");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!username.trim()) {
       setMessage("No username found.");
       return;
@@ -46,29 +37,62 @@ export default function UploadPage() {
       return;
     }
 
-    const existingRaw = localStorage.getItem("manager_upload_submissions");
-    const existing: Submission[] = existingRaw ? JSON.parse(existingRaw) : [];
+    setSubmitting(true);
+    setMessage("");
 
-    const submission: Submission = {
-      id: crypto.randomUUID(),
-      username: username.trim().toLowerCase(),
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      imageNames: files.map((file) => file.name),
-      imageUrls: files.map((file) => URL.createObjectURL(file)),
-      imageCount: files.length,
-      points,
-    };
+    try {
+      const cleanUsername = username.trim().toLowerCase();
+      const uploadedUrls: string[] = [];
+      const uploadedNames: string[] = [];
 
-    localStorage.setItem(
-      "manager_upload_submissions",
-      JSON.stringify([submission, ...existing])
-    );
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const safeName = file.name.replace(/\s+/g, "-");
+        const filePath = `${cleanUsername}/${Date.now()}-${i}-${safeName}`;
 
-    setFiles([]);
-    setMessage(
-      `Upload submitted for approval. ${files.length} image${files.length === 1 ? "" : "s"} selected • ${points} point${points === 1 ? "" : "s"} pending.`
-    );
+        const { error: uploadError } = await submissionsSupabase.storage
+          .from("submission-images")
+          .upload(filePath, file);
+
+        if (uploadError) {
+          throw new Error(uploadError.message);
+        }
+
+        const { data: publicUrlData } = submissionsSupabase.storage
+          .from("submission-images")
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrlData.publicUrl);
+        uploadedNames.push(file.name);
+      }
+
+      const { error: insertError } = await submissionsSupabase
+        .from("submissions")
+        .insert({
+          username: cleanUsername,
+          status: "pending",
+          created_at: new Date().toISOString(),
+          image_names: uploadedNames,
+          image_urls: uploadedUrls,
+          image_count: files.length,
+          points,
+        });
+
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
+
+      setFiles([]);
+      setMessage(
+        `Upload submitted for approval. ${files.length} image${files.length === 1 ? "" : "s"} selected • ${points} point${points === 1 ? "" : "s"} pending.`
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Upload failed.";
+      setMessage(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -125,8 +149,13 @@ export default function UploadPage() {
 
           {message ? <p className="manager-message">{message}</p> : null}
 
-          <button type="button" className="manager-button" onClick={handleSubmit}>
-            Upload Proof
+          <button
+            type="button"
+            className="manager-button"
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? "Uploading..." : "Upload Proof"}
           </button>
         </div>
       </div>
