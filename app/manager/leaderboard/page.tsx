@@ -38,20 +38,46 @@ function getCurrentPoints(row: ManagerRow) {
   return toNumber(row.recruitPoints) + toNumber(row.submissionPoints);
 }
 
+function getMonthProgress() {
+  const now = new Date();
+  const currentDay = now.getDate();
+  const daysInMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0
+  ).getDate();
+
+  return {
+    currentDay,
+    daysInMonth,
+    expectedPoints: (25 / daysInMonth) * currentDay,
+  };
+}
+
 function getStatus(points: number) {
-  if (points < 10) return "Manager Removal";
-  if (points < 25) return "Strike Risk";
-  if (points < 40) return "Active Manager";
-  if (points < 60) return "Active Manager + Bonus";
-  return "Active Manager + Double Bonus";
+  if (points >= 25) return "Target Hit";
+
+  const { expectedPoints } = getMonthProgress();
+  const safeExpected = Math.max(expectedPoints, 1);
+  const paceRatio = points / safeExpected;
+
+  if (paceRatio < 0.65) return "Removal Risk";
+  if (paceRatio < 0.85) return "Strike Risk";
+  if (paceRatio <= 1.15) return "On Track";
+  return "Bonus Potential";
 }
 
 function getStatusClass(points: number) {
-  if (points < 10) return "manager-status removal";
-  if (points < 25) return "manager-status strike";
-  if (points < 40) return "manager-status active";
-  if (points < 60) return "manager-status bonus";
-  return "manager-status double-bonus";
+  if (points >= 25) return "manager-status double-bonus";
+
+  const { expectedPoints } = getMonthProgress();
+  const safeExpected = Math.max(expectedPoints, 1);
+  const paceRatio = points / safeExpected;
+
+  if (paceRatio < 0.65) return "manager-status removal";
+  if (paceRatio < 0.85) return "manager-status strike";
+  if (paceRatio <= 1.15) return "manager-status active";
+  return "manager-status bonus";
 }
 
 export default function ManagerLeaderboardPage() {
@@ -107,8 +133,8 @@ export default function ManagerLeaderboardPage() {
         <div className="manager-pill">Leaderboard</div>
         <h1 className="manager-title">Manager Points</h1>
         <p className="manager-subtitle">
-          Managers must achieve 25 points to avoid a strike and to prove active
-          management.
+          Manager progress is based on pace toward 25 points by the end of the
+          month.
         </p>
       </div>
 
@@ -124,14 +150,14 @@ export default function ManagerLeaderboardPage() {
           className="manager-card-sub"
           style={{ marginBottom: 0, lineHeight: 1.7 }}
         >
-          Managers must achieve <strong>25 points</strong> to avoid a strike and
-          to prove active management.
+          Managers are tracked against a <strong>25 point monthly target</strong>.
+          <br />
+          Status changes depending on whether they are behind pace, on track, or
+          ahead of pace for this point in the month.
           <br />
           <strong>1 point</strong> per recruit.
           <br />
           <strong>1 point</strong> per 20 messages, max <strong>3 per day</strong>.
-          <br />
-          Bonus points are available occasionally.
         </div>
       </div>
 
