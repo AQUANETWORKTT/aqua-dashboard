@@ -15,26 +15,6 @@ type Submission = {
   points: number;
 };
 
-type ManagerRow = {
-  name: string;
-  recruitPoints: number;
-  submissionPoints: number;
-};
-
-const defaultManagers: ManagerRow[] = [
-  { name: "james", recruitPoints: 0, submissionPoints: 0 },
-  { name: "alfie", recruitPoints: 0, submissionPoints: 0 },
-  { name: "dylan", recruitPoints: 0, submissionPoints: 0 },
-  { name: "jay", recruitPoints: 0, submissionPoints: 0 },
-  { name: "ellie", recruitPoints: 0, submissionPoints: 0 },
-  { name: "lewis", recruitPoints: 0, submissionPoints: 0 },
-  { name: "vitali", recruitPoints: 0, submissionPoints: 0 },
-  { name: "mavis", recruitPoints: 0, submissionPoints: 0 },
-  { name: "harry", recruitPoints: 0, submissionPoints: 0 },
-  { name: "chloe", recruitPoints: 0, submissionPoints: 0 },
-  { name: "joe", recruitPoints: 0, submissionPoints: 0 },
-];
-
 function formatSubmissionDate(dateString: string) {
   const date = new Date(dateString);
   return date.toLocaleString("en-GB", {
@@ -59,12 +39,6 @@ export default function ManagerAdminReviewPage() {
     if (hasAccess !== "true") {
       router.push("/manager/admin");
       return;
-    }
-
-    const savedPoints = localStorage.getItem("manager_points_v2");
-
-    if (!savedPoints) {
-      localStorage.setItem("manager_points_v2", JSON.stringify(defaultManagers));
     }
 
     setCheckedAccess(true);
@@ -97,34 +71,54 @@ export default function ManagerAdminReviewPage() {
       return;
     }
 
-    const savedPoints = localStorage.getItem("manager_points_v2");
-    const managerPoints: ManagerRow[] = savedPoints
-      ? JSON.parse(savedPoints)
-      : defaultManagers;
+    const cleanUsername = target.username.trim().toLowerCase();
 
-    const nextPoints = defaultManagers.map((manager) => {
-      const existing =
-        managerPoints.find((item) => item.name === manager.name) || manager;
+    const { data: existingRow, error: existingError } = await submissionsSupabase
+      .from("manager_points")
+      .select("*")
+      .eq("name", cleanUsername)
+      .maybeSingle();
 
-      if (manager.name === target.username) {
-        return {
-          ...existing,
-          submissionPoints: existing.submissionPoints + target.points,
-        };
+    if (existingError) {
+      setMessage(existingError.message);
+      return;
+    }
+
+    if (!existingRow) {
+      const { error: insertPointsError } = await submissionsSupabase
+        .from("manager_points")
+        .insert({
+          name: cleanUsername,
+          recruit_points: 0,
+          submission_points: target.points,
+        });
+
+      if (insertPointsError) {
+        setMessage(insertPointsError.message);
+        return;
       }
+    } else {
+      const { error: updatePointsError } = await submissionsSupabase
+        .from("manager_points")
+        .update({
+          submission_points:
+            (existingRow.submission_points || 0) + target.points,
+        })
+        .eq("name", cleanUsername);
 
-      return existing;
-    });
+      if (updatePointsError) {
+        setMessage(updatePointsError.message);
+        return;
+      }
+    }
 
-    localStorage.setItem("manager_points_v2", JSON.stringify(nextPoints));
-
-    const { error } = await submissionsSupabase
+    const { error: submissionError } = await submissionsSupabase
       .from("submissions")
       .update({ status: "approved" })
       .eq("id", submissionId);
 
-    if (error) {
-      setMessage(error.message);
+    if (submissionError) {
+      setMessage(submissionError.message);
       return;
     }
 
