@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 type ManagerRow = {
   name: string;
   recruitPoints: number;
   submissionPoints: number;
+};
+
+type ManagerPointsDbRow = {
+  name: string;
+  recruit_points: number;
+  submission_points: number;
 };
 
 const defaultManagers: ManagerRow[] = [
@@ -25,16 +32,6 @@ const defaultManagers: ManagerRow[] = [
 function toNumber(value: unknown) {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
-}
-
-function normalizeManagerRow(
-  raw: Partial<ManagerRow> & { name?: string }
-): ManagerRow {
-  return {
-    name: String(raw.name || "").toLowerCase(),
-    recruitPoints: toNumber(raw.recruitPoints),
-    submissionPoints: toNumber(raw.submissionPoints),
-  };
 }
 
 function getCurrentPoints(row: ManagerRow) {
@@ -59,26 +56,44 @@ function getStatusClass(points: number) {
 
 export default function ManagerLeaderboardPage() {
   const [rows, setRows] = useState<ManagerRow[]>(defaultManagers);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const saved = localStorage.getItem("manager_points_v2");
-
-    if (saved) {
-      const parsed = JSON.parse(saved) as Array<Partial<ManagerRow>>;
-      const normalized = parsed.map(normalizeManagerRow);
-
-      const merged = defaultManagers.map((manager) => {
-        const existing = normalized.find((item) => item.name === manager.name);
-        return existing ? existing : manager;
-      });
-
-      setRows(merged);
-      localStorage.setItem("manager_points_v2", JSON.stringify(merged));
-    } else {
-      localStorage.setItem("manager_points_v2", JSON.stringify(defaultManagers));
-      setRows(defaultManagers);
-    }
+    loadPoints();
   }, []);
+
+  const loadPoints = async () => {
+    setLoading(true);
+    setMessage("");
+
+    const { data, error } = await submissionsSupabase
+      .from("manager_points")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) {
+      setMessage(error.message);
+      setRows(defaultManagers);
+      setLoading(false);
+      return;
+    }
+
+    const dbRows = (data || []) as ManagerPointsDbRow[];
+
+    const merged = defaultManagers.map((manager) => {
+      const existing = dbRows.find((item) => item.name === manager.name);
+
+      return {
+        name: manager.name,
+        recruitPoints: existing?.recruit_points ?? 0,
+        submissionPoints: existing?.submission_points ?? 0,
+      };
+    });
+
+    setRows(merged);
+    setLoading(false);
+  };
 
   const sortedRows = useMemo(() => {
     return [...rows].sort(
@@ -97,6 +112,12 @@ export default function ManagerLeaderboardPage() {
         </p>
       </div>
 
+      {message ? (
+        <div className="manager-card" style={{ marginBottom: "20px" }}>
+          <div className="manager-card-sub">{message}</div>
+        </div>
+      ) : null}
+
       <div className="manager-card" style={{ marginBottom: "20px" }}>
         <div className="manager-card-title">Point Rules</div>
         <div
@@ -114,44 +135,50 @@ export default function ManagerLeaderboardPage() {
         </div>
       </div>
 
-      <div className="manager-table-wrap">
-        <table className="manager-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Manager</th>
-              <th>Recruit</th>
-              <th>Submission</th>
-              <th>Points</th>
-              <th>Status</th>
-              <th>Target</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedRows.map((row, index) => {
-              const currentPoints = getCurrentPoints(row);
+      {loading ? (
+        <div className="manager-card">
+          <div className="manager-card-sub">Loading leaderboard...</div>
+        </div>
+      ) : (
+        <div className="manager-table-wrap">
+          <table className="manager-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Manager</th>
+                <th>Recruit</th>
+                <th>Submission</th>
+                <th>Points</th>
+                <th>Status</th>
+                <th>Target</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRows.map((row, index) => {
+                const currentPoints = getCurrentPoints(row);
 
-              return (
-                <tr key={row.name}>
-                  <td>{index + 1}</td>
-                  <td style={{ textTransform: "capitalize", fontWeight: 700 }}>
-                    {row.name}
-                  </td>
-                  <td>{row.recruitPoints}</td>
-                  <td>{row.submissionPoints}</td>
-                  <td>{currentPoints}</td>
-                  <td>
-                    <span className={getStatusClass(currentPoints)}>
-                      {getStatus(currentPoints)}
-                    </span>
-                  </td>
-                  <td>25</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                return (
+                  <tr key={row.name}>
+                    <td>{index + 1}</td>
+                    <td style={{ textTransform: "capitalize", fontWeight: 700 }}>
+                      {row.name}
+                    </td>
+                    <td>{row.recruitPoints}</td>
+                    <td>{row.submissionPoints}</td>
+                    <td>{currentPoints}</td>
+                    <td>
+                      <span className={getStatusClass(currentPoints)}>
+                        {getStatus(currentPoints)}
+                      </span>
+                    </td>
+                    <td>25</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
