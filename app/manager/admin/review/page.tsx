@@ -2,15 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 type Submission = {
   id: string;
   username: string;
   status: "pending" | "approved" | "rejected";
-  createdAt: string;
-  imageNames: string[];
-  imageUrls: string[];
-  imageCount: number;
+  created_at: string;
+  image_names: string[];
+  image_urls: string[];
+  image_count: number;
   points: number;
 };
 
@@ -48,6 +49,8 @@ function formatSubmissionDate(dateString: string) {
 export default function ManagerAdminReviewPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [checkedAccess, setCheckedAccess] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -58,26 +61,36 @@ export default function ManagerAdminReviewPage() {
       return;
     }
 
-    const savedSubs = localStorage.getItem("manager_upload_submissions");
     const savedPoints = localStorage.getItem("manager_points_v2");
-
-    if (savedSubs) {
-      setSubmissions(JSON.parse(savedSubs));
-    }
 
     if (!savedPoints) {
       localStorage.setItem("manager_points_v2", JSON.stringify(defaultManagers));
     }
 
     setCheckedAccess(true);
+    loadSubmissions();
   }, [router]);
 
-  const persistSubs = (next: Submission[]) => {
-    setSubmissions(next);
-    localStorage.setItem("manager_upload_submissions", JSON.stringify(next));
+  const loadSubmissions = async () => {
+    setLoading(true);
+    setMessage("");
+
+    const { data, error } = await submissionsSupabase
+      .from("submissions")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      setMessage(error.message);
+      setSubmissions([]);
+    } else {
+      setSubmissions((data || []) as Submission[]);
+    }
+
+    setLoading(false);
   };
 
-  const approveSubmission = (submissionId: string) => {
+  const approveSubmission = async (submissionId: string) => {
     const target = submissions.find((item) => item.id === submissionId);
 
     if (!target || target.status !== "pending") {
@@ -90,7 +103,8 @@ export default function ManagerAdminReviewPage() {
       : defaultManagers;
 
     const nextPoints = defaultManagers.map((manager) => {
-      const existing = managerPoints.find((item) => item.name === manager.name) || manager;
+      const existing =
+        managerPoints.find((item) => item.name === manager.name) || manager;
 
       if (manager.name === target.username) {
         return {
@@ -104,13 +118,31 @@ export default function ManagerAdminReviewPage() {
 
     localStorage.setItem("manager_points_v2", JSON.stringify(nextPoints));
 
-    const nextSubs = submissions.filter((item) => item.id !== submissionId);
-    persistSubs(nextSubs);
+    const { error } = await submissionsSupabase
+      .from("submissions")
+      .update({ status: "approved" })
+      .eq("id", submissionId);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    await loadSubmissions();
   };
 
-  const rejectSubmission = (submissionId: string) => {
-    const nextSubs = submissions.filter((item) => item.id !== submissionId);
-    persistSubs(nextSubs);
+  const rejectSubmission = async (submissionId: string) => {
+    const { error } = await submissionsSupabase
+      .from("submissions")
+      .update({ status: "rejected" })
+      .eq("id", submissionId);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    await loadSubmissions();
   };
 
   const pendingSubmissions = useMemo(() => {
@@ -118,7 +150,7 @@ export default function ManagerAdminReviewPage() {
       .filter((submission) => submission.status === "pending")
       .sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
   }, [submissions]);
 
@@ -144,7 +176,17 @@ export default function ManagerAdminReviewPage() {
         </div>
       </div>
 
-      {pendingSubmissions.length === 0 ? (
+      {message ? (
+        <div className="manager-card" style={{ marginBottom: "16px" }}>
+          <p className="manager-card-sub">{message}</p>
+        </div>
+      ) : null}
+
+      {loading ? (
+        <div className="manager-card">
+          <p className="manager-card-sub">Loading submissions...</p>
+        </div>
+      ) : pendingSubmissions.length === 0 ? (
         <div className="manager-card">
           <p className="manager-card-sub">No submissions yet.</p>
         </div>
@@ -158,10 +200,10 @@ export default function ManagerAdminReviewPage() {
                     {submission.username.toUpperCase()}
                   </div>
                   <div className="manager-small">
-                    Submitted: {formatSubmissionDate(submission.createdAt)}
+                    Submitted: {formatSubmissionDate(submission.created_at)}
                   </div>
                   <div className="manager-small">
-                    Images: {submission.imageCount} · Points: {submission.points}
+                    Images: {submission.image_count} · Points: {submission.points}
                   </div>
                   <div className="manager-small">Status: pending</div>
                 </div>
@@ -184,9 +226,9 @@ export default function ManagerAdminReviewPage() {
                 </div>
               </div>
 
-              {submission.imageUrls.length > 0 ? (
+              {submission.image_urls.length > 0 ? (
                 <div className="manager-submission-images">
-                  {submission.imageUrls.map((imageUrl, index) => (
+                  {submission.image_urls.map((imageUrl, index) => (
                     <div
                       key={`${submission.id}-${index}`}
                       className="manager-submission-image-card"
@@ -194,12 +236,12 @@ export default function ManagerAdminReviewPage() {
                       <img
                         src={imageUrl}
                         alt={
-                          submission.imageNames[index] || `Submission ${index + 1}`
+                          submission.image_names[index] || `Submission ${index + 1}`
                         }
                         className="manager-submission-image"
                       />
                       <div className="manager-small">
-                        {submission.imageNames[index] || `Image ${index + 1}`}
+                        {submission.image_names[index] || `Image ${index + 1}`}
                       </div>
                     </div>
                   ))}
