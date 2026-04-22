@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 function getPointsFromImageCount(count: number) {
@@ -9,13 +8,8 @@ function getPointsFromImageCount(count: number) {
 }
 
 type ExistingSubmissionRow = {
-  created_at: string;
   image_names: string[] | null;
 };
-
-function toDateKey(dateString: string) {
-  return new Date(dateString).toISOString().slice(0, 10);
-}
 
 function normalizeFileName(name: string) {
   return name.trim().toLowerCase();
@@ -26,7 +20,6 @@ export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const user = localStorage.getItem("manager_username");
@@ -57,12 +50,11 @@ export default function UploadPage() {
 
     try {
       const cleanUsername = username.trim().toLowerCase();
-      const todayKey = new Date().toISOString().slice(0, 10);
 
       const { data: existingSubmissions, error: existingError } =
         await submissionsSupabase
           .from("submissions")
-          .select("created_at, image_names")
+          .select("image_names")
           .eq("username", cleanUsername);
 
       if (existingError) {
@@ -72,13 +64,9 @@ export default function UploadPage() {
       const previousFileNames = new Set<string>();
 
       ((existingSubmissions || []) as ExistingSubmissionRow[]).forEach((row) => {
-        const rowDateKey = toDateKey(row.created_at);
-
-        if (rowDateKey !== todayKey) {
-          (row.image_names || []).forEach((name) => {
-            previousFileNames.add(normalizeFileName(String(name)));
-          });
-        }
+        (row.image_names || []).forEach((name) => {
+          previousFileNames.add(normalizeFileName(String(name)));
+        });
       });
 
       const duplicateFileNames = files
@@ -108,8 +96,6 @@ export default function UploadPage() {
           .getPublicUrl(filePath);
 
         uploadedUrls.push(publicUrlData.publicUrl);
-
-        // save the real original filename only
         uploadedNames.push(file.name.trim());
       }
 
