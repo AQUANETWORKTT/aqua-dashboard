@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 function getPointsFromImageCount(count: number) {
@@ -21,6 +22,7 @@ export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const user = localStorage.getItem("manager_username");
@@ -30,7 +32,7 @@ export default function UploadPage() {
   const points = useMemo(() => getPointsFromImageCount(files.length), [files]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []).slice(0, 4);
+    const selectedFiles = Array.from(e.target.files || []).slice(0, 6);
     setFiles(selectedFiles);
     setMessage("");
   };
@@ -145,7 +147,9 @@ export default function UploadPage() {
     <section className="manager-wrapper">
       <div className="manager-hero">
         <div className="manager-pill">Upload Portal</div>
-        <h1 className="manager-title">Submit Proof</h1>
+
+        <h1 className="manager-title">Submit Messages</h1>
+
         <p className="manager-subtitle">
           Upload your proof images. Points are worked out automatically.
         </p>
@@ -160,6 +164,7 @@ export default function UploadPage() {
 
           <div className="manager-upload-box">
             <div className="manager-upload-title">Upload Images</div>
+
             <input
               type="file"
               accept="image/*"
@@ -170,7 +175,8 @@ export default function UploadPage() {
           </div>
 
           <div className="manager-card-sub">
-            Selected: {files.length} image{files.length === 1 ? "" : "s"} • Points: {points}
+            Selected: {files.length} image{files.length === 1 ? "" : "s"} •
+            {" "}Points: {points} • Max: 6
           </div>
 
           {files.length > 0 ? (
@@ -187,6 +193,7 @@ export default function UploadPage() {
                       className="manager-submission-image"
                     />
                   </div>
+
                   <div className="manager-small">{file.name}</div>
                 </div>
               ))}

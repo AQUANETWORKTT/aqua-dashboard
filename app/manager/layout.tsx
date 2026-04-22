@@ -38,6 +38,9 @@ export default function ManagerLayout({
               <Link href="/manager/leaderboard" className="manager-link">
                 Leaderboard
               </Link>
+              <Link href="/manager/upload" className="manager-link">
+                Upload
+              </Link>
               <Link href="/manager/admin" className="manager-link">
                 Admin
               </Link>
