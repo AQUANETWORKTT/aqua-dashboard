@@ -17,6 +17,10 @@ function toDateKey(dateString: string) {
   return new Date(dateString).toISOString().slice(0, 10);
 }
 
+function normalizeFileName(name: string) {
+  return name.trim().toLowerCase();
+}
+
 export default function UploadPage() {
   const [username, setUsername] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -71,13 +75,15 @@ export default function UploadPage() {
         const rowDateKey = toDateKey(row.created_at);
 
         if (rowDateKey !== todayKey) {
-          (row.image_names || []).forEach((name) => previousFileNames.add(name));
+          (row.image_names || []).forEach((name) => {
+            previousFileNames.add(normalizeFileName(String(name)));
+          });
         }
       });
 
       const duplicateFileNames = files
-        .map((file) => file.name)
-        .filter((name) => previousFileNames.has(name));
+        .map((file) => file.name.trim())
+        .filter((name) => previousFileNames.has(normalizeFileName(name)));
 
       const possibleDuplicate = duplicateFileNames.length > 0;
 
@@ -102,7 +108,9 @@ export default function UploadPage() {
           .getPublicUrl(filePath);
 
         uploadedUrls.push(publicUrlData.publicUrl);
-        uploadedNames.push(file.name);
+
+        // save the real original filename only
+        uploadedNames.push(file.name.trim());
       }
 
       const { error: insertError } = await submissionsSupabase
@@ -175,8 +183,8 @@ export default function UploadPage() {
           </div>
 
           <div className="manager-card-sub">
-            Selected: {files.length} image{files.length === 1 ? "" : "s"} •
-            {" "}Points: {points} • Max: 6
+            Selected: {files.length} image{files.length === 1 ? "" : "s"} •{" "}
+            Points: {points} • Max: 6
           </div>
 
           {files.length > 0 ? (
