@@ -38,7 +38,7 @@ function getCurrentPoints(row: ManagerRow) {
   return toNumber(row.recruitPoints) + toNumber(row.submissionPoints);
 }
 
-function getMonthProgress() {
+function getMonthProjection(points: number) {
   const now = new Date();
   const currentDay = now.getDate();
   const daysInMonth = new Date(
@@ -47,37 +47,44 @@ function getMonthProgress() {
     0
   ).getDate();
 
+  const safeDay = Math.max(currentDay, 1);
+  const projectedEndPoints = (points / safeDay) * daysInMonth;
+  const expectedPointsNow = (25 / daysInMonth) * currentDay;
+
   return {
     currentDay,
     daysInMonth,
-    expectedPoints: (25 / daysInMonth) * currentDay,
+    expectedPointsNow,
+    projectedEndPoints,
   };
 }
 
 function getStatus(points: number) {
+  if (points >= 60) return "Active Manager + Double Bonus";
+  if (points >= 40) return "Active Manager + Bonus";
   if (points >= 25) return "Target Hit";
 
-  const { expectedPoints } = getMonthProgress();
-  const safeExpected = Math.max(expectedPoints, 1);
-  const paceRatio = points / safeExpected;
+  const { projectedEndPoints, expectedPointsNow } = getMonthProjection(points);
 
-  if (paceRatio < 0.65) return "Removal Risk";
-  if (paceRatio < 0.85) return "Strike Risk";
-  if (paceRatio <= 1.15) return "On Track";
-  return "Bonus Potential";
+  if (projectedEndPoints < 10) return "Removal Risk";
+  if (projectedEndPoints < 25) return "Strike Risk";
+
+  if (points >= expectedPointsNow + 2) return "Bonus Potential";
+  return "On Track";
 }
 
 function getStatusClass(points: number) {
-  if (points >= 25) return "manager-status double-bonus";
+  if (points >= 60) return "manager-status double-bonus";
+  if (points >= 40) return "manager-status bonus";
+  if (points >= 25) return "manager-status active";
 
-  const { expectedPoints } = getMonthProgress();
-  const safeExpected = Math.max(expectedPoints, 1);
-  const paceRatio = points / safeExpected;
+  const { projectedEndPoints, expectedPointsNow } = getMonthProjection(points);
 
-  if (paceRatio < 0.65) return "manager-status removal";
-  if (paceRatio < 0.85) return "manager-status strike";
-  if (paceRatio <= 1.15) return "manager-status active";
-  return "manager-status bonus";
+  if (projectedEndPoints < 10) return "manager-status removal";
+  if (projectedEndPoints < 25) return "manager-status strike";
+
+  if (points >= expectedPointsNow + 2) return "manager-status bonus";
+  return "manager-status active";
 }
 
 export default function ManagerLeaderboardPage() {
@@ -134,7 +141,7 @@ export default function ManagerLeaderboardPage() {
         <h1 className="manager-title">Manager Points</h1>
         <p className="manager-subtitle">
           Manager progress is based on pace toward 25 points by the end of the
-          month.
+          month, with bonus tiers at 40 and 60 points.
         </p>
       </div>
 
@@ -152,8 +159,13 @@ export default function ManagerLeaderboardPage() {
         >
           Managers are tracked against a <strong>25 point monthly target</strong>.
           <br />
-          Status changes depending on whether they are behind pace, on track, or
-          ahead of pace for this point in the month.
+          Under pace for less than <strong>10 projected points</strong> = removal risk.
+          <br />
+          Under pace for <strong>25 projected points</strong> = strike risk.
+          <br />
+          <strong>40 points</strong> = Active Manager + Bonus.
+          <br />
+          <strong>60 points</strong> = Active Manager + Double Bonus.
           <br />
           <strong>1 point</strong> per recruit.
           <br />
