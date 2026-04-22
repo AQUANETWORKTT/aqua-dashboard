@@ -1,0 +1,33 @@
+{
+  "username": "matthewrobinson48",
+  "entries": [
+    {
+      "date": "2026-04-18",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 316,
+      "lifetimeHours": 3.2463888888888888
+    },
+    {
+      "date": "2026-04-19",
+      "daily": 1,
+      "hours": 0.7827777777777778,
+      "lifetime": 316,
+      "lifetimeHours": 3.2463888888888888
+    },
+    {
+      "date": "2026-04-20",
+      "daily": 315,
+      "hours": 2.463611111111111,
+      "lifetime": 316,
+      "lifetimeHours": 3.2463888888888888
+    },
+    {
+      "date": "2026-04-21",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 316,
+      "lifetimeHours": 3.2463888888888888
+    }
+  ]
+}
