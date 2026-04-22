@@ -7,6 +7,15 @@ function getPointsFromImageCount(count: number) {
   return Math.min(Math.floor(count / 2), 3);
 }
 
+type ExistingSubmissionRow = {
+  created_at: string;
+  image_names: string[] | null;
+};
+
+function toDateKey(dateString: string) {
+  return new Date(dateString).toISOString().slice(0, 10);
+}
+
 export default function UploadPage() {
   const [username, setUsername] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -42,6 +51,34 @@ export default function UploadPage() {
 
     try {
       const cleanUsername = username.trim().toLowerCase();
+      const todayKey = new Date().toISOString().slice(0, 10);
+
+      const { data: existingSubmissions, error: existingError } =
+        await submissionsSupabase
+          .from("submissions")
+          .select("created_at, image_names")
+          .eq("username", cleanUsername);
+
+      if (existingError) {
+        throw new Error(existingError.message);
+      }
+
+      const previousFileNames = new Set<string>();
+
+      ((existingSubmissions || []) as ExistingSubmissionRow[]).forEach((row) => {
+        const rowDateKey = toDateKey(row.created_at);
+
+        if (rowDateKey !== todayKey) {
+          (row.image_names || []).forEach((name) => previousFileNames.add(name));
+        }
+      });
+
+      const duplicateFileNames = files
+        .map((file) => file.name)
+        .filter((name) => previousFileNames.has(name));
+
+      const possibleDuplicate = duplicateFileNames.length > 0;
+
       const uploadedUrls: string[] = [];
       const uploadedNames: string[] = [];
 
@@ -76,6 +113,8 @@ export default function UploadPage() {
           image_urls: uploadedUrls,
           image_count: files.length,
           points,
+          possible_duplicate: possibleDuplicate,
+          duplicate_file_names: duplicateFileNames,
         });
 
       if (insertError) {
@@ -83,9 +122,16 @@ export default function UploadPage() {
       }
 
       setFiles([]);
-      setMessage(
-        `Upload submitted for approval. ${files.length} image${files.length === 1 ? "" : "s"} selected • ${points} point${points === 1 ? "" : "s"} pending.`
-      );
+
+      if (possibleDuplicate) {
+        setMessage(
+          `Upload submitted for approval. ${files.length} image${files.length === 1 ? "" : "s"} selected • ${points} point${points === 1 ? "" : "s"} pending. Possible duplicate flagged for admin review.`
+        );
+      } else {
+        setMessage(
+          `Upload submitted for approval. ${files.length} image${files.length === 1 ? "" : "s"} selected • ${points} point${points === 1 ? "" : "s"} pending.`
+        );
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Upload failed.";

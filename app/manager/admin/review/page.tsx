@@ -13,6 +13,8 @@ type Submission = {
   image_urls: string[];
   image_count: number;
   points: number;
+  possible_duplicate: boolean;
+  duplicate_file_names: string[];
 };
 
 function formatSubmissionDate(dateString: string) {
@@ -200,6 +202,22 @@ export default function ManagerAdminReviewPage() {
                     Images: {submission.image_count} · Points: {submission.points}
                   </div>
                   <div className="manager-small">Status: pending</div>
+
+                  {submission.possible_duplicate ? (
+                    <div
+                      className="manager-small"
+                      style={{
+                        marginTop: "8px",
+                        color: "#ffb84d",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Possible Duplicate
+                      {submission.duplicate_file_names?.length
+                        ? `: ${submission.duplicate_file_names.join(", ")}`
+                        : ""}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="manager-form" style={{ gap: 10 }}>
