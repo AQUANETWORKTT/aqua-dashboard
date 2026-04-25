@@ -85,9 +85,15 @@ export default function LeaderboardPage() {
                     )}
 
                     {creator.username === "browniefamboi" && (
-                      <span style={styles.cyanBadge}>
-                        The Deep Dive Campaign Winner
-                      </span>
+                      <>
+                        <span style={styles.cyanBadge}>
+                          The Deep Dive Campaign Winner
+                        </span>
+
+                        <span style={styles.greenBadge}>
+                          Aqua Trials Tournament Winner
+                        </span>
+                      </>
                     )}
                   </div>
                 </div>
@@ -305,6 +311,18 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#7cf6ff",
     background: "rgba(124,246,255,0.08)",
     border: "1px solid rgba(124,246,255,0.32)",
+    fontSize: 10,
+    fontWeight: 900,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+  },
+
+  greenBadge: {
+    padding: "5px 8px",
+    borderRadius: 999,
+    color: "#4ade80",
+    background: "rgba(74,222,128,0.08)",
+    border: "1px solid rgba(74,222,128,0.32)",
     fontSize: 10,
     fontWeight: 900,
     letterSpacing: "0.08em",
