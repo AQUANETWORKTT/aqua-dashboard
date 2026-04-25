@@ -1,66 +1,107 @@
 import Link from "next/link";
-import { creators } from "@/data/creators";
 
 export default function HomePage() {
-  const totalCreators = creators.length;
-
   return (
-    <main className="home-wrapper">
-      <div className="hero-grid">
-        {/* LEFT SIDE */}
-        <section className="hero-left">
-          <img
-            src="/aqua-logo.png"
-            alt="Aqua Agency"
-            className="hero-logo-img"
-          />
+    <main
+      style={{
+        minHeight: "100vh",
+        padding: "28px 16px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        background:
+          "radial-gradient(circle at top, rgba(0,180,255,0.18), transparent 34%), linear-gradient(180deg, #020617 0%, #030712 58%, #000 100%)",
+        color: "#fff",
+        fontFamily: "'Orbitron', 'Rajdhani', system-ui, sans-serif",
+      }}
+    >
+      <section
+        style={{
+          width: "100%",
+          maxWidth: 620,
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <img
+          src="/aqua-logo.png"
+          alt="Aqua Agency"
+          style={{
+            width: 145,
+            marginBottom: 28,
+            filter: "drop-shadow(0 0 22px rgba(45,224,255,0.42))",
+          }}
+        />
 
-          <h1 className="hero-title">
-            Diamonds, streaks &amp; rankings
-            <span className="hero-title-accent"> in one dashboard.</span>
-          </h1>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: "clamp(46px, 10vw, 86px)",
+            lineHeight: 0.92,
+            fontWeight: 900,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            textShadow:
+              "0 0 8px rgba(45,224,255,0.9), 0 0 28px rgba(45,224,255,0.45)",
+          }}
+        >
+          Aqua App
+        </h1>
 
-          <p className="hero-subtitle">
-            The dashboard is now live.
-          </p>
+        <p
+          style={{
+            marginTop: 22,
+            maxWidth: 500,
+            color: "rgba(255,255,255,0.62)",
+            fontSize: 16,
+            lineHeight: 1.7,
+          }}
+        >
+          Diamonds, streaks, rankings and incentive progress in one premium
+          Aqua dashboard.
+        </p>
 
-          <div className="hero-buttons">
-            <Link href="/login" className="btn-primary">
-              Creator Login
-            </Link>
-          </div>
-        </section>
+        <div
+          style={{
+            marginTop: 26,
+            padding: "12px 18px",
+            borderRadius: 999,
+            background: "rgba(124,246,255,0.06)",
+            border: "1px solid rgba(124,246,255,0.22)",
+            color: "#7cf6ff",
+            fontSize: 12,
+            fontWeight: 900,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            boxShadow: "0 0 18px rgba(45,224,255,0.12)",
+          }}
+        >
+          Status: Live
+        </div>
 
-        {/* RIGHT SIDE */}
-        <section className="hero-right">
-          <div className="glow-card">
-            <div className="glow-card-header">
-              <span className="glow-dot" />
-              <span className="glow-label">Network Snapshot</span>
-            </div>
-
-            <div className="glow-stats glow-stats-split">
-              <div className="glow-stat compact">
-                <div className="glow-stat-label">Creators</div>
-                <div className="glow-stat-value">{totalCreators}</div>
-                <div className="glow-stat-sub">ACTIVE IN THIS DASHBOARD</div>
-              </div>
-
-              <div className="glow-divider" />
-
-              <div className="glow-stat compact">
-                <div className="glow-stat-label">Status</div>
-                <div className="glow-stat-value status-live">
-                  Live
-                </div>
-                <div className="glow-stat-sub">FULLY OPERATIONAL</div>
-              </div>
-            </div>
-
-            <div className="glow-footer"></div>
-          </div>
-        </section>
-      </div>
+        <Link
+          href="/login"
+          style={{
+            marginTop: 30,
+            padding: "15px 24px",
+            borderRadius: 16,
+            background:
+              "linear-gradient(90deg, rgba(45,224,255,0.95), rgba(124,246,255,0.95))",
+            color: "#001018",
+            fontSize: 13,
+            fontWeight: 900,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            textDecoration: "none",
+            boxShadow: "0 0 26px rgba(45,224,255,0.22)",
+          }}
+        >
+          Creator Login
+        </Link>
+      </section>
     </main>
   );
 }

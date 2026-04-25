@@ -16,7 +16,6 @@ export default function NavBar({ user }: { user: string | null }) {
     { href: "/", label: "Home" },
     { href: `/dashboard/${user}`, label: "Dashboard" },
     { href: "/leaderboard", label: "Leaderboard" },
-    { href: "/points-leaderboard", label: "Points" },
     { href: "/merch", label: "Merch" },
     {
       href: "/banned-help",
