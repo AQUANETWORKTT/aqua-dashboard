@@ -1,3 +1,9 @@
+@import "tailwindcss";
+
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap");
+
+
+
 :root {
   --font-family-main: var(--font-poppins), sans-serif;
 }
@@ -2316,4 +2322,38 @@ a {
   object-fit: contain;
   display: block;
   background: #120404;
+}
+
+
+.merch-page {
+  font-family: "Orbitron", sans-serif;
+}
+
+.merch-glow-text {
+  text-shadow: 0 0 12px rgba(0, 220, 255, 0.8),
+    0 0 35px rgba(0, 140, 255, 0.45);
+}
+
+.merch-card {
+  background: radial-gradient(circle at top, rgba(0, 210, 255, 0.12), #050b14 55%);
+  box-shadow:
+    inset 0 0 20px rgba(0, 200, 255, 0.08),
+    0 0 28px rgba(0, 180, 255, 0.14);
+}
+
+.merch-card:hover {
+  transform: translateY(-5px);
+  box-shadow:
+    inset 0 0 25px rgba(0, 200, 255, 0.12),
+    0 0 45px rgba(0, 210, 255, 0.28);
+}
+
+.merch-button {
+  box-shadow:
+    inset 0 0 14px rgba(0, 220, 255, 0.3),
+    0 0 18px rgba(0, 180, 255, 0.25);
+}
+
+.merch-hero-fade {
+  mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
 }
