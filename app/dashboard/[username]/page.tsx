@@ -527,6 +527,16 @@ export default function CreatorDashboardPage() {
             </p>
           </div>
 
+		<div style={cardPad}>
+ 		 <div style={title}>Total Hours</div>
+ 		 <div style={{ ...bigNumber, marginTop: 12 }}>
+  		  {hoursNow.toFixed(1)}h
+ 		 </div>
+  		<p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
+  		  Hours live this month
+ 		 </p>
+		</div>
+
           <div style={cardPad}>
             <div style={title}>Incentive Coins</div>
             {loading ? (
