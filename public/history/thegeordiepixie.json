@@ -1,0 +1,33 @@
+{
+  "username": "thegeordiepixie",
+  "entries": [
+    {
+      "date": "2026-04-22",
+      "daily": 85,
+      "hours": 1.5433333333333332,
+      "lifetime": 1640,
+      "lifetimeHours": 5.810833333333333
+    },
+    {
+      "date": "2026-04-23",
+      "daily": 15,
+      "hours": 1.1097222222222223,
+      "lifetime": 1640,
+      "lifetimeHours": 5.810833333333333
+    },
+    {
+      "date": "2026-04-24",
+      "daily": 33,
+      "hours": 1.9986111111111111,
+      "lifetime": 1640,
+      "lifetimeHours": 5.810833333333333
+    },
+    {
+      "date": "2026-04-25",
+      "daily": 1507,
+      "hours": 1.1591666666666667,
+      "lifetime": 1640,
+      "lifetimeHours": 5.810833333333333
+    }
+  ]
+}

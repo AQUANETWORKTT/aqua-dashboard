@@ -1,0 +1,33 @@
+{
+  "username": "tamzin.cook1812",
+  "entries": [
+    {
+      "date": "2026-04-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 17024,
+      "lifetimeHours": 2.833055555555555
+    },
+    {
+      "date": "2026-04-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 17024,
+      "lifetimeHours": 2.833055555555555
+    },
+    {
+      "date": "2026-04-24",
+      "daily": 6,
+      "hours": 0.9075,
+      "lifetime": 17024,
+      "lifetimeHours": 2.833055555555555
+    },
+    {
+      "date": "2026-04-25",
+      "daily": 17018,
+      "hours": 1.9255555555555555,
+      "lifetime": 17024,
+      "lifetimeHours": 2.833055555555555
+    }
+  ]
+}

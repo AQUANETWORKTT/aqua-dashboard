@@ -1,0 +1,33 @@
+{
+  "username": "1111liv111",
+  "entries": [
+    {
+      "date": "2026-04-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 211,
+      "lifetimeHours": 2.656111111111111
+    },
+    {
+      "date": "2026-04-23",
+      "daily": 10,
+      "hours": 0.7152777777777777,
+      "lifetime": 211,
+      "lifetimeHours": 2.656111111111111
+    },
+    {
+      "date": "2026-04-24",
+      "daily": 40,
+      "hours": 0.7844444444444444,
+      "lifetime": 211,
+      "lifetimeHours": 2.656111111111111
+    },
+    {
+      "date": "2026-04-25",
+      "daily": 161,
+      "hours": 1.156388888888889,
+      "lifetime": 211,
+      "lifetimeHours": 2.656111111111111
+    }
+  ]
+}

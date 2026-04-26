@@ -112,6 +112,34 @@
       "hours": 0,
       "lifetime": 17822,
       "lifetimeHours": 30.94472222222222
+    },
+    {
+      "date": "2026-04-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 17836,
+      "lifetimeHours": 31.858611111111113
+    },
+    {
+      "date": "2026-04-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 17836,
+      "lifetimeHours": 31.858611111111113
+    },
+    {
+      "date": "2026-04-24",
+      "daily": 14,
+      "hours": 0.9138888888888889,
+      "lifetime": 17836,
+      "lifetimeHours": 31.858611111111113
+    },
+    {
+      "date": "2026-04-25",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 17836,
+      "lifetimeHours": 31.858611111111113
     }
   ]
 }

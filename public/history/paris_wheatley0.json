@@ -1,0 +1,33 @@
+{
+  "username": "paris_wheatley0",
+  "entries": [
+    {
+      "date": "2026-04-22",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1,
+      "lifetimeHours": 0.6427777777777778
+    },
+    {
+      "date": "2026-04-23",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1,
+      "lifetimeHours": 0.6427777777777778
+    },
+    {
+      "date": "2026-04-24",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1,
+      "lifetimeHours": 0.6427777777777778
+    },
+    {
+      "date": "2026-04-25",
+      "daily": 1,
+      "hours": 0.6427777777777778,
+      "lifetime": 1,
+      "lifetimeHours": 0.6427777777777778
+    }
+  ]
+}
