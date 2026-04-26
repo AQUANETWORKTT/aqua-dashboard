@@ -78,10 +78,7 @@ export default function LeaderboardPage() {
 
                     {creator.username === "browniefamboi" && (
                       <>
-                        <span className="badge cyan">
-                          Deep Dive Winner
-                        </span>
-
+                        <span className="badge cyan">Deep Dive Winner</span>
                         <span className="badge green">
                           Aqua Trials Winner
                         </span>
@@ -200,7 +197,7 @@ export default function LeaderboardPage() {
           color: #fb923c;
         }
 
-        .avatar {
+        :global(.avatar) {
           width: 58px;
           height: 58px;
           border-radius: 16px;
@@ -313,7 +310,7 @@ export default function LeaderboardPage() {
             border-radius: 12px;
           }
 
-          .avatar {
+          :global(.avatar) {
             width: 50px;
             height: 50px;
             border-radius: 14px;
