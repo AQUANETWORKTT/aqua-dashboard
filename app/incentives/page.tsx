@@ -1,31 +1,11 @@
-// app/incentives/page.tsx
-import fs from "fs";
-import path from "path";
-import type { Metadata, Viewport } from "next";
+"use client";
 
-import styles from "./incentives.module.css";
+import React, { useEffect, useMemo, useState } from "react";
+import { creators } from "@/data/creators";
 import { incentiveExtras } from "@/data/incentive-extras";
 
-export const runtime = "nodejs"; // ✅ fs/path require node runtime
-
-// ✅ Move themeColor here (NOT in metadata)
-export const viewport: Viewport = {
-  themeColor: "#00d5ff",
-};
-
-export const metadata: Metadata = {
-  title: "Aqua Incentives",
-};
-
-/* ===================== TYPES ===================== */
-
-type Creator = {
-  username: string;
-  avatar: string;
-};
-
 type HistoryEntry = {
-  date: string; // "YYYY-MM-DD"
+  date: string;
   daily: number;
   lifetime: number;
   hours?: number;
@@ -36,70 +16,41 @@ type HistoryFile = {
   entries: HistoryEntry[];
 };
 
-type IncentiveStats = {
-  diamonds: number;
-  hours: number;
-  validDays: number; // dashboard rule: hours >= 1
-  top5Count: number;
-  calculatedPoints: number;
-  extrasPoints: number;
-  incentiveBalance: number; // calculatedPoints + extrasPoints (BEFORE level points)
-};
-
-type Row = {
+type CreatorIncentiveRow = {
   username: string;
-  avatar: string;
-
   diamonds: number;
   hours: number;
   validDays: number;
-  top5Count: number;
-
-  calculatedPoints: number;
-  extrasPoints: number;
-  incentiveBalance: number;
-
-  earnedLevelPoints: number;
-  incentiveBalanceWithLevels: number;
-
-  eligible: boolean; // payout eligibility (aligned to dashboard)
-  level: number; // 0..5 (ALWAYS shown)
+  tierCoins: number;
+  liveCoins: number;
+  extrasCoins: number;
+  coinsOwed: number;
+  eligible: boolean;
 };
 
-/* ===================== RULES (ALIGN TO DASHBOARD) ===================== */
+type TierConfig = {
+  id: number;
+  min: number;
+  label: string;
+  color: string;
+  incentiveCoins: number;
+};
 
-// ✅ Dashboard eligibility (you’ve been using 15 days + 40 hours on the dashboards)
-const ELIGIBLE_DAYS = 15;
-const ELIGIBLE_HOURS = 40;
+const MIN_VALID_DAYS = 15;
+const MIN_HOURS = 40;
 
-// ✅ Conversion: £6 per 1,000 points (and we keep the same “display points” multiplier concept)
-const DISPLAY_POINTS_MULT = 2;
-const GBP_PER_1000_POINTS = 6;
-const GBP_PER_POINT = GBP_PER_1000_POINTS / 1000; // 0.006
-
-/* ===================== FORMAT HELPERS ===================== */
-
-function fmt(n: number) {
-  return (n ?? 0).toLocaleString("en-GB");
-}
-
-function fmtGBP(n: number) {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 2,
-  }).format(n ?? 0);
-}
-
-// raw points -> displayed points (x2) -> £
-function pointsToGBP(points: number) {
-  const displayedPoints = Math.round((points ?? 0) * DISPLAY_POINTS_MULT);
-  return displayedPoints * GBP_PER_POINT;
-}
-
-function showGBP(points: number) {
-  return fmtGBP(pointsToGBP(points));
-}
+const TIERS: TierConfig[] = [
+  { id: 1, label: "Tier 1", min: 0, color: "#9CA3AF", incentiveCoins: 0 },
+  { id: 2, label: "Tier 2", min: 100_000, color: "#84cc16", incentiveCoins: 1_200 },
+  { id: 3, label: "Tier 3", min: 200_000, color: "#06b6d4", incentiveCoins: 2_400 },
+  { id: 4, label: "Tier 4", min: 300_000, color: "#3b82f6", incentiveCoins: 3_600 },
+  { id: 5, label: "Tier 5", min: 500_000, color: "#6366f1", incentiveCoins: 4_800 },
+  { id: 6, label: "Tier 6", min: 700_000, color: "#8b5cf6", incentiveCoins: 6_000 },
+  { id: 7, label: "Tier 7", min: 1_000_000, color: "#d946ef", incentiveCoins: 7_200 },
+  { id: 8, label: "Tier 8", min: 1_600_000, color: "#f43f5e", incentiveCoins: 8_400 },
+  { id: 9, label: "Tier 9", min: 2_500_000, color: "#f97316", incentiveCoins: 9_600 },
+  { id: 10, label: "Tier 10", min: 5_000_000, color: "#f59e0b", incentiveCoins: 10_800 },
+];
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -109,88 +60,20 @@ function toMonthKey(d: Date) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 }
 
-// ✅ default = previous month (so on Feb 1 you see Jan automatically)
-function defaultPrevMonthKey() {
-  const now = new Date();
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return toMonthKey(prev);
-}
+function getTier(monthlyDiamonds: number) {
+  let current = TIERS[0];
 
-function safeMonthKey(input: string | undefined) {
-  if (!input) return defaultPrevMonthKey();
-  return /^\d{4}-\d{2}$/.test(input) ? input : defaultPrevMonthKey();
-}
-
-/* ===================== FILE LOADERS ===================== */
-
-// ✅ IMPORTANT: keep as a function declaration (hoisted) so it can’t go “undefined”
-function loadCreatorsFromPublicCreatorsFolder(): Creator[] {
-  const dir = path.join(process.cwd(), "public", "creators");
-  if (!fs.existsSync(dir)) return [];
-
-  const files = fs.readdirSync(dir);
-
-  const creators: Creator[] = files
-    .filter((f) => /\.(png|jpg|jpeg|webp)$/i.test(f))
-    .map((f) => {
-      const username = f.replace(/\.(png|jpg|jpeg|webp)$/i, "");
-      return { username, avatar: `/creators/${f}` };
-    });
-
-  creators.sort((a, b) => a.username.localeCompare(b.username));
-  return creators;
-}
-
-function loadHistoryFromPublic(username: string): HistoryEntry[] {
-  try {
-    const fp = path.join(process.cwd(), "public", "history", `${username}.json`);
-    if (!fs.existsSync(fp)) return [];
-    const raw = fs.readFileSync(fp, "utf8");
-    const j = JSON.parse(raw) as HistoryFile;
-    return Array.isArray(j.entries) ? j.entries : [];
-  } catch {
-    return [];
+  for (const tier of TIERS) {
+    if (monthlyDiamonds >= tier.min) current = tier;
   }
+
+  return current;
 }
 
-/* ===================== DASHBOARD-ALIGNED POINTS ===================== */
+function calculateLiveCoins(diamonds: number, hours: number, validDays: number) {
+  const reducedLiveDiamonds = Math.floor(diamonds * 0.5);
+  const thousands = Math.floor(reducedLiveDiamonds / 1000);
 
-// ✅ points = floor(diamonds / diamondsPerPoint) * rateMultiplier
-function pointsFromDiamondsRate(
-  diamonds: number,
-  diamondsPerPoint: number,
-  rateMultiplier: number
-) {
-  if (!Number.isFinite(diamonds) || diamonds <= 0) return 0;
-  if (!Number.isFinite(diamondsPerPoint) || diamondsPerPoint <= 0) return 0;
-  if (!Number.isFinite(rateMultiplier) || rateMultiplier <= 0) return 0;
-  return Math.floor(diamonds / diamondsPerPoint) * rateMultiplier;
-}
-
-/**
- * ✅ Ported 1:1 from your dashboard incentive logic.
- */
-function computeDashboardStatsForUser(opts: {
-  username: string;
-  monthHistory: HistoryEntry[];
-  top5ByDay: Record<string, string[]>;
-}): IncentiveStats {
-  const { username, monthHistory, top5ByDay } = opts;
-
-  let diamonds = 0;
-  let hours = 0;
-  let validDays = 0;
-  let top5Count = 0;
-
-  monthHistory.forEach((e) => {
-    diamonds += e.daily ?? 0;
-    hours += e.hours ?? 0;
-    if ((e.hours ?? 0) >= 1) validDays++;
-    if (top5ByDay[e.date]?.includes(username)) top5Count++;
-  });
-
-  // ---------- calculated points ----------
-  const thousands = Math.floor(diamonds / 1000);
   let diamondPoints = 0;
 
   if (thousands >= 1) {
@@ -201,431 +84,418 @@ function computeDashboardStatsForUser(opts: {
   const hourPoints = Math.floor(hours) * 3;
   const validDayPoints = validDays * 3;
 
-  let top5Points = 0;
-  monthHistory.forEach((e) => {
-    const placements = top5ByDay[e.date];
-    if (!placements) return;
-
-    const pos = placements.indexOf(username);
-    if (pos === 0) top5Points += 25;
-    else if (pos === 1) top5Points += 20;
-    else if (pos === 2) top5Points += 15;
-    else if (pos === 3) top5Points += 10;
-    else if (pos === 4) top5Points += 5;
-  });
-
-  const calculatedPoints =
-    diamondPoints + hourPoints + validDayPoints + top5Points;
-
-  // ---------- FILE-BASED EXTRAS ----------
-  const extrasPoints = incentiveExtras[username] ?? 0;
-  const incentiveBalance = calculatedPoints + extrasPoints;
-
-  return {
-    diamonds,
-    hours,
-    validDays,
-    top5Count,
-    calculatedPoints,
-    extrasPoints,
-    incentiveBalance,
-  };
+  return diamondPoints + hourPoints + validDayPoints;
 }
 
-/**
- * ✅ Level points aligned to your (new) dashboard logic:
- * - Levels 3–5 unlock at 150K diamonds
- * - Non-stacking: you earn only the highest completed rate level (3 OR 4 OR 5)
- * - points = floor(monthlyDiamonds / 300) * rate (rate: 1/2/3)
- */
-function computeEarnedLevelPointsAligned(
-  monthlyDiamonds: number,
-  validDaysNow: number,
-  hoursNow: number
-) {
-  const ladderUnlocked = monthlyDiamonds >= 150_000;
+export default function IncentivesPage() {
+  const [rows, setRows] = useState<CreatorIncentiveRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const levels = [
-    { level: 2, days: 15, hours: 40, gated: false },
-    { level: 3, days: 20, hours: 60, gated: true, diamondsPerPoint: 300, rate: 1 },
-    { level: 4, days: 20, hours: 80, gated: true, diamondsPerPoint: 300, rate: 2 },
-    { level: 5, days: 22, hours: 100, gated: true, diamondsPerPoint: 300, rate: 3 },
-  ] as const;
+  const selectedMonthKey = useMemo(() => toMonthKey(new Date()), []);
 
-  const isLevelEligible = (l: (typeof levels)[number]) =>
-    validDaysNow >= l.days && hoursNow >= l.hours;
+  useEffect(() => {
+    async function loadCreatorStats() {
+      setLoading(true);
 
-  const isLevelAvailable = (l: (typeof levels)[number]) =>
-    l.gated ? ladderUnlocked : true;
+      const results = await Promise.all(
+        creators.map(async (creator) => {
+          try {
+            const res = await fetch(`/history/${creator.username}.json`, {
+              cache: "no-store",
+            });
 
-  const level3 = levels[1];
-  const level4 = levels[2];
-  const level5 = levels[3];
+            if (!res.ok) {
+              return {
+                username: creator.username,
+                diamonds: 0,
+                hours: 0,
+                validDays: 0,
+                tierCoins: 0,
+                liveCoins: 0,
+                extrasCoins: incentiveExtras[creator.username] ?? 0,
+                coinsOwed: 0,
+                eligible: false,
+              };
+            }
 
-  const completedRateLevel =
-    isLevelAvailable(level5) && isLevelEligible(level5)
-      ? level5
-      : isLevelAvailable(level4) && isLevelEligible(level4)
-      ? level4
-      : isLevelAvailable(level3) && isLevelEligible(level3)
-      ? level3
-      : null;
+            const json = (await res.json()) as HistoryFile;
+            const entries = Array.isArray(json.entries) ? json.entries : [];
 
-  if (!completedRateLevel) return 0;
+            const monthEntries = entries.filter((e) =>
+              (e.date || "").startsWith(selectedMonthKey)
+            );
 
-  return pointsFromDiamondsRate(
-    monthlyDiamonds,
-    (completedRateLevel as any).diamondsPerPoint,
-    (completedRateLevel as any).rate
-  );
-}
+            const diamonds = monthEntries.reduce(
+              (sum, e) => sum + (e.daily ?? 0),
+              0
+            );
 
-/**
- * ✅ Level indicator (0..5) aligned to dashboard thresholds.
- * (Level 1 is optional — keep it as an “almost there” tier.)
- */
-function getLevelAligned(validDays: number, hours: number): number {
-  if (validDays >= 22 && hours >= 100) return 5;
-  if (validDays >= 20 && hours >= 80) return 4;
-  if (validDays >= 20 && hours >= 60) return 3;
-  if (validDays >= 15 && hours >= 40) return 2;
-  if (validDays >= 12 && hours >= 25) return 1;
-  return 0;
-}
+            const hours = monthEntries.reduce(
+              (sum, e) => sum + (e.hours ?? 0),
+              0
+            );
 
-/* ===================== PAGE ===================== */
+            const validDays = monthEntries.filter(
+              (e) => (e.hours ?? 0) >= 1
+            ).length;
 
-type SearchParams = { month?: string };
+            const eligible =
+              validDays >= MIN_VALID_DAYS && hours >= MIN_HOURS;
 
-export default async function IncentivesPage({
-  searchParams,
-}: {
-  searchParams?: Promise<SearchParams>;
-}) {
-  const sp = (await searchParams) ?? {};
-  const creators = loadCreatorsFromPublicCreatorsFolder();
+            const tier = getTier(diamonds);
+            const tierCoins = tier.incentiveCoins;
+            const liveCoins = calculateLiveCoins(diamonds, hours, validDays);
+            const extrasCoins = incentiveExtras[creator.username] ?? 0;
 
-  // Friendly empty state instead of a 500 crash
-  if (!creators.length) {
-    const monthKey = safeMonthKey(sp.month);
-    return (
-      <main className={styles.wrap}>
-        <div className={styles.container}>
-          <header className={styles.hero}>
-            <div className={styles.heroTop}>
-              <div>
-                <h1 className={styles.title}>Aqua Incentives</h1>
-                <p className={styles.sub}>
-                  Month key: <span className={styles.mono}>{monthKey}</span>
-                </p>
-                <p className={styles.sub} style={{ marginTop: 6 }}>
-                  No creator images found in{" "}
-                  <span className={styles.mono}>/public/creators</span>. Add at
-                  least one <span className={styles.mono}>.png/.jpg/.webp</span>{" "}
-                  named as the username.
-                </p>
-              </div>
-            </div>
-          </header>
-        </div>
-      </main>
-    );
-  }
+            const coinsOwed = eligible
+              ? liveCoins + tierCoins + extrasCoins
+              : 0;
 
-  // ✅ Match the dashboard month selection:
-  // - default previous month
-  // - allow override via ?month=YYYY-MM
-  const monthKey = safeMonthKey(sp.month);
+            return {
+              username: creator.username,
+              diamonds,
+              hours,
+              validDays,
+              tierCoins,
+              liveCoins,
+              extrasCoins,
+              coinsOwed,
+              eligible,
+            };
+          } catch {
+            return {
+              username: creator.username,
+              diamonds: 0,
+              hours: 0,
+              validDays: 0,
+              tierCoins: 0,
+              liveCoins: 0,
+              extrasCoins: incentiveExtras[creator.username] ?? 0,
+              coinsOwed: 0,
+              eligible: false,
+            };
+          }
+        })
+      );
 
-  // Load all histories
-  const allHistories: Record<string, HistoryEntry[]> = {};
-  creators.forEach((c) => {
-    allHistories[c.username] = loadHistoryFromPublic(c.username);
-  });
+      const sorted = results.sort((a, b) => {
+        if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
+        if (b.coinsOwed !== a.coinsOwed) return b.coinsOwed - a.coinsOwed;
+        return b.diamonds - a.diamonds;
+      });
 
-  // Month-only histories (startsWith) — same as dashboard approach
-  const monthAll: Record<string, HistoryEntry[]> = {};
-  for (const u in allHistories) {
-    monthAll[u] = (allHistories[u] || []).filter((e) =>
-      (e.date ?? "").startsWith(monthKey)
-    );
-  }
-
-  // All dates present in this month across everyone
-  const dates = new Set<string>();
-  Object.values(monthAll).forEach((arr) =>
-    arr.forEach((e) => {
-      if (e?.date) dates.add(e.date);
-    })
-  );
-
-  // Build top5ByDay exactly like dashboard
-  const top5ByDay: Record<string, string[]> = {};
-  [...dates].forEach((date) => {
-    const dayRows: { username: string; daily: number }[] = [];
-
-    for (const u in monthAll) {
-      const e = monthAll[u].find((x) => x.date === date);
-      if (e && (e.daily ?? 0) > 0)
-        dayRows.push({ username: u, daily: e.daily ?? 0 });
+      setRows(sorted);
+      setLoading(false);
     }
 
-    dayRows.sort((a, b) => b.daily - a.daily);
-    top5ByDay[date] = dayRows.slice(0, 5).map((r) => r.username);
-  });
+    loadCreatorStats();
+  }, [selectedMonthKey]);
 
-  // Build rows
-  const rows: Row[] = creators.map((c) => {
-    const monthHistory = monthAll[c.username] || [];
-
-    const stats = computeDashboardStatsForUser({
-      username: c.username,
-      monthHistory,
-      top5ByDay,
-    });
-
-    // ✅ level points aligned to dashboard (non-stacking rate points)
-    const earnedLevelPoints = computeEarnedLevelPointsAligned(
-      stats.diamonds,
-      stats.validDays,
-      stats.hours
-    );
-
-    const incentiveBalanceWithLevels = stats.incentiveBalance + earnedLevelPoints;
-
-    // ✅ payout eligibility aligned to dashboard (15 days + 40 hours)
-    const eligible =
-      stats.validDays >= ELIGIBLE_DAYS && stats.hours >= ELIGIBLE_HOURS;
-
-    // ✅ Level badge aligned to dashboard thresholds
-    const level = getLevelAligned(stats.validDays, stats.hours);
-
-    return {
-      username: c.username,
-      avatar: c.avatar,
-
-      diamonds: stats.diamonds,
-      hours: Math.round(stats.hours * 10) / 10,
-      validDays: stats.validDays,
-      top5Count: stats.top5Count,
-
-      calculatedPoints: stats.calculatedPoints,
-      extrasPoints: stats.extrasPoints,
-      incentiveBalance: stats.incentiveBalance,
-
-      earnedLevelPoints,
-      incentiveBalanceWithLevels,
-
-      eligible,
-      level,
-    };
-  });
-
-  // ✅ Sort by Level (5 → 0), then by balance
-  rows.sort((a, b) => {
-    if (a.level !== b.level) return b.level - a.level;
-    return b.incentiveBalanceWithLevels - a.incentiveBalanceWithLevels;
-  });
-
-  // ✅ Totals (still stored in points, displayed as £)
   const eligibleRows = rows.filter((r) => r.eligible);
-
-  const totalPayOut = eligibleRows.reduce(
-    (s, r) => s + r.incentiveBalanceWithLevels,
-    0
-  );
-
   const notEligibleRows = rows.filter((r) => !r.eligible);
-  const totalPotential = notEligibleRows.reduce(
-    (s, r) => s + r.incentiveBalanceWithLevels,
+
+  const totalCoinsOwed = eligibleRows.reduce(
+    (sum, row) => sum + row.coinsOwed,
     0
   );
 
-  const agencyTotal = rows.reduce((s, r) => s + r.incentiveBalanceWithLevels, 0);
-
-  const levelColorClass = (lvl: number) => {
-    if (lvl === 5) return styles.level5;
-    if (lvl === 4) return styles.level4;
-    if (lvl === 3) return styles.level3;
-    if (lvl === 2) return styles.level2;
-    if (lvl === 1) return styles.level1;
-    return styles.level0;
+  const page: React.CSSProperties = {
+    minHeight: "100vh",
+    padding: "28px 14px 70px",
+    background:
+      "radial-gradient(circle at top, rgba(0,180,255,0.18), transparent 34%), linear-gradient(180deg, #020617 0%, #030712 55%, #000 100%)",
+    color: "#fff",
+    fontFamily: "'Orbitron', 'Rajdhani', system-ui, sans-serif",
   };
 
-  return (
-    <main className={styles.wrap}>
-      <div className={styles.container}>
-        <header className={styles.hero}>
-          <div className={styles.heroTop}>
-            <div>
-              <h1 className={styles.title}>Aqua Incentives</h1>
-              <p className={styles.sub}>
-                Month key: <span className={styles.mono}>{monthKey}</span> • Payout
-                eligibility = <b>{ELIGIBLE_DAYS} days</b> +{" "}
-                <b>{ELIGIBLE_HOURS} hours</b>
-              </p>
-              <p className={styles.sub} style={{ marginTop: 6 }}>
-                Tip: change month with{" "}
-                <span className={styles.mono}>?month=YYYY-MM</span> (e.g.{" "}
-                <span className={styles.mono}>?month=2026-01</span>)
-              </p>
-            </div>
+  const shell: React.CSSProperties = {
+    width: "100%",
+    maxWidth: 1220,
+    margin: "0 auto",
+    display: "grid",
+    gap: 18,
+  };
 
-            <div className={styles.badge}>
-              <div className={styles.badgeLabel}>Eligible (payout)</div>
-              <div className={styles.badgeValue}>
-                {eligibleRows.length} / {rows.length}
+  const card: React.CSSProperties = {
+    borderRadius: 24,
+    background:
+      "linear-gradient(180deg, rgba(7,17,31,0.94), rgba(3,7,18,0.96))",
+    border: "1px solid rgba(45,224,255,0.22)",
+    boxShadow:
+      "inset 0 0 26px rgba(45,224,255,0.04), 0 0 28px rgba(0,180,255,0.10)",
+  };
+
+  const title: React.CSSProperties = {
+    fontSize: 14,
+    letterSpacing: "0.22em",
+    textTransform: "uppercase",
+    color: "#2de0ff",
+    fontWeight: 900,
+    textShadow: "0 0 10px rgba(45,224,255,0.55)",
+  };
+
+  const bigNumber: React.CSSProperties = {
+    fontSize: 36,
+    fontWeight: 900,
+    lineHeight: 1,
+  };
+
+  const gold: React.CSSProperties = {
+    color: "#FFD76A",
+    fontWeight: 900,
+    textShadow: "0 0 14px rgba(255,215,106,0.5)",
+  };
+
+  const pill = (good: boolean): React.CSSProperties => ({
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "7px 11px",
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 900,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: good ? "#7cf6ff" : "#ff6b6b",
+    background: good ? "rgba(124,246,255,0.09)" : "rgba(255,77,77,0.09)",
+    border: good
+      ? "1px solid rgba(124,246,255,0.4)"
+      : "1px solid rgba(255,77,77,0.4)",
+  });
+
+  function renderRows(data: CreatorIncentiveRow[]) {
+    return (
+      <div style={{ display: "grid", gap: 10 }}>
+        {data.map((row, index) => {
+          const daysLeft = Math.max(0, MIN_VALID_DAYS - row.validDays);
+          const hoursLeft = Math.max(0, MIN_HOURS - row.hours);
+
+          return (
+            <div
+              key={row.username}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "48px 1fr 120px 90px 90px 120px 120px 120px",
+                gap: 12,
+                alignItems: "center",
+                padding: 14,
+                borderRadius: 18,
+                background: row.eligible
+                  ? "linear-gradient(90deg, rgba(45,224,255,0.11), rgba(255,255,255,0.035))"
+                  : "rgba(255,255,255,0.025)",
+                border: row.eligible
+                  ? "1px solid rgba(45,224,255,0.34)"
+                  : "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                  background: "rgba(255,255,255,0.05)",
+                  color: row.eligible ? "#7cf6ff" : "#94a3b8",
+                }}
+              >
+                #{index + 1}
               </div>
-            </div>
-          </div>
 
-          {/* ✅ Agency totals bar (eligible vs potential vs total) */}
-          <div className={styles.cards}>
-            <div className={`${styles.card} ${styles.glow}`}>
-              <div className={styles.cardLabel}>Incentives to pay out (eligible)</div>
-              <div className={styles.cardValue}>{showGBP(totalPayOut)}</div>
-              <div className={styles.cardHint}>
-                £{GBP_PER_1000_POINTS} per 1,000 points (using x{DISPLAY_POINTS_MULT} display)
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardLabel}>
-                Potential incentives (if others hit eligibility)
-              </div>
-              <div className={styles.cardValue}>{showGBP(totalPotential)}</div>
-              <div className={styles.cardHint}>Not eligible yet — value shown in £</div>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardLabel}>Total across whole agency</div>
-              <div className={styles.cardValue}>{showGBP(agencyTotal)}</div>
-              <div className={styles.cardHint}>Eligible + potential combined</div>
-            </div>
-          </div>
-
-          {/* Secondary cards */}
-          <div className={styles.cards} style={{ marginTop: 12 }}>
-            <div className={styles.card}>
-              <div className={styles.cardLabel}>Creators source</div>
-              <div className={`${styles.cardValue} ${styles.small}`}>
-                /public/creators/*
-              </div>
-              <div className={styles.cardHint}>Filenames are treated as usernames</div>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardLabel}>Sort order</div>
-              <div className={`${styles.cardValue} ${styles.small}`}>
-                Level 5 → Level 0
-              </div>
-              <div className={styles.cardHint}>Then highest balance</div>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardLabel}>Conversion</div>
-              <div className={`${styles.cardValue} ${styles.small}`}>
-                £{GBP_PER_1000_POINTS} / 1,000 pts
-              </div>
-              <div className={styles.cardHint}>
-                Converted from displayed points (x{DISPLAY_POINTS_MULT})
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <section className={styles.tableShell}>
-          <div
-            className={styles.tableHead}
-            style={{
-              gridTemplateColumns: "2.2fr 1fr .7fr .7fr .7fr .9fr .8fr .8fr 1fr",
-            }}
-          >
-            <div className={styles.hCreator}>Creator</div>
-            <div className={styles.hStatus}>Status</div>
-            <div className={styles.hNum}>Level</div>
-            <div className={styles.hNum}>Days</div>
-            <div className={styles.hNum}>Hours</div>
-            <div className={styles.hNum}>£ Points</div>
-            <div className={styles.hNum}>£ Extras</div>
-            <div className={styles.hNum}>£ Lvl</div>
-            <div className={styles.hNum}>£ Balance</div>
-          </div>
-
-          <div className={styles.rows}>
-            {rows.map((r) => {
-              const needDays = Math.max(0, ELIGIBLE_DAYS - r.validDays);
-              const needHours = Math.max(0, ELIGIBLE_HOURS - r.hours);
-
-              return (
+              <div style={{ minWidth: 0 }}>
                 <div
-                  key={r.username}
-                  className={`${styles.row} ${r.eligible ? styles.rowGood : ""}`}
                   style={{
-                    gridTemplateColumns:
-                      "2.2fr 1fr .7fr .7fr .7fr .9fr .8fr .8fr 1fr",
+                    fontSize: 18,
+                    fontWeight: 900,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  <div className={styles.creator}>
-                    <img className={styles.avatar} src={r.avatar} alt={r.username} />
-                    <div className={styles.creatorText}>
-                      <div className={styles.creatorName}>{r.username}</div>
-                      <div
-                        className={`${styles.creatorSub} ${
-                          r.eligible ? styles.ok : styles.bad
-                        }`}
-                      >
-                        {r.eligible
-                          ? "Eligible for payout"
-                          : `Needs ${needDays} day(s), ${needHours.toFixed(1)} hour(s)`}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.status}>
-                    {r.eligible ? (
-                      <span className={`${styles.pill} ${styles.good}`}>Eligible</span>
-                    ) : (
-                      <span className={`${styles.pill} ${styles.badPill}`}>
-                        Not eligible
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Level pill (always shows L0-L5) */}
-                  <div className={`${styles.cell} ${styles.levelCell}`} data-label="Level">
-                    <span className={`${styles.levelPill} ${levelColorClass(r.level)}`}>
-                      L{r.level}
-                    </span>
-                  </div>
-
-                  <div className={`${styles.cell} ${styles.mono}`} data-label="Days">
-                    {fmt(r.validDays)}
-                  </div>
-                  <div className={`${styles.cell} ${styles.mono}`} data-label="Hours">
-                    {r.hours.toFixed(1)}
-                  </div>
-
-                  <div className={`${styles.cell} ${styles.mono}`} data-label="£ Points">
-                    {showGBP(r.calculatedPoints)}
-                  </div>
-                  <div className={`${styles.cell} ${styles.mono}`} data-label="£ Extras">
-                    {showGBP(r.extrasPoints)}
-                  </div>
-                  <div className={`${styles.cell} ${styles.mono}`} data-label="£ Lvl">
-                    {showGBP(r.earnedLevelPoints)}
-                  </div>
-
-                  <div
-                    className={`${styles.cell} ${styles.mono} ${styles.balance}`}
-                    data-label="£ Balance"
-                  >
-                    {showGBP(r.incentiveBalanceWithLevels)}
-                  </div>
+                  {row.username}
                 </div>
-              );
-            })}
+
+                {!row.eligible && (
+                  <div
+                    style={{
+                      marginTop: 4,
+                      fontSize: 11,
+                      color: "rgba(255,255,255,0.48)",
+                    }}
+                  >
+                    Needs {daysLeft} more valid days and {hoursLeft.toFixed(1)}h more
+                  </div>
+                )}
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontWeight: 900 }}>
+                  {row.diamonds.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>
+                  Diamonds
+                </div>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontWeight: 900 }}>{row.validDays}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>
+                  Days
+                </div>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontWeight: 900 }}>{row.hours.toFixed(1)}h</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>
+                  Hours
+                </div>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontWeight: 900 }}>
+                  {row.liveCoins.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>
+                  Live Coins
+                </div>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontWeight: 900 }}>
+                  {row.tierCoins.toLocaleString()}
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>
+                  Tier Bonus
+                </div>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <div style={gold}>{row.coinsOwed.toLocaleString()}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)" }}>
+                  Coins Owed
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <main style={page}>
+      <div style={shell}>
+        <section style={{ ...card, padding: 24 }}>
+          <div style={title}>Aqua Creator Network</div>
+
+          <h1
+            style={{
+              margin: "10px 0 8px",
+              fontSize: "clamp(32px, 7vw, 66px)",
+              lineHeight: 1,
+              fontWeight: 900,
+              textTransform: "uppercase",
+              textShadow:
+                "0 0 12px rgba(45,224,255,0.75), 0 0 28px rgba(45,224,255,0.25)",
+            }}
+          >
+            Incentives
+          </h1>
+
+          <p style={{ margin: 0, color: "rgba(255,255,255,0.62)" }}>
+            Creators must hit {MIN_VALID_DAYS} valid days and {MIN_HOURS} hours to be eligible.
+            Coins owed only show for eligible creators.
+          </p>
+        </section>
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 14,
+          }}
+        >
+          <div style={{ ...card, padding: 20 }}>
+            <div style={title}>Eligible</div>
+            <div style={{ ...bigNumber, marginTop: 12, color: "#7cf6ff" }}>
+              {eligibleRows.length}
+            </div>
           </div>
+
+          <div style={{ ...card, padding: 20 }}>
+            <div style={title}>Not Eligible</div>
+            <div style={{ ...bigNumber, marginTop: 12, color: "#ff6b6b" }}>
+              {notEligibleRows.length}
+            </div>
+          </div>
+
+          <div style={{ ...card, padding: 20 }}>
+            <div style={title}>Total Creators</div>
+            <div style={{ ...bigNumber, marginTop: 12 }}>{rows.length}</div>
+          </div>
+
+          <div style={{ ...card, padding: 20 }}>
+            <div style={title}>Total Coins Owed</div>
+            <div style={{ ...bigNumber, ...gold, marginTop: 12 }}>
+              {totalCoinsOwed.toLocaleString()}
+            </div>
+          </div>
+        </section>
+
+        <section style={{ ...card, padding: 20, overflowX: "auto" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              marginBottom: 14,
+            }}
+          >
+            <div style={title}>Eligible Creators</div>
+            <span style={pill(true)}>{eligibleRows.length} Qualified</span>
+          </div>
+
+          {loading ? (
+            <div style={{ color: "rgba(255,255,255,0.6)" }}>
+              Loading incentives…
+            </div>
+          ) : eligibleRows.length ? (
+            renderRows(eligibleRows)
+          ) : (
+            <div style={{ color: "rgba(255,255,255,0.6)" }}>
+              No creators are eligible yet.
+            </div>
+          )}
+        </section>
+
+        <section style={{ ...card, padding: 20, overflowX: "auto" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              marginBottom: 14,
+            }}
+          >
+            <div style={title}>Still To Qualify</div>
+            <span style={pill(false)}>{notEligibleRows.length} Not Eligible</span>
+          </div>
+
+          {loading ? (
+            <div style={{ color: "rgba(255,255,255,0.6)" }}>
+              Loading creators…
+            </div>
+          ) : notEligibleRows.length ? (
+            renderRows(notEligibleRows)
+          ) : (
+            <div style={{ color: "rgba(255,255,255,0.6)" }}>
+              Everyone is eligible.
+            </div>
+          )}
         </section>
       </div>
     </main>
