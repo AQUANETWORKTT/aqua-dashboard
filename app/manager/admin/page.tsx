@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const ADMIN_CODE = "FALCON";
+const ADMIN_CODE = "FALCON44";
 
 export default function ManagerAdminAccessPage() {
   const [code, setCode] = useState("");
