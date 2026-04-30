@@ -8,27 +8,33 @@ type ManagerRow = {
   name: string;
   recruitPoints: number;
   submissionPoints: number;
+  additionalPoints: number;
 };
 
 type ManagerPointsDbRow = {
   name: string;
-  recruit_points: number;
-  submission_points: number;
+  recruit_points: number | null;
+  submission_points: number | null;
+  additional_points: number | null;
 };
 
 const defaultManagers: ManagerRow[] = [
-  { name: "james", recruitPoints: 0, submissionPoints: 0 },
-  { name: "alfie", recruitPoints: 0, submissionPoints: 0 },
-  { name: "dylan", recruitPoints: 0, submissionPoints: 0 },
-  { name: "jay", recruitPoints: 0, submissionPoints: 0 },
-  { name: "ellie", recruitPoints: 0, submissionPoints: 0 },
-  { name: "lewis", recruitPoints: 0, submissionPoints: 0 },
-  { name: "vitali", recruitPoints: 0, submissionPoints: 0 },
-  { name: "callum", recruitPoints: 0, submissionPoints: 0 },
-  { name: "harry", recruitPoints: 0, submissionPoints: 0 },
-  { name: "chloe", recruitPoints: 0, submissionPoints: 0 },
-  { name: "joe", recruitPoints: 0, submissionPoints: 0 },
+  { name: "james", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "alfie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "dylan", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "jay", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "ellie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "lewis", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "vitali", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "callum", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "harry", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "chloe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "joe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
 ];
+
+function getTotalPoints(row: ManagerRow) {
+  return row.recruitPoints + row.submissionPoints + row.additionalPoints;
+}
 
 export default function ManagerPointsPage() {
   const [rows, setRows] = useState<ManagerRow[]>(defaultManagers);
@@ -73,6 +79,7 @@ export default function ManagerPointsPage() {
         name: manager.name,
         recruitPoints: existing?.recruit_points ?? 0,
         submissionPoints: existing?.submission_points ?? 0,
+        additionalPoints: existing?.additional_points ?? 0,
       };
     });
 
@@ -82,7 +89,7 @@ export default function ManagerPointsPage() {
 
   const updateRow = (
     name: string,
-    field: "recruitPoints" | "submissionPoints",
+    field: "recruitPoints" | "submissionPoints" | "additionalPoints",
     value: string
   ) => {
     const numberValue = Math.max(0, Number(value) || 0);
@@ -101,6 +108,7 @@ export default function ManagerPointsPage() {
       name: row.name,
       recruit_points: row.recruitPoints,
       submission_points: row.submissionPoints,
+      additional_points: row.additionalPoints,
     }));
 
     const { error } = await submissionsSupabase
@@ -124,7 +132,8 @@ export default function ManagerPointsPage() {
         <div className="manager-pill">Admin Points</div>
         <h1 className="manager-title">Edit Points</h1>
         <p className="manager-subtitle">
-          Manually adjust recruit and submission points for this month.
+          Manually adjust recruit, submission, and additional points for this
+          month.
         </p>
 
         <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
@@ -161,8 +170,32 @@ export default function ManagerPointsPage() {
         <div className="manager-form">
           {rows.map((row) => (
             <div key={row.name} className="manager-card">
-              <div className="manager-card-title">
-                {row.name.toUpperCase()}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  alignItems: "center",
+                }}
+              >
+                <div className="manager-card-title">
+                  {row.name.toUpperCase()}
+                </div>
+
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "999px",
+                    background: "rgba(34, 211, 238, 0.12)",
+                    border: "1px solid rgba(34, 211, 238, 0.35)",
+                    color: "#a5f3fc",
+                    fontWeight: 800,
+                    fontSize: "13px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Total: {getTotalPoints(row)}
+                </div>
               </div>
 
               <div
@@ -193,6 +226,19 @@ export default function ManagerPointsPage() {
                     value={row.submissionPoints}
                     onChange={(e) =>
                       updateRow(row.name, "submissionPoints", e.target.value)
+                    }
+                    className="manager-input"
+                  />
+                </label>
+
+                <label className="manager-label">
+                  Additional Points
+                  <input
+                    type="number"
+                    min="0"
+                    value={row.additionalPoints}
+                    onChange={(e) =>
+                      updateRow(row.name, "additionalPoints", e.target.value)
                     }
                     className="manager-input"
                   />

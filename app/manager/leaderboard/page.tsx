@@ -7,26 +7,28 @@ type ManagerRow = {
   name: string;
   recruitPoints: number;
   submissionPoints: number;
+  additionalPoints: number;
 };
 
 type ManagerPointsDbRow = {
   name: string;
-  recruit_points: number;
-  submission_points: number;
+  recruit_points: number | null;
+  submission_points: number | null;
+  additional_points: number | null;
 };
 
 const defaultManagers: ManagerRow[] = [
-  { name: "james", recruitPoints: 0, submissionPoints: 0 },
-  { name: "alfie", recruitPoints: 0, submissionPoints: 0 },
-  { name: "dylan", recruitPoints: 0, submissionPoints: 0 },
-  { name: "jay", recruitPoints: 0, submissionPoints: 0 },
-  { name: "ellie", recruitPoints: 0, submissionPoints: 0 },
-  { name: "lewis", recruitPoints: 0, submissionPoints: 0 },
-  { name: "vitali", recruitPoints: 0, submissionPoints: 0 },
-  { name: "callum", recruitPoints: 0, submissionPoints: 0 },
-  { name: "harry", recruitPoints: 0, submissionPoints: 0 },
-  { name: "chloe", recruitPoints: 0, submissionPoints: 0 },
-  { name: "joe", recruitPoints: 0, submissionPoints: 0 },
+  { name: "james", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "alfie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "dylan", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "jay", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "ellie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "lewis", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "vitali", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "callum", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "harry", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "chloe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "joe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
 ];
 
 function toNumber(value: unknown) {
@@ -35,7 +37,11 @@ function toNumber(value: unknown) {
 }
 
 function getCurrentPoints(row: ManagerRow) {
-  return toNumber(row.recruitPoints) + toNumber(row.submissionPoints);
+  return (
+    toNumber(row.recruitPoints) +
+    toNumber(row.submissionPoints) +
+    toNumber(row.additionalPoints)
+  );
 }
 
 function getMonthProjection(points: number) {
@@ -121,6 +127,7 @@ export default function ManagerLeaderboardPage() {
         name: manager.name,
         recruitPoints: existing?.recruit_points ?? 0,
         submissionPoints: existing?.submission_points ?? 0,
+        additionalPoints: existing?.additional_points ?? 0,
       };
     });
 
@@ -171,6 +178,8 @@ export default function ManagerLeaderboardPage() {
           <strong>1 point</strong> per recruit.
           <br />
           <strong>1 point</strong> per 20 messages, max <strong>3 per day</strong>.
+          <br />
+          <strong>Additional points</strong> can be added manually by admin.
         </div>
       </div>
 
@@ -187,6 +196,7 @@ export default function ManagerLeaderboardPage() {
                 <th>Manager</th>
                 <th>Recruit</th>
                 <th>Submission</th>
+                <th>Additional</th>
                 <th>Points</th>
                 <th>Status</th>
                 <th>Target</th>
@@ -204,6 +214,7 @@ export default function ManagerLeaderboardPage() {
                     </td>
                     <td>{row.recruitPoints}</td>
                     <td>{row.submissionPoints}</td>
+                    <td>{row.additionalPoints}</td>
                     <td>{currentPoints}</td>
                     <td>
                       <span className={getStatusClass(currentPoints)}>
