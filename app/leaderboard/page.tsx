@@ -18,6 +18,10 @@ function CreatorAvatar({ username }: { username: string }) {
   return <img src={src} alt={username} className="avatar" />;
 }
 
+function normalizeUsername(username: string) {
+  return username.trim().toLowerCase();
+}
+
 export default function LeaderboardPage() {
   const sorted = [...creators].sort((a, b) => b.lifetime - a.lifetime);
 
@@ -34,6 +38,7 @@ export default function LeaderboardPage() {
       <section className="list">
         {sorted.map((creator, index) => {
           const rank = index + 1;
+          const usernameKey = normalizeUsername(creator.username);
 
           return (
             <div key={creator.username} className="row">
@@ -58,29 +63,40 @@ export default function LeaderboardPage() {
                   <div className="username">{creator.username}</div>
 
                   <div className="badgeWrap">
-                    {creator.username === "alfie.harnett" && (
+                    {usernameKey === "alfie.harnett" && (
                       <span className="badge yellow">
                         Aqua Ascension Winner
                       </span>
                     )}
 
-                    {creator.username === "dylanjinks" && (
+                    {usernameKey === "dylanjinks" && (
                       <span className="badge blue">
                         2x Box Battle Winner
                       </span>
                     )}
 
-                    {creator.username === "mavismim" && (
+                    {usernameKey === "mavismim" && (
                       <span className="badge purple">
                         February Finale Winner
                       </span>
                     )}
 
-                    {creator.username === "browniefamboi" && (
+                    {usernameKey === "browniefamboi" && (
                       <>
                         <span className="badge cyan">Deep Dive Winner</span>
                         <span className="badge green">
                           Aqua Trials Winner
+                        </span>
+                      </>
+                    )}
+
+                    {usernameKey === "lucylou449" && (
+                      <>
+                        <span className="badge pink">
+                          Box Battle Winner
+                        </span>
+                        <span className="badge roseGold">
+                          Affluent April 128 👤 Tournament Winner
                         </span>
                       </>
                     )}
@@ -232,6 +248,7 @@ export default function LeaderboardPage() {
           font-size: 10px;
           font-weight: 800;
           line-height: 1.15;
+          border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .yellow {
@@ -257,6 +274,20 @@ export default function LeaderboardPage() {
         .green {
           color: #4ade80;
           background: rgba(74, 222, 128, 0.08);
+        }
+
+        .pink {
+          color: #fff;
+          background: rgba(255, 47, 168, 0.18);
+          border-color: rgba(255, 47, 168, 0.45);
+          box-shadow: 0 0 14px rgba(255, 47, 168, 0.25);
+        }
+
+        .roseGold {
+          color: #ffd1ea;
+          background: rgba(255, 134, 196, 0.12);
+          border-color: rgba(255, 134, 196, 0.35);
+          box-shadow: 0 0 14px rgba(255, 134, 196, 0.18);
         }
 
         .metrics {
