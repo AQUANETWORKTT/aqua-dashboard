@@ -23,7 +23,7 @@ const defaultManagers: ManagerRow[] = [
   { name: "ellie", recruitPoints: 0, submissionPoints: 0 },
   { name: "lewis", recruitPoints: 0, submissionPoints: 0 },
   { name: "vitali", recruitPoints: 0, submissionPoints: 0 },
-  { name: "mavis", recruitPoints: 0, submissionPoints: 0 },
+  { name: "callum", recruitPoints: 0, submissionPoints: 0 },
   { name: "harry", recruitPoints: 0, submissionPoints: 0 },
   { name: "chloe", recruitPoints: 0, submissionPoints: 0 },
   { name: "joe", recruitPoints: 0, submissionPoints: 0 },
@@ -159,7 +159,8 @@ export default function ManagerLeaderboardPage() {
         >
           Managers are tracked against a <strong>25 point monthly target</strong>.
           <br />
-          Under pace for less than <strong>10 projected points</strong> = removal risk.
+          Under pace for less than <strong>10 projected points</strong> = removal
+          risk.
           <br />
           Under pace for <strong>25 projected points</strong> = strike risk.
           <br />
