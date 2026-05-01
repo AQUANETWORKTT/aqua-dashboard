@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
+const POINTS_PER_RECRUIT = 3;
+const MONTHLY_TARGET = 35;
+const BONUS_POINTS = 50;
+const DOUBLE_BONUS_POINTS = 70;
+const REMOVAL_RISK_PROJECTED_POINTS = 15;
+
 type ManagerRow = {
   name: string;
   recruitPoints: number;
@@ -36,9 +42,17 @@ function toNumber(value: unknown) {
   return Number.isFinite(num) ? num : 0;
 }
 
+function isEarlyMonth() {
+  return new Date().getDate() <= 15;
+}
+
+function getRecruitScore(row: ManagerRow) {
+  return toNumber(row.recruitPoints) * POINTS_PER_RECRUIT;
+}
+
 function getCurrentPoints(row: ManagerRow) {
   return (
-    toNumber(row.recruitPoints) +
+    getRecruitScore(row) +
     toNumber(row.submissionPoints) +
     toNumber(row.additionalPoints)
   );
@@ -55,41 +69,59 @@ function getMonthProjection(points: number) {
 
   const safeDay = Math.max(currentDay, 1);
   const projectedEndPoints = (points / safeDay) * daysInMonth;
-  const expectedPointsNow = (25 / daysInMonth) * currentDay;
+  const expectedPointsNow = (MONTHLY_TARGET / daysInMonth) * currentDay;
 
   return {
-    currentDay,
-    daysInMonth,
     expectedPointsNow,
     projectedEndPoints,
   };
 }
 
 function getStatus(points: number) {
-  if (points >= 60) return "Active Manager + Double Bonus";
-  if (points >= 40) return "Active Manager + Bonus";
-  if (points >= 25) return "Target Hit";
+  if (isEarlyMonth()) return "";
+
+  if (points >= DOUBLE_BONUS_POINTS) return "Active Manager + Double Bonus";
+  if (points >= BONUS_POINTS) return "Active Manager + Bonus";
+  if (points >= MONTHLY_TARGET) return "Target Hit";
 
   const { projectedEndPoints, expectedPointsNow } = getMonthProjection(points);
 
-  if (projectedEndPoints < 10) return "Removal Risk";
-  if (projectedEndPoints < 25) return "Strike Risk";
+  if (projectedEndPoints < REMOVAL_RISK_PROJECTED_POINTS) {
+    return "Removal Risk";
+  }
 
-  if (points >= expectedPointsNow + 2) return "Bonus Potential";
+  if (projectedEndPoints < MONTHLY_TARGET) {
+    return "Strike Risk";
+  }
+
+  if (points >= expectedPointsNow + 3) {
+    return "Bonus Potential";
+  }
+
   return "On Track";
 }
 
 function getStatusClass(points: number) {
-  if (points >= 60) return "manager-status double-bonus";
-  if (points >= 40) return "manager-status bonus";
-  if (points >= 25) return "manager-status active";
+  if (isEarlyMonth()) return "";
+
+  if (points >= DOUBLE_BONUS_POINTS) return "manager-status double-bonus";
+  if (points >= BONUS_POINTS) return "manager-status bonus";
+  if (points >= MONTHLY_TARGET) return "manager-status active";
 
   const { projectedEndPoints, expectedPointsNow } = getMonthProjection(points);
 
-  if (projectedEndPoints < 10) return "manager-status removal";
-  if (projectedEndPoints < 25) return "manager-status strike";
+  if (projectedEndPoints < REMOVAL_RISK_PROJECTED_POINTS) {
+    return "manager-status removal";
+  }
 
-  if (points >= expectedPointsNow + 2) return "manager-status bonus";
+  if (projectedEndPoints < MONTHLY_TARGET) {
+    return "manager-status strike";
+  }
+
+  if (points >= expectedPointsNow + 3) {
+    return "manager-status bonus";
+  }
+
   return "manager-status active";
 }
 
@@ -136,9 +168,7 @@ export default function ManagerLeaderboardPage() {
   };
 
   const sortedRows = useMemo(() => {
-    return [...rows].sort(
-      (a, b) => getCurrentPoints(b) - getCurrentPoints(a)
-    );
+    return [...rows].sort((a, b) => getCurrentPoints(b) - getCurrentPoints(a));
   }, [rows]);
 
   return (
@@ -146,10 +176,7 @@ export default function ManagerLeaderboardPage() {
       <div className="manager-hero">
         <div className="manager-pill">Leaderboard</div>
         <h1 className="manager-title">Manager Points</h1>
-        <p className="manager-subtitle">
-          Manager progress is based on pace toward 25 points by the end of the
-          month, with bonus tiers at 40 and 60 points.
-        </p>
+        <p className="manager-subtitle">35 point target.</p>
       </div>
 
       {message ? (
@@ -158,28 +185,42 @@ export default function ManagerLeaderboardPage() {
         </div>
       ) : null}
 
-      <div className="manager-card" style={{ marginBottom: "20px" }}>
-        <div className="manager-card-title">Point Rules</div>
-        <div
-          className="manager-card-sub"
-          style={{ marginBottom: 0, lineHeight: 1.7 }}
-        >
-          Managers are tracked against a <strong>25 point monthly target</strong>.
-          <br />
-          Under pace for less than <strong>10 projected points</strong> = removal
-          risk.
-          <br />
-          Under pace for <strong>25 projected points</strong> = strike risk.
-          <br />
-          <strong>40 points</strong> = Active Manager + Bonus.
-          <br />
-          <strong>60 points</strong> = Active Manager + Double Bonus.
-          <br />
-          <strong>1 point</strong> per recruit.
-          <br />
-          <strong>1 point</strong> per 20 messages, max <strong>3 per day</strong>.
-          <br />
-          <strong>Additional points</strong> can be added manually by admin.
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "12px",
+          marginBottom: "20px",
+        }}
+      >
+        <div className="manager-card">
+          <div className="manager-card-title">Messages</div>
+          <div className="manager-card-sub">
+            1 point per 20 messages
+            <br />
+            Max 3 per day
+          </div>
+        </div>
+
+        <div className="manager-card">
+          <div className="manager-card-title">Recruits</div>
+          <div className="manager-card-sub">3 points per recruit</div>
+        </div>
+
+        <div className="manager-card">
+          <div className="manager-card-title">Bonus</div>
+          <div className="manager-card-sub">
+            50 points = bonus
+            <br />
+            70 points = double bonus
+          </div>
+        </div>
+
+        <div className="manager-card">
+          <div className="manager-card-title">Adjustments</div>
+          <div className="manager-card-sub">
+            Points can be added or removed by James
+          </div>
         </div>
       </div>
 
@@ -194,34 +235,46 @@ export default function ManagerLeaderboardPage() {
               <tr>
                 <th>#</th>
                 <th>Manager</th>
-                <th>Recruit</th>
+                <th>Recruits</th>
+                <th>Recruit Points</th>
                 <th>Submission</th>
-                <th>Additional</th>
-                <th>Points</th>
+                <th>Adjustments</th>
+                <th>Total Points</th>
                 <th>Status</th>
                 <th>Target</th>
               </tr>
             </thead>
+
             <tbody>
               {sortedRows.map((row, index) => {
+                const recruitScore = getRecruitScore(row);
                 const currentPoints = getCurrentPoints(row);
+                const status = getStatus(currentPoints);
+                const statusClass = getStatusClass(currentPoints);
 
                 return (
                   <tr key={row.name}>
                     <td>{index + 1}</td>
+
                     <td style={{ textTransform: "capitalize", fontWeight: 700 }}>
                       {row.name}
                     </td>
+
                     <td>{row.recruitPoints}</td>
+                    <td>{recruitScore}</td>
                     <td>{row.submissionPoints}</td>
                     <td>{row.additionalPoints}</td>
                     <td>{currentPoints}</td>
+
                     <td>
-                      <span className={getStatusClass(currentPoints)}>
-                        {getStatus(currentPoints)}
-                      </span>
+                      {status ? (
+                        <span className={statusClass}>{status}</span>
+                      ) : (
+                        ""
+                      )}
                     </td>
-                    <td>25</td>
+
+                    <td>{MONTHLY_TARGET}</td>
                   </tr>
                 );
               })}

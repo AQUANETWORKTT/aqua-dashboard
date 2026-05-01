@@ -32,8 +32,14 @@ const defaultManagers: ManagerRow[] = [
   { name: "joe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
 ];
 
+const POINTS_PER_RECRUIT = 3;
+
 function getTotalPoints(row: ManagerRow) {
-  return row.recruitPoints + row.submissionPoints + row.additionalPoints;
+  return (
+    row.recruitPoints * POINTS_PER_RECRUIT +
+    row.submissionPoints +
+    row.additionalPoints
+  );
 }
 
 export default function ManagerPointsPage() {
@@ -124,6 +130,38 @@ export default function ManagerPointsPage() {
     await loadPoints();
   };
 
+  const resetAllPoints = async () => {
+    const confirmReset = window.confirm(
+      "Are you sure you want to reset ALL manager points to 0 for the new month?"
+    );
+
+    if (!confirmReset) return;
+
+    setLoading(true);
+    setMessage("Resetting all manager points...");
+
+    const payload = defaultManagers.map((manager) => ({
+      name: manager.name,
+      recruit_points: 0,
+      submission_points: 0,
+      additional_points: 0,
+    }));
+
+    const { error } = await submissionsSupabase
+      .from("manager_points")
+      .upsert(payload, { onConflict: "name" });
+
+    if (error) {
+      setMessage(error.message);
+      setLoading(false);
+      return;
+    }
+
+    setRows(defaultManagers);
+    setMessage("All manager points reset to 0.");
+    setLoading(false);
+  };
+
   if (!checkedAccess) return null;
 
   return (
@@ -131,12 +169,19 @@ export default function ManagerPointsPage() {
       <div className="manager-hero">
         <div className="manager-pill">Admin Points</div>
         <h1 className="manager-title">Edit Points</h1>
+
         <p className="manager-subtitle">
-          Manually adjust recruit, submission, and additional points for this
-          month.
+          Manually adjust manager points for this month. 1 recruit = 3 points.
         </p>
 
-        <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
+        <div
+          style={{
+            marginTop: "16px",
+            display: "flex",
+            gap: "12px",
+            flexWrap: "wrap",
+          }}
+        >
           <button
             type="button"
             className="manager-button-secondary"
@@ -152,6 +197,19 @@ export default function ManagerPointsPage() {
             disabled={loading}
           >
             {loading ? "Loading..." : "Save Points"}
+          </button>
+
+          <button
+            type="button"
+            className="manager-button-secondary"
+            onClick={resetAllPoints}
+            disabled={loading}
+            style={{
+              borderColor: "rgba(248, 113, 113, 0.55)",
+              color: "#fecaca",
+            }}
+          >
+            Reset Month
           </button>
         </div>
       </div>
@@ -206,7 +264,7 @@ export default function ManagerPointsPage() {
                 }}
               >
                 <label className="manager-label">
-                  Recruit Points
+                  Recruit Points — 1 recruit = 3 points
                   <input
                     type="number"
                     min="0"
