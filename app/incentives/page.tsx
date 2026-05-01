@@ -60,6 +60,30 @@ function toMonthKey(d: Date) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 }
 
+function formatMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const date = new Date(year, month - 1, 1);
+
+  return date.toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function getMonthOptions(count = 12) {
+  const now = new Date();
+
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - index, 1);
+    const value = toMonthKey(date);
+
+    return {
+      value,
+      label: formatMonthLabel(value),
+    };
+  });
+}
+
 function getTier(monthlyDiamonds: number) {
   let current = TIERS[0];
 
@@ -90,8 +114,11 @@ function calculateLiveCoins(diamonds: number, hours: number, validDays: number) 
 export default function IncentivesPage() {
   const [rows, setRows] = useState<CreatorIncentiveRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMonthKey, setSelectedMonthKey] = useState(() =>
+    toMonthKey(new Date())
+  );
 
-  const selectedMonthKey = useMemo(() => toMonthKey(new Date()), []);
+  const monthOptions = useMemo(() => getMonthOptions(18), []);
 
   useEffect(() => {
     async function loadCreatorStats() {
@@ -246,6 +273,21 @@ export default function IncentivesPage() {
     textShadow: "0 0 14px rgba(255,215,106,0.5)",
   };
 
+  const selectStyle: React.CSSProperties = {
+    width: "100%",
+    maxWidth: 260,
+    padding: "12px 14px",
+    borderRadius: 14,
+    border: "1px solid rgba(45,224,255,0.38)",
+    background: "rgba(2,6,23,0.88)",
+    color: "#fff",
+    fontFamily: "inherit",
+    fontWeight: 900,
+    outline: "none",
+    boxShadow: "0 0 18px rgba(45,224,255,0.12)",
+    cursor: "pointer",
+  };
+
   const pill = (good: boolean): React.CSSProperties => ({
     display: "inline-flex",
     alignItems: "center",
@@ -265,7 +307,7 @@ export default function IncentivesPage() {
 
   function renderRows(data: CreatorIncentiveRow[]) {
     return (
-      <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ display: "grid", gap: 10, minWidth: 1040 }}>
         {data.map((row, index) => {
           const daysLeft = Math.max(0, MIN_VALID_DAYS - row.validDays);
           const hoursLeft = Math.max(0, MIN_HOURS - row.hours);
@@ -275,7 +317,8 @@ export default function IncentivesPage() {
               key={row.username}
               style={{
                 display: "grid",
-                gridTemplateColumns: "48px 1fr 120px 90px 90px 120px 120px 120px",
+                gridTemplateColumns:
+                  "48px 1fr 120px 90px 90px 120px 120px 120px",
                 gap: 12,
                 alignItems: "center",
                 padding: 14,
@@ -325,7 +368,8 @@ export default function IncentivesPage() {
                       color: "rgba(255,255,255,0.48)",
                     }}
                   >
-                    Needs {daysLeft} more valid days and {hoursLeft.toFixed(1)}h more
+                    Needs {daysLeft} more valid days and{" "}
+                    {hoursLeft.toFixed(1)}h more
                   </div>
                 )}
               </div>
@@ -388,26 +432,64 @@ export default function IncentivesPage() {
     <main style={page}>
       <div style={shell}>
         <section style={{ ...card, padding: 24 }}>
-          <div style={title}>Aqua Creator Network</div>
-
-          <h1
+          <div
             style={{
-              margin: "10px 0 8px",
-              fontSize: "clamp(32px, 7vw, 66px)",
-              lineHeight: 1,
-              fontWeight: 900,
-              textTransform: "uppercase",
-              textShadow:
-                "0 0 12px rgba(45,224,255,0.75), 0 0 28px rgba(45,224,255,0.25)",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 18,
+              alignItems: "flex-start",
+              flexWrap: "wrap",
             }}
           >
-            Incentives
-          </h1>
+            <div>
+              <div style={title}>Aqua Creator Network</div>
 
-          <p style={{ margin: 0, color: "rgba(255,255,255,0.62)" }}>
-            Creators must hit {MIN_VALID_DAYS} valid days and {MIN_HOURS} hours to be eligible.
-            Coins owed only show for eligible creators.
-          </p>
+              <h1
+                style={{
+                  margin: "10px 0 8px",
+                  fontSize: "clamp(32px, 7vw, 66px)",
+                  lineHeight: 1,
+                  fontWeight: 900,
+                  textTransform: "uppercase",
+                  textShadow:
+                    "0 0 12px rgba(45,224,255,0.75), 0 0 28px rgba(45,224,255,0.25)",
+                }}
+              >
+                Incentives
+              </h1>
+
+              <p style={{ margin: 0, color: "rgba(255,255,255,0.62)" }}>
+                Creators must hit {MIN_VALID_DAYS} valid days and {MIN_HOURS}{" "}
+                hours to be eligible. Coins owed only show for eligible creators.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              <label
+                htmlFor="month-select"
+                style={{
+                  ...title,
+                  fontSize: 11,
+                  letterSpacing: "0.16em",
+                }}
+              >
+                Select Month
+              </label>
+
+              <select
+                id="month-select"
+                value={selectedMonthKey}
+                onChange={(e) => setSelectedMonthKey(e.target.value)}
+                style={selectStyle}
+              >
+                {monthOptions.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </section>
 
         <section
@@ -454,7 +536,9 @@ export default function IncentivesPage() {
               marginBottom: 14,
             }}
           >
-            <div style={title}>Eligible Creators</div>
+            <div style={title}>
+              Eligible Creators — {formatMonthLabel(selectedMonthKey)}
+            </div>
             <span style={pill(true)}>{eligibleRows.length} Qualified</span>
           </div>
 
@@ -466,7 +550,7 @@ export default function IncentivesPage() {
             renderRows(eligibleRows)
           ) : (
             <div style={{ color: "rgba(255,255,255,0.6)" }}>
-              No creators are eligible yet.
+              No creators are eligible for this month yet.
             </div>
           )}
         </section>
@@ -481,8 +565,12 @@ export default function IncentivesPage() {
               marginBottom: 14,
             }}
           >
-            <div style={title}>Still To Qualify</div>
-            <span style={pill(false)}>{notEligibleRows.length} Not Eligible</span>
+            <div style={title}>
+              Still To Qualify — {formatMonthLabel(selectedMonthKey)}
+            </div>
+            <span style={pill(false)}>
+              {notEligibleRows.length} Not Eligible
+            </span>
           </div>
 
           {loading ? (
@@ -493,7 +581,7 @@ export default function IncentivesPage() {
             renderRows(notEligibleRows)
           ) : (
             <div style={{ color: "rgba(255,255,255,0.6)" }}>
-              Everyone is eligible.
+              Everyone is eligible for this month.
             </div>
           )}
         </section>
