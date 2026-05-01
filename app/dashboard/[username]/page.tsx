@@ -65,6 +65,16 @@ function parseMonthKey(monthKey: string): { year: number; monthIndex: number } {
   return { year: y, monthIndex: m - 1 };
 }
 
+function formatMonthLabel(monthKey: string) {
+  const { year, monthIndex } = parseMonthKey(monthKey);
+
+  const month = new Date(year, monthIndex, 1).toLocaleString("default", {
+    month: "long",
+  });
+
+  return `${month} ${year}`;
+}
+
 function formatTierMin(min: number) {
   if (min >= 1_000_000) {
     const v = min / 1_000_000;
@@ -99,6 +109,9 @@ const ACTIVENESS_RULES: ActivenessRule[] = [
 
 const MIN_VALID_DAYS = 15;
 const MIN_HOURS = 40;
+
+// Change this whenever you want the default month to move.
+const DEFAULT_SELECTED_MONTH = "2026-04";
 
 function getTier(monthlyDiamonds: number) {
   let current = TIERS[0];
@@ -138,7 +151,29 @@ export default function CreatorDashboardPage() {
 
   const rank = rankIndex >= 0 ? rankIndex + 1 : null;
 
-  const selectedMonthKey = useMemo(() => toMonthKey(new Date()), []);
+  const availableMonths = useMemo(() => {
+    const now = new Date();
+    const currentMonth = toMonthKey(now);
+
+    const months = new Set<string>([
+      DEFAULT_SELECTED_MONTH,
+      currentMonth,
+      "2026-03",
+      "2026-04",
+      "2026-05",
+      "2026-06",
+      "2026-07",
+      "2026-08",
+      "2026-09",
+      "2026-10",
+      "2026-11",
+      "2026-12",
+    ]);
+
+    return [...months].sort((a, b) => b.localeCompare(a));
+  }, []);
+
+  const [selectedMonthKey, setSelectedMonthKey] = useState(DEFAULT_SELECTED_MONTH);
 
   const { year: selectedYear, monthIndex: selectedMonthIndex } = useMemo(
     () => parseMonthKey(selectedMonthKey),
@@ -170,6 +205,7 @@ export default function CreatorDashboardPage() {
           try {
             const r = await fetch(`/history/${c.username}.json`, { cache: "no-store" });
             if (!r.ok) return;
+
             const j = (await r.json()) as HistoryFile;
             out[c.username] = Array.isArray(j.entries) ? j.entries : [];
           } catch {
@@ -194,6 +230,8 @@ export default function CreatorDashboardPage() {
 
   useEffect(() => {
     if (!Object.keys(allHistories).length || !username) return;
+
+    setLoading(true);
 
     const monthAll: Record<string, HistoryEntry[]> = {};
 
@@ -513,6 +551,50 @@ export default function CreatorDashboardPage() {
 
         <section
           style={{
+            ...cardPad,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 14,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <div style={title}>Selected Month</div>
+            <div style={{ marginTop: 8, fontSize: 22, fontWeight: 900 }}>
+              {formatMonthLabel(selectedMonthKey)}
+            </div>
+            <p style={{ margin: "7px 0 0", color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
+              Change this when reviewing a previous month.
+            </p>
+          </div>
+
+          <select
+            value={selectedMonthKey}
+            onChange={(e) => setSelectedMonthKey(e.target.value)}
+            style={{
+              minWidth: 220,
+              borderRadius: 14,
+              padding: "12px 14px",
+              background: "rgba(3,7,18,0.95)",
+              color: "#fff",
+              border: "1px solid rgba(45,224,255,0.38)",
+              fontFamily: "inherit",
+              fontWeight: 900,
+              outline: "none",
+              boxShadow: "0 0 16px rgba(45,224,255,0.10)",
+            }}
+          >
+            {availableMonths.map((m) => (
+              <option key={m} value={m}>
+                {formatMonthLabel(m)}
+              </option>
+            ))}
+          </select>
+        </section>
+
+        <section
+          style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: 14,
@@ -524,17 +606,15 @@ export default function CreatorDashboardPage() {
               {monthlyDiamonds.toLocaleString()}
             </div>
             <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
-              Diamonds earned this month
+              Diamonds earned in {formatMonthLabel(selectedMonthKey)}
             </p>
           </div>
 
           <div style={cardPad}>
             <div style={title}>Total Hours</div>
-            <div style={{ ...bigNumber, marginTop: 12 }}>
-              {hoursNow.toFixed(1)}h
-            </div>
+            <div style={{ ...bigNumber, marginTop: 12 }}>{hoursNow.toFixed(1)}h</div>
             <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
-              Hours live this month
+              Hours live in {formatMonthLabel(selectedMonthKey)}
             </p>
           </div>
 
@@ -622,9 +702,7 @@ export default function CreatorDashboardPage() {
                     Next: <span style={{ color: nextTier.color }}>{nextTier.label}</span>
                   </div>
 
-                  <div style={gold}>
-                    {nextTier.incentiveCoins.toLocaleString()} coins
-                  </div>
+                  <div style={gold}>{nextTier.incentiveCoins.toLocaleString()} coins</div>
                 </div>
 
                 <div style={progressOuter}>
