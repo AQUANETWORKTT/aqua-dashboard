@@ -210,6 +210,20 @@
       "hours": 1.8505555555555557,
       "lifetime": 19420,
       "lifetimeHours": 21.7875
+    },
+    {
+      "date": "2026-05-01",
+      "daily": 805,
+      "hours": 1.2855555555555553,
+      "lifetime": 805,
+      "lifetimeHours": 1.2855555555555553
+    },
+    {
+      "date": "2026-05-02",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 805,
+      "lifetimeHours": 1.2855555555555553
     }
   ]
 }

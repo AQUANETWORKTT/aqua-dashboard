@@ -81,9 +81,11 @@ export default function LeaderboardPage() {
                       </span>
                     )}
 
-                    {usernameKey === "browniefamboi" && (
+                    {usernameKey === "xomarky" && (
                       <>
-                        <span className="badge cyan">Deep Dive Winner</span>
+                        <span className="badge cyan">
+                          Deep Dive Winner
+                        </span>
                         <span className="badge green">
                           Aqua Trials Winner
                         </span>
@@ -99,6 +101,18 @@ export default function LeaderboardPage() {
                           Affluent April 128 👤 Tournament Winner
                         </span>
                       </>
+                    )}
+
+                    {usernameKey === "elliex035" && (
+                      <span className="badge pink">
+                        Beat The Boss Champion
+                      </span>
+                    )}
+
+                    {usernameKey === "callum.072" && (
+                      <span className="badge cyan">
+                        May Aqua Hours Winner
+                      </span>
                     )}
                   </div>
                 </div>
