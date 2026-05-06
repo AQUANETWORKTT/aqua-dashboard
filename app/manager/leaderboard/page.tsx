@@ -265,7 +265,9 @@ export default function ManagerLeaderboardPage() {
 
         .manager-image-fade {
           position: absolute;
-          inset: 0;
+          inset: -25px;
+          width: auto;
+          height: auto;
           background-repeat: no-repeat;
           z-index: 0;
           filter: saturate(1.08) contrast(1.06);
@@ -303,8 +305,8 @@ export default function ManagerLeaderboardPage() {
           position: absolute;
           inset: 0;
           background:
-            linear-gradient(90deg, rgba(0,0,0,0.08), rgba(0,0,0,0.58)),
-            linear-gradient(0deg, rgba(0,0,0,0.78), transparent 64%);
+            linear-gradient(90deg, rgba(0,0,0,0.04), rgba(0,0,0,0.48)),
+            linear-gradient(0deg, rgba(0,0,0,0.28), transparent 42%);
           z-index: 1;
         }
 
@@ -622,7 +624,9 @@ export default function ManagerLeaderboardPage() {
                     <div className="row-stats">
                       <div className="stat-slash">
                         <div className="stat-inner">
-                          <span className="stat-number">{row.recruitPoints}</span>
+                          <span className="stat-number">
+                            {row.recruitPoints}
+                          </span>
                           <span className="stat-label">Recruits</span>
                         </div>
                       </div>
