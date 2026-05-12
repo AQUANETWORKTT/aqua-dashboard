@@ -1,0 +1,47 @@
+{
+  "username": "mollymay072006",
+  "entries": [
+    {
+      "date": "2026-05-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 19,
+      "lifetimeHours": 1.1288888888888888
+    },
+    {
+      "date": "2026-05-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 19,
+      "lifetimeHours": 1.1288888888888888
+    },
+    {
+      "date": "2026-05-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 19,
+      "lifetimeHours": 1.1288888888888888
+    },
+    {
+      "date": "2026-05-07",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 19,
+      "lifetimeHours": 1.1288888888888888
+    },
+    {
+      "date": "2026-05-08",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 19,
+      "lifetimeHours": 1.1288888888888888
+    },
+    {
+      "date": "2026-05-09",
+      "daily": 19,
+      "hours": 1.1288888888888888,
+      "lifetime": 19,
+      "lifetimeHours": 1.1288888888888888
+    }
+  ]
+}

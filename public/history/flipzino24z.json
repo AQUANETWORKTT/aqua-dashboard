@@ -1,0 +1,47 @@
+{
+  "username": "flipzino24z",
+  "entries": [
+    {
+      "date": "2026-05-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 46,
+      "lifetimeHours": 2.3319444444444444
+    },
+    {
+      "date": "2026-05-10",
+      "daily": 0,
+      "hours": 0.6302777777777778,
+      "lifetime": 46,
+      "lifetimeHours": 2.3319444444444444
+    },
+    {
+      "date": "2026-05-11",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 46,
+      "lifetimeHours": 2.3319444444444444
+    },
+    {
+      "date": "2026-05-07",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 46,
+      "lifetimeHours": 2.3319444444444444
+    },
+    {
+      "date": "2026-05-08",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 46,
+      "lifetimeHours": 2.3319444444444444
+    },
+    {
+      "date": "2026-05-09",
+      "daily": 46,
+      "hours": 1.7016666666666667,
+      "lifetime": 46,
+      "lifetimeHours": 2.3319444444444444
+    }
+  ]
+}

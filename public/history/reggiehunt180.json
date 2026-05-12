@@ -1,0 +1,47 @@
+{
+  "username": "reggiehunt180",
+  "entries": [
+    {
+      "date": "2026-05-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 251,
+      "lifetimeHours": 1.4891666666666667
+    },
+    {
+      "date": "2026-05-10",
+      "daily": 72,
+      "hours": 0,
+      "lifetime": 251,
+      "lifetimeHours": 1.4891666666666667
+    },
+    {
+      "date": "2026-05-11",
+      "daily": 179,
+      "hours": 1.1222222222222222,
+      "lifetime": 251,
+      "lifetimeHours": 1.4891666666666667
+    },
+    {
+      "date": "2026-05-07",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 251,
+      "lifetimeHours": 1.4891666666666667
+    },
+    {
+      "date": "2026-05-08",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 251,
+      "lifetimeHours": 1.4891666666666667
+    },
+    {
+      "date": "2026-05-09",
+      "daily": 0,
+      "hours": 0.3669444444444444,
+      "lifetime": 251,
+      "lifetimeHours": 1.4891666666666667
+    }
+  ]
+}

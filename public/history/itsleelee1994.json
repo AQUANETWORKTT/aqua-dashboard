@@ -1,0 +1,47 @@
+{
+  "username": "itsleelee1994",
+  "entries": [
+    {
+      "date": "2026-05-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 16,
+      "lifetimeHours": 4.381944444444444
+    },
+    {
+      "date": "2026-05-10",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 16,
+      "lifetimeHours": 4.381944444444444
+    },
+    {
+      "date": "2026-05-11",
+      "daily": 1,
+      "hours": 0.8141666666666667,
+      "lifetime": 16,
+      "lifetimeHours": 4.381944444444444
+    },
+    {
+      "date": "2026-05-07",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 16,
+      "lifetimeHours": 4.381944444444444
+    },
+    {
+      "date": "2026-05-08",
+      "daily": 1,
+      "hours": 1.5836111111111113,
+      "lifetime": 16,
+      "lifetimeHours": 4.381944444444444
+    },
+    {
+      "date": "2026-05-09",
+      "daily": 14,
+      "hours": 1.9841666666666666,
+      "lifetime": 16,
+      "lifetimeHours": 4.381944444444444
+    }
+  ]
+}

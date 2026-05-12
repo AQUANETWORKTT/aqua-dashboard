@@ -1,0 +1,47 @@
+{
+  "username": "keeton663",
+  "entries": [
+    {
+      "date": "2026-05-06",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1851,
+      "lifetimeHours": 6.381944444444444
+    },
+    {
+      "date": "2026-05-10",
+      "daily": 747,
+      "hours": 2.274722222222222,
+      "lifetime": 1851,
+      "lifetimeHours": 6.381944444444444
+    },
+    {
+      "date": "2026-05-11",
+      "daily": 620,
+      "hours": 1.9433333333333334,
+      "lifetime": 1851,
+      "lifetimeHours": 6.381944444444444
+    },
+    {
+      "date": "2026-05-07",
+      "daily": 329,
+      "hours": 0.4822222222222222,
+      "lifetime": 1851,
+      "lifetimeHours": 6.381944444444444
+    },
+    {
+      "date": "2026-05-08",
+      "daily": 155,
+      "hours": 1.6816666666666664,
+      "lifetime": 1851,
+      "lifetimeHours": 6.381944444444444
+    },
+    {
+      "date": "2026-05-09",
+      "daily": 0,
+      "hours": 0,
+      "lifetime": 1851,
+      "lifetimeHours": 6.381944444444444
+    }
+  ]
+}
