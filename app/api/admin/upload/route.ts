@@ -1,11 +1,28 @@
+# app/api/admin/upload/route.ts
+
+```ts
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_URL!,
-  process.env.SUBMISSIONS_SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_URL;
+
+  const serviceRoleKey =
+    process.env.SUBMISSIONS_SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error(
+      "Missing Supabase environment variables."
+    );
+  }
+
+  return createClient(
+    supabaseUrl,
+    serviceRoleKey
+  );
+}
 
 function parseNumber(value: any): number {
   if (value == null) return 0;
@@ -203,6 +220,8 @@ function parseCreatorStatsFile(buffer: Buffer, statsDate: string) {
 
 export async function POST(req: Request) {
   try {
+    const supabase = getSupabaseAdmin();
+
     const password = req.headers.get("x-admin-password");
 
     if (password !== process.env.ADMIN_PASSWORD) {
@@ -276,3 +295,10 @@ export async function POST(req: Request) {
     );
   }
 }
+```
+
+Also make sure your `.env.local` contains:
+
+```env
+SUBMISSIONS_SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_K
+```

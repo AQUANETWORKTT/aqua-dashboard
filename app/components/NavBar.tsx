@@ -12,7 +12,7 @@ export default function NavBar({ user }: { user: string | null }) {
 
   const links = [
     { href: "/banned-help", label: "Ban Help", icon: "⛔" },
-    { href: `/dashboard/${user}`, label: "Dashboard", icon: "📊" },
+    { href: `/dashboard/${user}`, label: "Dashboard", icon: "◔" },
     { href: "/", label: "Home", icon: "⌂" },
     { href: "/leaderboard", label: "Leaderboard", icon: "☰" },
     { href: "/merch", label: "Merch", icon: "👕" },
@@ -41,18 +41,28 @@ export default function NavBar({ user }: { user: string | null }) {
       </nav>
 
       <nav className="aqua-bottom-bar">
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`aqua-bottom-item ${
-              pathname === link.href ? "active" : ""
-            }`}
-          >
-            <span className="aqua-bottom-icon">{link.icon}</span>
-            <span className="aqua-bottom-label">{link.label}</span>
-          </Link>
-        ))}
+        {links.map((link) => {
+          const isActive = pathname === link.href;
+          const isBanHelp = link.label === "Ban Help";
+
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`aqua-bottom-item ${isActive ? "active" : ""}`}
+            >
+              <span
+                className={`aqua-bottom-icon ${
+                  isBanHelp ? "ban-help-icon" : ""
+                }`}
+              >
+                {link.icon}
+              </span>
+
+              <span className="aqua-bottom-label">{link.label}</span>
+            </Link>
+          );
+        })}
       </nav>
 
       <style jsx>{`
@@ -133,64 +143,92 @@ export default function NavBar({ user }: { user: string | null }) {
             right: 0;
             bottom: 0;
             z-index: 9999;
-            height: 72px;
+            height: 78px;
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            background: rgba(0, 6, 18, 0.96);
-            backdrop-filter: blur(18px);
-            border-top: 1px solid rgba(45, 224, 255, 0.26);
-            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.65);
+            background: rgba(0, 7, 18, 0.98);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(45, 224, 255, 0.18);
+            box-shadow:
+              0 -10px 30px rgba(0, 0, 0, 0.75),
+              0 0 20px rgba(45, 224, 255, 0.08);
             padding-bottom: env(safe-area-inset-bottom);
           }
 
           .aqua-bottom-item {
+            position: relative;
             min-width: 0;
-            height: 72px;
+            height: 78px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 3px;
+            gap: 5px;
             text-decoration: none;
-            color: rgba(255, 255, 255, 0.68);
-            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.58);
+            transition: all 0.2s ease;
             overflow: hidden;
           }
 
-          .aqua-bottom-item:last-child {
-            border-right: none;
+          .aqua-bottom-item::before {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border-radius: 18px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            background: rgba(45, 224, 255, 0.08);
+          }
+
+          .aqua-bottom-item.active::before {
+            opacity: 1;
           }
 
           .aqua-bottom-icon {
-            font-size: 18px;
+            position: relative;
+            z-index: 2;
+            font-size: 22px;
             line-height: 1;
+            color: #7fdfff;
+            transition: all 0.2s ease;
           }
 
-          .aqua-bottom-label {
-            width: 100%;
-            padding: 0 2px;
-            text-align: center;
-            font-size: 8px;
-            line-height: 1.05;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0;
-            white-space: normal;
-            overflow: hidden;
-          }
-
-          .aqua-bottom-item.active {
-            color: #2de0ff;
-            background: rgba(45, 224, 255, 0.12);
-            box-shadow: inset 0 0 18px rgba(45, 224, 255, 0.14);
+          .ban-help-icon {
+            color: #ff4d4d !important;
           }
 
           .aqua-bottom-item.active .aqua-bottom-icon {
-            filter: drop-shadow(0 0 7px rgba(45, 224, 255, 0.8));
+            color: #2de0ff;
+            transform: translateY(-1px);
+            text-shadow:
+              0 0 10px rgba(45, 224, 255, 0.85),
+              0 0 22px rgba(45, 224, 255, 0.4);
+          }
+
+          .aqua-bottom-item.active .ban-help-icon {
+            color: #ff4d4d !important;
+            text-shadow:
+              0 0 10px rgba(255, 77, 77, 0.9),
+              0 0 22px rgba(255, 77, 77, 0.45);
+          }
+
+          .aqua-bottom-label {
+            position: relative;
+            z-index: 2;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0;
+            text-align: center;
+            line-height: 1;
+            white-space: nowrap;
+          }
+
+          .aqua-bottom-item.active .aqua-bottom-label {
+            color: #ffffff;
           }
 
           body {
-            padding-bottom: 72px;
+            padding-bottom: 78px;
           }
         }
       `}</style>
