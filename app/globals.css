@@ -2384,3 +2384,48 @@ body:has(.portal-page) .manager-wrapper {
 body:has(.portal-page) .manager-shell {
   background: #000 !important;
 }
+
+.aqua-dropdown-link {
+  padding: 11px 8px;
+  text-align: center;
+  text-decoration: none;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+  text-transform: uppercase;
+  border: 1px solid rgba(45, 224, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(45, 224, 255, 0.06);
+  text-shadow:
+    0 0 6px rgba(45, 224, 255, 0.75),
+    0 0 18px rgba(45, 224, 255, 0.35);
+  box-shadow: 0 0 14px rgba(45, 224, 255, 0.1);
+}
+
+.aqua-dropdown-link.active {
+  color: #2de0ff;
+  background: rgba(45, 224, 255, 0.13);
+  box-shadow: 0 0 18px rgba(45, 224, 255, 0.32);
+}
+
+.aqua-dropdown-link.ban-help-link {
+  color: #ff4d4d;
+  border-color: rgba(255, 77, 77, 0.35);
+  background: rgba(255, 77, 77, 0.06);
+}
+
+.aqua-mobile-tab {
+  width: 100%;
+  min-width: 0;
+}
+
+.aqua-mobile-icon {
+  display: block;
+  margin: 0 auto;
+}
+
+.aqua-mobile-tab span {
+  width: 100%;
+  display: block;
+  text-align: center;
+}
