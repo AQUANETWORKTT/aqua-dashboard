@@ -292,10 +292,3 @@ export async function POST(req: Request) {
     );
   }
 }
-```
-
-Also make sure your `.env.local` contains:
-
-```env
-SUBMISSIONS_SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_K
-```
