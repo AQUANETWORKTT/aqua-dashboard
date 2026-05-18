@@ -1,6 +1,3 @@
-# app/api/admin/upload/route.ts
-
-```ts
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { createClient } from "@supabase/supabase-js";
