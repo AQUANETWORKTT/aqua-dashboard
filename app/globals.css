@@ -2357,3 +2357,30 @@ a {
 .merch-hero-fade {
   mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
 }
+
+html,
+body {
+  background: #000 !important;
+}
+
+body:has(.portal-page),
+body:has(.portal-page) main,
+body:has(.portal-page) #__next {
+  background: #000 !important;
+}
+
+.portal-page {
+  background: #000 !important;
+  min-height: 100vh;
+}
+
+body:has(.portal-page) .manager-wrapper {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+body:has(.portal-page) .manager-shell {
+  background: #000 !important;
+}

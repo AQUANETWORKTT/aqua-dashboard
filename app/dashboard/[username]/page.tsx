@@ -2,28 +2,25 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { creators } from "@/data/creators";
+import { submissionsSupabase } from "@/lib/submissions-supabase";
 import { incentiveExtras } from "@/data/incentive-extras";
 
-type HistoryEntry = {
-  date: string;
-  daily: number;
-  lifetime: number;
-  hours?: number;
-};
-
-type HistoryFile = {
-  username: string;
-  entries: HistoryEntry[];
-};
-
-type IncentiveStats = {
-  diamonds: number;
-  hours: number;
-  validDays: number;
-  top5Count: number;
-  calculatedPoints: number;
-  extrasPoints: number;
+type CreatorMonthlyStat = {
+  id: string;
+  creator_id: string;
+  username: string | null;
+  manager: string | null;
+  days_since_joining: number | null;
+  diamonds: number | null;
+  live_duration_hours: number | null;
+  valid_go_live_days: number | null;
+  new_followers: number | null;
+  live_streams: number | null;
+  matches: number | null;
+  diamonds_from_matches: number | null;
+  tier_status: string | null;
+  month_key: string;
+  stats_date: string | null;
 };
 
 type TierConfig = {
@@ -86,6 +83,13 @@ function formatTierMin(min: number) {
   return String(min);
 }
 
+function cleanUsername(value: string | null | undefined) {
+  return String(value || "")
+    .replace("@", "")
+    .trim()
+    .toLowerCase();
+}
+
 const TIERS: TierConfig[] = [
   { id: 1, label: "Tier 1", min: 0, color: "#9CA3AF", incentiveCoins: 0 },
   { id: 2, label: "Tier 2", min: 100_000, color: "#84cc16", incentiveCoins: 1_200 },
@@ -109,8 +113,6 @@ const ACTIVENESS_RULES: ActivenessRule[] = [
 
 const MIN_VALID_DAYS = 15;
 const MIN_HOURS = 40;
-
-// Change this whenever you want the default month to move.
 const DEFAULT_SELECTED_MONTH = "2026-05";
 
 function getTier(monthlyDiamonds: number) {
@@ -138,18 +140,12 @@ function getActivenessLevel(validDays: number, hours: number) {
 
 export default function CreatorDashboardPage() {
   const params = useParams();
-  const username = (params?.username as string) || "";
+  const username = cleanUsername(params?.username as string);
 
-  const sorted = useMemo(
-    () => [...creators].sort((a, b) => b.lifetime - a.lifetime),
-    []
-  );
-
-  const rankIndex = sorted.findIndex(
-    (c) => c.username.toLowerCase() === username.toLowerCase()
-  );
-
-  const rank = rankIndex >= 0 ? rankIndex + 1 : null;
+  const [selectedMonthKey, setSelectedMonthKey] = useState(DEFAULT_SELECTED_MONTH);
+  const [allCreators, setAllCreators] = useState<CreatorMonthlyStat[]>([]);
+  const [creator, setCreator] = useState<CreatorMonthlyStat | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const availableMonths = useMemo(() => {
     const now = new Date();
@@ -173,154 +169,49 @@ export default function CreatorDashboardPage() {
     return [...months].sort((a, b) => b.localeCompare(a));
   }, []);
 
-  const [selectedMonthKey, setSelectedMonthKey] = useState(DEFAULT_SELECTED_MONTH);
+  useEffect(() => {
+    async function loadCreatorStats() {
+      if (!username) return;
 
-  const { year: selectedYear, monthIndex: selectedMonthIndex } = useMemo(
-    () => parseMonthKey(selectedMonthKey),
-    [selectedMonthKey]
+      setLoading(true);
+
+      const { data } = await submissionsSupabase
+        .from("creator_monthly_stats")
+        .select("*")
+        .eq("month_key", selectedMonthKey)
+        .order("diamonds", { ascending: false });
+
+      const rows = (data || []) as CreatorMonthlyStat[];
+
+      const match =
+        rows.find((row) => cleanUsername(row.username) === username) || null;
+
+      setAllCreators(rows);
+      setCreator(match);
+      setLoading(false);
+    }
+
+    loadCreatorStats();
+  }, [username, selectedMonthKey]);
+
+  const sorted = useMemo(() => {
+    return [...allCreators].sort(
+      (a, b) => Number(b.diamonds || 0) - Number(a.diamonds || 0)
+    );
+  }, [allCreators]);
+
+  const rankIndex = sorted.findIndex(
+    (c) => cleanUsername(c.username) === username
   );
 
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [allHistories, setAllHistories] = useState<Record<string, HistoryEntry[]>>({});
-  const [stats, setStats] = useState<IncentiveStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const rank = rankIndex >= 0 ? rankIndex + 1 : null;
 
-  useEffect(() => {
-    if (!username) return;
-
-    setLoading(true);
-
-    fetch(`/history/${username}.json`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j: HistoryFile) => setHistory(Array.isArray(j.entries) ? j.entries : []))
-      .catch(() => setHistory([]));
-  }, [username]);
-
-  useEffect(() => {
-    async function loadAll() {
-      const out: Record<string, HistoryEntry[]> = {};
-
-      await Promise.all(
-        creators.map(async (c) => {
-          try {
-            const r = await fetch(`/history/${c.username}.json`, { cache: "no-store" });
-            if (!r.ok) return;
-
-            const j = (await r.json()) as HistoryFile;
-            out[c.username] = Array.isArray(j.entries) ? j.entries : [];
-          } catch {
-            // ignore
-          }
-        })
-      );
-
-      setAllHistories(out);
-    }
-
-    loadAll();
-  }, []);
-
-  const monthHistory = useMemo(() => {
-    return history.filter((e) => (e.date || "").startsWith(selectedMonthKey));
-  }, [history, selectedMonthKey]);
-
-  const monthlyDiamonds = useMemo(() => {
-    return monthHistory.reduce((sum, e) => sum + (e.daily ?? 0), 0);
-  }, [monthHistory]);
-
-  useEffect(() => {
-    if (!Object.keys(allHistories).length || !username) return;
-
-    setLoading(true);
-
-    const monthAll: Record<string, HistoryEntry[]> = {};
-
-    for (const u in allHistories) {
-      monthAll[u] = (allHistories[u] || []).filter((e) =>
-        (e.date || "").startsWith(selectedMonthKey)
-      );
-    }
-
-    let diamonds = 0;
-    let hours = 0;
-    let validDays = 0;
-    let top5Count = 0;
-
-    const dates = new Set<string>();
-
-    Object.values(monthAll).forEach((arr) =>
-      arr.forEach((e) => {
-        if (e?.date) dates.add(e.date);
-      })
-    );
-
-    const top5ByDay: Record<string, string[]> = {};
-
-    [...dates].forEach((date) => {
-      const rows: { username: string; daily: number }[] = [];
-
-      for (const u in monthAll) {
-        const e = monthAll[u].find((x) => x.date === date);
-        if (e && (e.daily ?? 0) > 0) rows.push({ username: u, daily: e.daily ?? 0 });
-      }
-
-      rows.sort((a, b) => b.daily - a.daily);
-      top5ByDay[date] = rows.slice(0, 5).map((r) => r.username);
-    });
-
-    monthHistory.forEach((e) => {
-      diamonds += e.daily ?? 0;
-      hours += e.hours ?? 0;
-
-      if ((e.hours ?? 0) >= 1) validDays++;
-      if (top5ByDay[e.date]?.includes(username)) top5Count++;
-    });
-
-    const reducedLiveDiamonds = Math.floor(diamonds * 0.5);
-    const thousands = Math.floor(reducedLiveDiamonds / 1000);
-
-    let diamondPoints = 0;
-
-    if (thousands >= 1) {
-      diamondPoints += 10;
-      diamondPoints += Math.max(0, thousands - 1) * 5;
-    }
-
-    const hourPoints = Math.floor(hours) * 3;
-    const validDayPoints = validDays * 3;
-
-    let top5Points = 0;
-
-    monthHistory.forEach((e) => {
-      const placements = top5ByDay[e.date];
-      if (!placements) return;
-
-      const pos = placements.indexOf(username);
-
-      if (pos === 0) top5Points += 25;
-      else if (pos === 1) top5Points += 20;
-      else if (pos === 2) top5Points += 15;
-      else if (pos === 3) top5Points += 10;
-      else if (pos === 4) top5Points += 5;
-    });
-
-    const calculatedPoints = diamondPoints + hourPoints + validDayPoints + top5Points;
-    const extrasPoints = incentiveExtras[username] ?? 0;
-
-    setStats({
-      diamonds,
-      hours,
-      validDays,
-      top5Count,
-      calculatedPoints,
-      extrasPoints,
-    });
-
-    setLoading(false);
-  }, [monthHistory, allHistories, username, selectedMonthKey]);
-
-  const validDaysNow = stats?.validDays ?? 0;
-  const hoursNow = stats?.hours ?? 0;
+  const monthlyDiamonds = Number(creator?.diamonds || 0);
+  const hoursNow = Number(creator?.live_duration_hours || 0);
+  const validDaysNow = Number(creator?.valid_go_live_days || 0);
+  const followersNow = Number(creator?.new_followers || 0);
+  const liveStreamsNow = Number(creator?.live_streams || 0);
+  const matchesNow = Number(creator?.matches || 0);
 
   const { current: currentTier, next: nextTier } = useMemo(
     () => getTier(monthlyDiamonds),
@@ -332,41 +223,22 @@ export default function CreatorDashboardPage() {
     [validDaysNow, hoursNow]
   );
 
-  const tierCoins = currentTier?.incentiveCoins ?? 0;
-  const liveEarnedCoins = stats?.calculatedPoints ?? 0;
-  const extrasCoins = stats?.extrasPoints ?? 0;
-  const incentiveCoinsTotal = liveEarnedCoins + extrasCoins + tierCoins;
+  const reducedLiveDiamonds = Math.floor(monthlyDiamonds * 0.5);
+  const thousands = Math.floor(reducedLiveDiamonds / 1000);
 
-  function buildMonth(year: number, monthIndex: number) {
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    const cells: { day: number; dateStr: string }[] = [];
+  let diamondPoints = 0;
 
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${pad2(monthIndex + 1)}-${pad2(d)}`;
-      cells.push({ day: d, dateStr });
-    }
-
-    const label = new Date(year, monthIndex, 1).toLocaleString("default", {
-      month: "long",
-    });
-
-    return { cells, year, month: monthIndex, label };
+  if (thousands >= 1) {
+    diamondPoints += 10;
+    diamondPoints += Math.max(0, thousands - 1) * 5;
   }
 
-  const { cells, year, label } = useMemo(
-    () => buildMonth(selectedYear, selectedMonthIndex),
-    [selectedYear, selectedMonthIndex]
-  );
-
-  const historyByDate = useMemo(() => {
-    const map: Record<string, HistoryEntry> = {};
-
-    history.forEach((e) => {
-      if (e?.date) map[e.date] = e;
-    });
-
-    return map;
-  }, [history]);
+  const hourPoints = Math.floor(hoursNow) * 3;
+  const validDayPoints = validDaysNow * 3;
+  const liveEarnedCoins = diamondPoints + hourPoints + validDayPoints;
+  const extrasCoins = incentiveExtras[username] ?? 0;
+  const tierCoins = currentTier?.incentiveCoins ?? 0;
+  const incentiveCoinsTotal = liveEarnedCoins + extrasCoins + tierCoins;
 
   const okReq = validDaysNow >= MIN_VALID_DAYS && hoursNow >= MIN_HOURS;
 
@@ -474,6 +346,33 @@ export default function CreatorDashboardPage() {
     boxShadow: `0 0 18px ${color}99`,
   });
 
+  if (loading) {
+    return (
+      <main style={page}>
+        <div style={shell}>
+          <section style={cardPad}>Loading dashboard…</section>
+        </div>
+      </main>
+    );
+  }
+
+  if (!creator) {
+    return (
+      <main style={page}>
+        <div style={shell}>
+          <section style={cardPad}>
+            <div style={title}>Creator Dashboard</div>
+            <h1 style={{ marginTop: 10 }}>Creator not found</h1>
+            <p style={{ color: "rgba(255,255,255,0.6)" }}>
+              No uploaded monthly stats found for {username} in{" "}
+              {formatMonthLabel(selectedMonthKey)}.
+            </p>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main style={page}>
       <div style={shell}>
@@ -531,18 +430,20 @@ export default function CreatorDashboardPage() {
                     "0 0 12px rgba(45,224,255,0.75), 0 0 26px rgba(45,224,255,0.25)",
                 }}
               >
-                {username}
+                {creator.username || username}
               </h1>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                 {rank && (
                   <span style={pill(true)}>
-                    Rank #{rank} / {creators.length}
+                    Rank #{rank} / {allCreators.length}
                   </span>
                 )}
 
                 <span style={pill(okReq)}>
-                  {okReq ? "Incentives Unlocked" : "Requirements Not Met"}
+                  {okReq
+                    ? "Incentives Unlocked"
+                    : "Incentive Requirements Not Met"}
                 </span>
               </div>
             </div>
@@ -564,8 +465,14 @@ export default function CreatorDashboardPage() {
             <div style={{ marginTop: 8, fontSize: 22, fontWeight: 900 }}>
               {formatMonthLabel(selectedMonthKey)}
             </div>
-            <p style={{ margin: "7px 0 0", color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
-              Change this when reviewing a previous month.
+            <p
+              style={{
+                margin: "7px 0 0",
+                color: "rgba(255,255,255,0.55)",
+                fontSize: 12,
+              }}
+            >
+              Monthly stats pulled from the admin upload.
             </p>
           </div>
 
@@ -596,7 +503,7 @@ export default function CreatorDashboardPage() {
         <section
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
             gap: 14,
           }}
         >
@@ -612,31 +519,39 @@ export default function CreatorDashboardPage() {
 
           <div style={cardPad}>
             <div style={title}>Total Hours</div>
-            <div style={{ ...bigNumber, marginTop: 12 }}>{hoursNow.toFixed(1)}h</div>
+            <div style={{ ...bigNumber, marginTop: 12 }}>
+              {hoursNow.toFixed(1)}h
+            </div>
             <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
               Hours live in {formatMonthLabel(selectedMonthKey)}
             </p>
           </div>
 
           <div style={cardPad}>
+            <div style={title}>Matches</div>
+            <div style={{ ...bigNumber, marginTop: 12 }}>
+              {matchesNow.toLocaleString()}
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
+              Matches completed this month
+            </p>
+          </div>
+
+          <div style={cardPad}>
             <div style={title}>Incentive Coins</div>
-            {loading ? (
-              <div style={{ marginTop: 14 }}>Loading…</div>
-            ) : (
-              <>
-                <div style={{ ...bigNumber, ...gold, marginTop: 12 }}>
-                  {incentiveCoinsTotal.toLocaleString()}
-                </div>
-                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
-                  Live + extras + tier bonus
-                </p>
-              </>
-            )}
+            <div style={{ ...bigNumber, ...gold, marginTop: 12 }}>
+              {incentiveCoinsTotal.toLocaleString()}
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
+              Live + extras + tier bonus
+            </p>
           </div>
 
           <div style={cardPad}>
             <div style={title}>Activeness</div>
-            <div style={{ ...bigNumber, marginTop: 12 }}>Level {activenessLevel}</div>
+            <div style={{ ...bigNumber, marginTop: 12 }}>
+              Level {activenessLevel}
+            </div>
             <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
               Based on days and hours
             </p>
@@ -644,11 +559,37 @@ export default function CreatorDashboardPage() {
 
           <div style={cardPad}>
             <div style={title}>Current Tier</div>
-            <div style={{ ...bigNumber, color: currentTier.color, marginTop: 12 }}>
+            <div
+              style={{
+                ...bigNumber,
+                color: currentTier.color,
+                marginTop: 12,
+              }}
+            >
               {currentTier.label}
             </div>
             <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
               Minimum {formatTierMin(currentTier.min)} diamonds
+            </p>
+          </div>
+
+          <div style={cardPad}>
+            <div style={title}>Followers</div>
+            <div style={{ ...bigNumber, marginTop: 12 }}>
+              +{followersNow.toLocaleString()}
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
+              New followers this month
+            </p>
+          </div>
+
+          <div style={cardPad}>
+            <div style={title}>Live Streams</div>
+            <div style={{ ...bigNumber, marginTop: 12 }}>
+              {liveStreamsNow.toLocaleString()}
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
+              Streams completed this month
             </p>
           </div>
         </section>
@@ -680,7 +621,10 @@ export default function CreatorDashboardPage() {
                     borderRadius: 999,
                     background: t.color,
                     opacity: active ? 1 : 0.28,
-                    boxShadow: t.id === currentTier.id ? `0 0 18px ${t.color}` : "none",
+                    boxShadow:
+                      t.id === currentTier.id
+                        ? `0 0 18px ${t.color}`
+                        : "none",
                   }}
                 />
               );
@@ -699,14 +643,21 @@ export default function CreatorDashboardPage() {
                   }}
                 >
                   <div style={{ fontWeight: 900 }}>
-                    Next: <span style={{ color: nextTier.color }}>{nextTier.label}</span>
+                    Next:{" "}
+                    <span style={{ color: nextTier.color }}>
+                      {nextTier.label}
+                    </span>
                   </div>
 
-                  <div style={gold}>{nextTier.incentiveCoins.toLocaleString()} coins</div>
+                  <div style={gold}>
+                    + {nextTier.incentiveCoins.toLocaleString()} coins
+                  </div>
                 </div>
 
                 <div style={progressOuter}>
-                  <div style={progressInner(nextTierProgress.pct, currentTier.color)} />
+                  <div
+                    style={progressInner(nextTierProgress.pct, currentTier.color)}
+                  />
                 </div>
 
                 <div
@@ -780,118 +731,6 @@ export default function CreatorDashboardPage() {
             <div style={{ ...progressOuter, marginTop: 12 }}>
               <div style={progressInner(hrsPct)} />
             </div>
-          </div>
-        </section>
-
-        <section style={cardPad}>
-          <div style={title}>
-            {label} {year} Activity
-          </div>
-
-          <div
-            style={{
-              marginTop: 10,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(142px, 1fr))",
-              gap: 10,
-            }}
-          >
-            {cells.map((cell) => {
-              const e = historyByDate[cell.dateStr];
-              const hrs = e?.hours ?? 0;
-              const daily = e?.daily ?? 0;
-              const hourMet = hrs >= 1;
-              const hasActivity = daily > 0 || hrs > 0;
-
-              return (
-                <div
-                  key={cell.dateStr}
-                  style={{
-                    minHeight: 132,
-                    borderRadius: 18,
-                    padding: 13,
-                    background: hourMet
-                      ? "linear-gradient(180deg, rgba(45,224,255,0.12), rgba(3,7,18,0.9))"
-                      : "rgba(255,255,255,0.025)",
-                    border: hourMet
-                      ? "1px solid rgba(45,224,255,0.38)"
-                      : "1px solid rgba(255,255,255,0.075)",
-                    boxShadow: hourMet ? "0 0 16px rgba(45,224,255,0.14)" : "none",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      minHeight: 28,
-                    }}
-                  >
-                    <div style={{ fontSize: 20, fontWeight: 900 }}>{cell.day}</div>
-                    {hourMet && <span style={pill(true)}>Live</span>}
-                  </div>
-
-                  {hasActivity && (
-                    <div
-                      style={{
-                        marginTop: 14,
-                        display: "grid",
-                        gap: 12,
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            letterSpacing: "0.14em",
-                            textTransform: "uppercase",
-                            color: "rgba(255,255,255,0.45)",
-                            marginBottom: 5,
-                          }}
-                        >
-                          Diamonds
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize: daily >= 100000 ? 17 : 20,
-                            fontWeight: 900,
-                            lineHeight: 1.12,
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {daily ? daily.toLocaleString() : ""}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            letterSpacing: "0.14em",
-                            textTransform: "uppercase",
-                            color: "rgba(255,255,255,0.45)",
-                            marginBottom: 5,
-                          }}
-                        >
-                          Hours
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize: 18,
-                            fontWeight: 900,
-                            lineHeight: 1.12,
-                          }}
-                        >
-                          {hrs > 0 ? `${hrs.toFixed(1)}h` : ""}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
         </section>
       </div>

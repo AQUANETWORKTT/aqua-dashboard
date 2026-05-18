@@ -2,127 +2,198 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 
 export default function NavBar({ user }: { user: string | null }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
 
   const hideOn = ["/login", "/"];
   if (!user) return null;
   if (hideOn.includes(pathname)) return null;
 
   const links = [
-    { href: "/", label: "Home" },
-    { href: `/dashboard/${user}`, label: "Dashboard" },
-    { href: "/leaderboard", label: "Leaderboard" },
-    { href: "/merch", label: "Merch" },
-    {
-      href: "/banned-help",
-      label: "Ban Help",
-      style: { color: "#ff4d4d", fontWeight: 900 },
-    },
+    { href: "/banned-help", label: "Ban Help", icon: "⛔" },
+    { href: `/dashboard/${user}`, label: "Dashboard", icon: "📊" },
+    { href: "/", label: "Home", icon: "⌂" },
+    { href: "/leaderboard", label: "Leaderboard", icon: "☰" },
+    { href: "/merch", label: "Merch", icon: "👕" },
   ];
 
   return (
-    <nav
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 999,
-        background: "rgba(0, 6, 18, 0.72)",
-        backdropFilter: "blur(14px)",
-        borderBottom: "1px solid rgba(45, 224, 255, 0.22)",
-        padding: "12px 14px",
-        fontFamily: "'Orbitron', 'Rajdhani', sans-serif",
-        letterSpacing: "0.08em",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          maxWidth: "1100px",
-          margin: "0 auto",
-        }}
-      >
-        <div
-          style={{
-            fontWeight: 900,
-            fontSize: "18px",
-            color: "#ffffff",
-            textTransform: "uppercase",
-            textShadow:
-              "0 0 8px rgba(45,224,255,0.9), 0 0 20px rgba(45,224,255,0.55)",
-          }}
-        >
-          Aqua agency
-        </div>
+    <>
+      <nav className="aqua-top-nav">
+        <div className="aqua-top-inner">
+          <div className="aqua-brand">Aqua agency</div>
 
-        <button
-          onClick={() => setOpen((prev) => !prev)}
-          style={{
-            background: "rgba(45,224,255,0.06)",
-            border: "1px solid rgba(45,224,255,0.35)",
-            borderRadius: "10px",
-            cursor: "pointer",
-            padding: "8px 9px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
-            boxShadow: "0 0 14px rgba(45,224,255,0.18)",
-          }}
-        >
-          <span style={{ width: "22px", height: "2px", background: "#2de0ff" }} />
-          <span style={{ width: "22px", height: "2px", background: "#2de0ff" }} />
-          <span style={{ width: "22px", height: "2px", background: "#2de0ff" }} />
-        </button>
-      </div>
-
-      {open && (
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "12px auto 0",
-            display: "flex",
-            flexDirection: "column",
-            gap: "9px",
-          }}
-        >
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setOpen(false)}
-              style={{
-                padding: "11px 8px",
-                textAlign: "center",
-                textDecoration: "none",
-                color: pathname === link.href ? "#2de0ff" : "#ffffff",
-                fontWeight: 800,
-                fontSize: "13px",
-                textTransform: "uppercase",
-                border: "1px solid rgba(45,224,255,0.18)",
-                borderRadius: "12px",
-                background:
-                  pathname === link.href
-                    ? "rgba(45,224,255,0.13)"
-                    : "rgba(255,255,255,0.025)",
-                textShadow:
-                  "0 0 6px rgba(45,224,255,0.75), 0 0 18px rgba(45,224,255,0.35)",
-                boxShadow:
-                  pathname === link.href
-                    ? "0 0 18px rgba(45,224,255,0.32)"
-                    : "none",
-                ...(link.style || {}),
-              }}
-            >
-              {link.label}
-            </Link>
-          ))}
+          <div className="aqua-desktop-links">
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`aqua-desktop-link ${
+                  pathname === link.href ? "active" : ""
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
         </div>
-      )}
-    </nav>
+      </nav>
+
+      <nav className="aqua-bottom-bar">
+        {links.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`aqua-bottom-item ${
+              pathname === link.href ? "active" : ""
+            }`}
+          >
+            <span className="aqua-bottom-icon">{link.icon}</span>
+            <span className="aqua-bottom-label">{link.label}</span>
+          </Link>
+        ))}
+      </nav>
+
+      <style jsx>{`
+        .aqua-top-nav {
+          position: sticky;
+          top: 0;
+          z-index: 999;
+          background: rgba(0, 6, 18, 0.72);
+          backdrop-filter: blur(14px);
+          border-bottom: 1px solid rgba(45, 224, 255, 0.22);
+          padding: 12px 14px;
+          font-family: "Orbitron", "Rajdhani", sans-serif;
+          letter-spacing: 0.08em;
+        }
+
+        .aqua-top-inner {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          max-width: 1100px;
+          margin: 0 auto;
+        }
+
+        .aqua-brand {
+          font-weight: 900;
+          font-size: 18px;
+          color: #ffffff;
+          text-transform: uppercase;
+          text-shadow:
+            0 0 8px rgba(45, 224, 255, 0.9),
+            0 0 20px rgba(45, 224, 255, 0.55);
+        }
+
+        .aqua-desktop-links {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .aqua-desktop-link {
+          padding: 9px 12px;
+          border-radius: 999px;
+          text-decoration: none;
+          color: #ffffff;
+          font-size: 12px;
+          font-weight: 800;
+          text-transform: uppercase;
+          border: 1px solid rgba(45, 224, 255, 0.14);
+          background: rgba(255, 255, 255, 0.025);
+        }
+
+        .aqua-desktop-link.active {
+          color: #2de0ff;
+          background: rgba(45, 224, 255, 0.13);
+          box-shadow: 0 0 18px rgba(45, 224, 255, 0.28);
+        }
+
+        .aqua-bottom-bar {
+          display: none;
+        }
+
+        @media (max-width: 700px) {
+          .aqua-desktop-links {
+            display: none;
+          }
+
+          .aqua-top-nav {
+            padding: 13px 14px;
+          }
+
+          .aqua-top-inner {
+            justify-content: center;
+          }
+
+          .aqua-bottom-bar {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            height: 72px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: rgba(0, 6, 18, 0.96);
+            backdrop-filter: blur(18px);
+            border-top: 1px solid rgba(45, 224, 255, 0.26);
+            box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.65);
+            padding-bottom: env(safe-area-inset-bottom);
+          }
+
+          .aqua-bottom-item {
+            min-width: 0;
+            height: 72px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.68);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
+            overflow: hidden;
+          }
+
+          .aqua-bottom-item:last-child {
+            border-right: none;
+          }
+
+          .aqua-bottom-icon {
+            font-size: 18px;
+            line-height: 1;
+          }
+
+          .aqua-bottom-label {
+            width: 100%;
+            padding: 0 2px;
+            text-align: center;
+            font-size: 8px;
+            line-height: 1.05;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0;
+            white-space: normal;
+            overflow: hidden;
+          }
+
+          .aqua-bottom-item.active {
+            color: #2de0ff;
+            background: rgba(45, 224, 255, 0.12);
+            box-shadow: inset 0 0 18px rgba(45, 224, 255, 0.14);
+          }
+
+          .aqua-bottom-item.active .aqua-bottom-icon {
+            filter: drop-shadow(0 0 7px rgba(45, 224, 255, 0.8));
+          }
+
+          body {
+            padding-bottom: 72px;
+          }
+        }
+      `}</style>
+    </>
   );
 }

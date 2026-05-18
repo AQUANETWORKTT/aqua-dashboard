@@ -69,17 +69,16 @@ export default function ManagerAdminReviewPage() {
   const approveSubmission = async (submissionId: string) => {
     const target = submissions.find((item) => item.id === submissionId);
 
-    if (!target || target.status !== "pending") {
-      return;
-    }
+    if (!target || target.status !== "pending") return;
 
     const cleanUsername = target.username.trim().toLowerCase();
 
-    const { data: existingRow, error: existingError } = await submissionsSupabase
-      .from("manager_points")
-      .select("*")
-      .eq("name", cleanUsername)
-      .maybeSingle();
+    const { data: existingRow, error: existingError } =
+      await submissionsSupabase
+        .from("manager_points")
+        .select("*")
+        .eq("name", cleanUsername)
+        .maybeSingle();
 
     if (existingError) {
       setMessage(existingError.message);
@@ -146,7 +145,8 @@ export default function ManagerAdminReviewPage() {
       .filter((submission) => submission.status === "pending")
       .sort(
         (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          new Date(b.created_at).getTime() -
+          new Date(a.created_at).getTime()
       );
   }, [submissions]);
 
@@ -156,18 +156,35 @@ export default function ManagerAdminReviewPage() {
     <section className="manager-wrapper">
       <div className="manager-hero">
         <div className="manager-pill">Admin Approval</div>
+
         <h1 className="manager-title">Review Submissions</h1>
+
         <p className="manager-subtitle">
           Approve submissions to award points. Rejected submissions add nothing.
         </p>
 
-        <div style={{ marginTop: "16px" }}>
+        <div
+          style={{
+            marginTop: "16px",
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
           <button
             type="button"
             className="manager-button-secondary"
             onClick={() => router.push("/manager/admin/points")}
           >
             Points
+          </button>
+
+          <button
+            type="button"
+            className="manager-button-secondary"
+            onClick={() => router.push("/manager/admin/creator-insights")}
+          >
+            Creator Insights
           </button>
         </div>
       </div>
@@ -195,12 +212,16 @@ export default function ManagerAdminReviewPage() {
                   <div className="manager-card-title">
                     {submission.username.toUpperCase()}
                   </div>
+
                   <div className="manager-small">
                     Submitted: {formatSubmissionDate(submission.created_at)}
                   </div>
+
                   <div className="manager-small">
-                    Images: {submission.image_count} · Points: {submission.points}
+                    Images: {submission.image_count} · Points:{" "}
+                    {submission.points}
                   </div>
+
                   <div className="manager-small">Status: pending</div>
 
                   {submission.possible_duplicate ? (
@@ -228,6 +249,7 @@ export default function ManagerAdminReviewPage() {
                   >
                     Approve (+{submission.points})
                   </button>
+
                   <button
                     type="button"
                     className="manager-button-secondary"
@@ -248,10 +270,12 @@ export default function ManagerAdminReviewPage() {
                       <img
                         src={imageUrl}
                         alt={
-                          submission.image_names[index] || `Submission ${index + 1}`
+                          submission.image_names[index] ||
+                          `Submission ${index + 1}`
                         }
                         className="manager-submission-image"
                       />
+
                       <div className="manager-small">
                         {submission.image_names[index] || `Image ${index + 1}`}
                       </div>

@@ -1,28 +1,39 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-import fs from "fs";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
-const HISTORY_DIR = path.join(process.cwd(), "public", "history");
-const CREATORS_TS = path.join(process.cwd(), "data", "creators.ts");
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_URL!,
+  process.env.SUBMISSIONS_SUPABASE_SERVICE_ROLE_KEY!
+);
 
-// -----------------------------------------------------
-// SMART HOURS PARSER — Supports ALL TikTok formats
-// -----------------------------------------------------
+function parseNumber(value: any): number {
+  if (value == null) return 0;
+
+  const cleaned = String(value)
+    .replace(/,/g, "")
+    .replace(/%/g, "")
+    .trim();
+
+  const n = Number(cleaned);
+
+  return Number.isFinite(n) ? n : 0;
+}
+
 function parseHours(value: any): number {
   if (value == null) return 0;
 
   const str = String(value).trim();
+
   if (!str) return 0;
 
-  // Case: pure number "5" or "5.5"
   if (!isNaN(Number(str))) {
     return Number(str);
   }
 
-  // Case: TikTok format "74h 58m 31s"
   if (/h|m|s/i.test(str)) {
     let hours = 0;
+
     const hMatch = str.match(/(\d+)\s*h/i);
     const mMatch = str.match(/(\d+)\s*m/i);
     const sMatch = str.match(/(\d+)\s*s/i);
@@ -34,195 +45,234 @@ function parseHours(value: any): number {
     return hours;
   }
 
-  // Case: HH:MM:SS
   if (str.includes(":")) {
     const parts = str.split(":").map(Number);
+
     if (parts.length === 3) {
       const [h, m, s] = parts;
       return h + m / 60 + s / 3600;
     }
+
     if (parts.length === 2) {
       const [h, m] = parts;
       return h + m / 60;
     }
   }
 
-  // Case: "90 min"
   if (str.toLowerCase().includes("min")) {
-    const mins = parseFloat(str);
-    return mins / 60;
+    return parseFloat(str) / 60;
   }
 
   return 0;
 }
 
-// -----------------------------------------------------
-// Parse DAILY Excel
-// -----------------------------------------------------
-function parseDailyFile(buffer: Buffer) {
-  const wb = XLSX.read(buffer, { type: "buffer" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-
-  const HEADER = rows[0];
-  if (!HEADER) throw new Error("Daily file missing header row.");
-
-  const usernameCol = HEADER.findIndex((h) =>
-    String(h).toLowerCase().includes("username")
-  );
-  if (usernameCol === -1) throw new Error("Daily file missing username column.");
-
-  const dailyDiamondsCol = 7; // Original working columns
-  const dailyHoursCol = 8;
-
-  const out: Record<string, { daily: number; hours: number }> = {};
-
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row) continue;
-
-    const username = String(row[usernameCol] ?? "").trim();
-    if (!username) continue;
-
-    out[username] = {
-      daily: Number(row[dailyDiamondsCol]) || 0,
-      hours: parseHours(row[dailyHoursCol]),
-    };
-  }
-
-  return out;
+function getMonthKey(statsDate: string) {
+  return statsDate.slice(0, 7);
 }
 
-// -----------------------------------------------------
-// Parse LIFETIME Excel
-// -----------------------------------------------------
-function parseLifetimeFile(buffer: Buffer) {
-  const wb = XLSX.read(buffer, { type: "buffer" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-
-  const HEADER = rows[0];
-  if (!HEADER) throw new Error("Lifetime file missing header row.");
-
-  const usernameCol = HEADER.findIndex((h) =>
-    String(h).toLowerCase().includes("username")
-  );
-  if (usernameCol === -1) throw new Error("Lifetime file missing username column.");
-
-  const lifetimeDiamondsCol = 7;
-  const lifetimeHoursCol = 8;
-
-  const out: Record<string, { lifetime: number; lifetimeHours: number }> = {};
-
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row) continue;
-
-    const username = String(row[usernameCol] ?? "").trim();
-    if (!username) continue;
-
-    out[username] = {
-      lifetime: Number(row[lifetimeDiamondsCol]) || 0,
-      lifetimeHours: parseHours(row[lifetimeHoursCol]),
-    };
+function getValue(row: any, keys: string[]) {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null) {
+      return row[key];
+    }
   }
 
-  return out;
+  return null;
 }
 
-// -----------------------------------------------------
-// POST — Import Stats
-// -----------------------------------------------------
+function getCreatorStatus(row: any) {
+  const diamonds = parseNumber(row["Diamonds"]);
+  const hours = parseHours(row["LIVE duration"]);
+  const validDays = parseNumber(row["Valid go LIVE days"]);
+  const followers = parseNumber(row["New followers"]);
+  const daysJoined = parseNumber(row["Days since joining"]);
+  const matchDiamonds = parseNumber(row["Diamonds from matches"]);
+
+  if (daysJoined <= 7 && hours < 1) {
+    return "Needs First Live";
+  }
+
+  if (
+    daysJoined <= 14 &&
+    diamonds >= 10000 &&
+    hours >= 10 &&
+    followers >= 100
+  ) {
+    return "High Potential";
+  }
+
+  if (matchDiamonds >= 5000) {
+    return "Battle Performer";
+  }
+
+  if (hours >= 25 && diamonds < 5000) {
+    return "Doing Hours, Low Diamonds";
+  }
+
+  if (hours < 5 && validDays < 3) {
+    return "Needs Focus";
+  }
+
+  return "Active";
+}
+
+function parseCreatorStatsFile(buffer: Buffer, statsDate: string) {
+  const wb = XLSX.read(buffer, { type: "buffer" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+
+  const rows: any[] = XLSX.utils.sheet_to_json(ws, {
+    defval: null,
+  });
+
+  const monthKey = getMonthKey(statsDate);
+
+  return rows
+    .map((row) => {
+      const creatorId = String(
+        getValue(row, ["Creator ID"]) ?? ""
+      ).trim();
+
+      if (!creatorId) return null;
+
+      return {
+        creator_id: creatorId,
+
+        username: String(
+          getValue(row, ["Creator's username"]) ?? ""
+        ).trim(),
+
+        manager: String(
+          getValue(row, ["Creator Network manager"]) ?? ""
+        ).trim(),
+
+        join_time: String(
+          getValue(row, ["Join time"]) ?? ""
+        ).trim(),
+
+        days_since_joining: parseNumber(
+          getValue(row, ["Days since joining"])
+        ),
+
+        diamonds: parseNumber(
+          getValue(row, ["Diamonds"])
+        ),
+
+        live_duration_hours: parseHours(
+          getValue(row, ["LIVE duration"])
+        ),
+
+        valid_go_live_days: parseNumber(
+          getValue(row, ["Valid go LIVE days"])
+        ),
+
+        new_followers: parseNumber(
+          getValue(row, ["New followers"])
+        ),
+
+        live_streams: parseNumber(
+          getValue(row, ["LIVE streams"])
+        ),
+
+        matches: parseNumber(
+          getValue(row, ["Matches"])
+        ),
+
+        diamonds_from_matches: parseNumber(
+          getValue(row, ["Diamonds from matches"])
+        ),
+
+        graduation_status: String(
+          getValue(row, ["Graduation status"]) ?? ""
+        ).trim(),
+
+        tier_status: String(
+          getValue(row, ["Tier status"]) ?? ""
+        ).trim(),
+
+        creator_status: getCreatorStatus(row),
+
+        month_key: monthKey,
+
+        stats_date: statsDate,
+
+        updated_at: new Date().toISOString(),
+      };
+    })
+    .filter(Boolean);
+}
+
 export async function POST(req: Request) {
   try {
     const password = req.headers.get("x-admin-password");
+
     if (password !== process.env.ADMIN_PASSWORD) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     const form = await req.formData();
+
     const statsDate = form.get("statsDate")?.toString();
-    const dailyFile = form.get("dailyFile") as File | null;
-    const lifetimeFile = form.get("lifetimeFile") as File | null;
 
-    if (!statsDate || !dailyFile || !lifetimeFile) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    const creatorStatsFile = form.get(
+      "creatorStatsFile"
+    ) as File | null;
+
+    if (!statsDate || !creatorStatsFile) {
+      return NextResponse.json(
+        {
+          error: "Missing stats date or creator stats file.",
+        },
+        { status: 400 }
+      );
     }
 
-    const dateISO = new Date(statsDate).toISOString().slice(0, 10);
+    const dateISO = new Date(statsDate)
+      .toISOString()
+      .slice(0, 10);
 
-    const dailyBuf = Buffer.from(await dailyFile.arrayBuffer());
-    const lifetimeBuf = Buffer.from(await lifetimeFile.arrayBuffer());
+    const buffer = Buffer.from(
+      await creatorStatsFile.arrayBuffer()
+    );
 
-    const dailyData = parseDailyFile(dailyBuf);
-    const lifetimeData = parseLifetimeFile(lifetimeBuf);
+    const creatorRows = parseCreatorStatsFile(
+      buffer,
+      dateISO
+    );
 
-    const merged = new Map<
-      string,
-      { daily: number; hours: number; lifetime: number; lifetimeHours: number }
-    >();
-
-    // Merge DAILY first
-    for (const username of Object.keys(dailyData)) {
-      merged.set(username, {
-        daily: dailyData[username].daily,
-        hours: dailyData[username].hours,
-        lifetime: 0,
-        lifetimeHours: 0,
-      });
+    if (creatorRows.length === 0) {
+      return NextResponse.json(
+        {
+          error: "No valid creators found in the Excel file.",
+        },
+        { status: 400 }
+      );
     }
 
-    // Merge lifetime data
-    for (const username of Object.keys(lifetimeData)) {
-      const base =
-        merged.get(username) || { daily: 0, hours: 0, lifetime: 0, lifetimeHours: 0 };
-      base.lifetime = lifetimeData[username].lifetime;
-      base.lifetimeHours = lifetimeData[username].lifetimeHours;
-      merged.set(username, base);
-    }
-
-    fs.mkdirSync(HISTORY_DIR, { recursive: true });
-
-    // Write creators.ts
-    const creatorsContent = `// AUTO-GENERATED
-export const creators = [
-${Array.from(merged.entries())
-  .map(
-    ([username, d]) =>
-      `  { username: "${username}", daily: ${d.daily}, lifetime: ${d.lifetime} }`
-  )
-  .join(",\n")}
-];`;
-
-    fs.writeFileSync(CREATORS_TS, creatorsContent, "utf8");
-
-    // Write user history files
-    for (const [username, d] of merged.entries()) {
-      const safe = username.replace(/[<>:"/\\|?*]/g, "_");
-      const filePath = path.join(HISTORY_DIR, `${safe}.json`);
-
-      let history = { username, entries: [] as any[] };
-      if (fs.existsSync(filePath)) {
-        history = JSON.parse(fs.readFileSync(filePath, "utf8"));
-      }
-
-      history.entries = history.entries.filter((e) => e.date !== dateISO);
-
-      history.entries.push({
-        date: dateISO,
-        daily: d.daily,
-        hours: d.hours,
-        lifetime: d.lifetime,
-        lifetimeHours: d.lifetimeHours,
+    const { error } = await supabase
+      .from("creator_monthly_stats")
+      .upsert(creatorRows, {
+        onConflict: "creator_id,month_key",
       });
 
-      fs.writeFileSync(filePath, JSON.stringify(history, null, 2), "utf8");
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
-      message: `Imported ${merged.size} creators for ${dateISO}`,
+      message: `Imported ${creatorRows.length} creators for ${dateISO}`,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: err.message || "Upload failed.",
+      },
+      { status: 500 }
+    );
   }
 }

@@ -9,8 +9,7 @@ export default function AdminUploadPage() {
   // STATS STATE
   // -------------------------------
   const [statsDate, setStatsDate] = useState("");
-  const [dailyFile, setDailyFile] = useState<File | null>(null);
-  const [lifetimeFile, setLifetimeFile] = useState<File | null>(null);
+  const [creatorStatsFile, setCreatorStatsFile] = useState<File | null>(null);
   const [statsStatus, setStatsStatus] = useState<string | null>(null);
 
   // -------------------------------
@@ -26,17 +25,16 @@ export default function AdminUploadPage() {
   const [battleNotes, setBattleNotes] = useState("");
   const [battleStatus, setBattleStatus] = useState<string | null>(null);
 
-  // ------------------------------------------------
-  // SUBMIT STATS
-  // ------------------------------------------------
   async function handleStatsSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatsStatus("Uploading…");
 
     const form = new FormData();
     form.append("statsDate", statsDate);
-    if (dailyFile) form.append("dailyFile", dailyFile);
-    if (lifetimeFile) form.append("lifetimeFile", lifetimeFile);
+
+    if (creatorStatsFile) {
+      form.append("creatorStatsFile", creatorStatsFile);
+    }
 
     try {
       const res = await fetch("/api/admin/upload", {
@@ -59,9 +57,6 @@ export default function AdminUploadPage() {
     }
   }
 
-  // ------------------------------------------------
-  // SUBMIT BATTLE
-  // ------------------------------------------------
   async function handleBattleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBattleStatus("Uploading…");
@@ -85,6 +80,7 @@ export default function AdminUploadPage() {
       });
 
       const json = await res.json();
+
       if (res.ok) {
         setBattleStatus("✅ Battle added!");
       } else if (json.error) {
@@ -100,7 +96,6 @@ export default function AdminUploadPage() {
   return (
     <main className="admin-wrapper">
       <div className="admin-card">
-        {/* ---------------- STATS UPLOAD ---------------- */}
         <h1 className="admin-title">Upload Stats</h1>
 
         <form onSubmit={handleStatsSubmit} className="admin-form">
@@ -129,14 +124,16 @@ export default function AdminUploadPage() {
           </label>
 
           <label className="admin-label">
-            Daily Excel
+            Creator Stats Excel
             <input
               className="admin-input-file"
               type="file"
-              name="dailyFile"
+              name="creatorStatsFile"
               accept=".xlsx,.xls"
               required
-              onChange={(e) => setDailyFile(e.target.files?.[0] ?? null)}
+              onChange={(e) =>
+                setCreatorStatsFile(e.target.files?.[0] ?? null)
+              }
             />
           </label>
 
@@ -149,28 +146,15 @@ export default function AdminUploadPage() {
               lineHeight: 1.5,
             }}
           >
-            Daily sheet should include username, daily diamonds, hours, and
-            matches. Existing upload flow stays the same.
+            Upload the monthly TikTok creator export. This updates creator stats,
+            manager portal data, and monthly totals.
           </p>
-
-          <label className="admin-label">
-            Lifetime Excel
-            <input
-              className="admin-input-file"
-              type="file"
-              name="lifetimeFile"
-              accept=".xlsx,.xls"
-              required
-              onChange={(e) => setLifetimeFile(e.target.files?.[0] ?? null)}
-            />
-          </label>
 
           <button className="admin-button">Upload Stats</button>
 
           {statsStatus && <p className="admin-status">{statsStatus}</p>}
         </form>
 
-        {/* ---------------- BATTLE UPLOAD ---------------- */}
         <h2 className="glow-text" style={{ marginTop: 40 }}>
           Add Arranged Battle
         </h2>

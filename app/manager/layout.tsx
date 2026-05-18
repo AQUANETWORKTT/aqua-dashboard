@@ -35,12 +35,18 @@ export default function ManagerLayout({
             </div>
 
             <nav className="manager-nav-links">
+              <Link href="/manager/portal" className="manager-link">
+                Portal
+              </Link>
+
               <Link href="/manager/leaderboard" className="manager-link">
                 Leaderboard
               </Link>
+
               <Link href="/manager/upload" className="manager-link">
                 Upload
               </Link>
+
               <Link href="/manager/admin" className="manager-link">
                 Admin
               </Link>

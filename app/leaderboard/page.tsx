@@ -1,7 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { creators } from "@/data/creators";
+import { submissionsSupabase } from "@/lib/submissions-supabase";
+
+type CreatorMonthlyStat = {
+  id: string;
+  creator_id: string;
+  username: string | null;
+  diamonds: number | null;
+  live_duration_hours: number | null;
+  matches: number | null;
+  month_key: string;
+};
+
+function cleanUsername(username: string | null | undefined) {
+  return String(username || "").replace("@", "").trim();
+}
 
 function CreatorAvatar({ username }: { username: string }) {
   const originalSrc = `/creators/${encodeURIComponent(username)}.jpg`;
@@ -22,8 +36,32 @@ function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
 }
 
+function currentMonthKey() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${now.getFullYear()}-${month}`;
+}
+
 export default function LeaderboardPage() {
-  const sorted = [...creators].sort((a, b) => b.lifetime - a.lifetime);
+  const [creators, setCreators] = useState<CreatorMonthlyStat[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadCreators() {
+      setLoading(true);
+
+      const { data } = await submissionsSupabase
+        .from("creator_monthly_stats")
+        .select("*")
+        .eq("month_key", currentMonthKey())
+        .order("diamonds", { ascending: false });
+
+      setCreators((data || []) as CreatorMonthlyStat[]);
+      setLoading(false);
+    }
+
+    loadCreators();
+  }, []);
 
   return (
     <main className="page">
@@ -35,108 +73,131 @@ export default function LeaderboardPage() {
         </p>
       </section>
 
-      <section className="list">
-        {sorted.map((creator, index) => {
-          const rank = index + 1;
-          const usernameKey = normalizeUsername(creator.username);
+      {loading ? (
+        <div className="loading">Loading leaderboard...</div>
+      ) : (
+        <section className="list">
+          {creators.map((creator, index) => {
+            const rank = index + 1;
+            const username = cleanUsername(creator.username);
+            const usernameKey = normalizeUsername(username);
 
-          return (
-            <div key={creator.username} className="row">
-              <div className="mainInfo">
-                <div
-                  className={`rank ${
-                    rank === 1
-                      ? "gold"
-                      : rank === 2
-                      ? "silver"
-                      : rank === 3
-                      ? "bronze"
-                      : ""
-                  }`}
-                >
-                  #{rank}
+            return (
+              <div
+                key={creator.creator_id}
+                className={`row ${
+                  rank === 1
+                    ? "rankOne"
+                    : rank === 2
+                    ? "rankTwo"
+                    : rank === 3
+                    ? "rankThree"
+                    : ""
+                }`}
+              >
+                <div className="mainInfo">
+                  <div
+                    className={`rank ${
+                      rank === 1
+                        ? "gold"
+                        : rank === 2
+                        ? "silver"
+                        : rank === 3
+                        ? "bronze"
+                        : ""
+                    }`}
+                  >
+                    #{rank}
+                  </div>
+
+                  <CreatorAvatar username={username} />
+
+                  <div className="info">
+                    <div className="username">{username}</div>
+
+                    <div className="badgeWrap">
+                      {usernameKey === "alfie.harnett" && (
+                        <span className="badge yellow animatedBadge">
+                          Aqua Ascension Winner
+                        </span>
+                      )}
+
+                      {usernameKey === "dylanjinks" && (
+                        <span className="badge blue animatedBadge">
+                          2x Box Battle Winner
+                        </span>
+                      )}
+
+                      {usernameKey === "mavismim" && (
+                        <span className="badge purple animatedBadge">
+                          February Finale Winner
+                        </span>
+                      )}
+
+                      {usernameKey === "xomarky" && (
+                        <>
+                          <span className="badge cyan animatedBadge">
+                            Deep Dive Winner
+                          </span>
+                          <span className="badge green animatedBadge">
+                            Aqua Trials Winner
+                          </span>
+                        </>
+                      )}
+
+                      {usernameKey === "lucylou449" && (
+                        <>
+                          <span className="badge pink animatedBadge">
+                            Box Battle Winner
+                          </span>
+                          <span className="badge roseGold animatedBadge">
+                            Affluent April 128 👤 Tournament Winner
+                          </span>
+                        </>
+                      )}
+
+                      {usernameKey === "elliex035" && (
+                        <span className="badge pink animatedBadge">
+                          Beat The Boss Champion
+                        </span>
+                      )}
+
+                      {usernameKey === "callum.072" && (
+                        <span className="badge cyan animatedBadge">
+                          May Aqua Hours Winner
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <CreatorAvatar username={creator.username} />
+                <div className="metrics">
+                  <div className="metricBox">
+                    <div className="metricValue">
+                      {Number(creator.diamonds || 0).toLocaleString()}
+                    </div>
+                    <div className="metricLabel">Monthly</div>
+                  </div>
 
-                <div className="info">
-                  <div className="username">{creator.username}</div>
+                  <div className="metricBox">
+                    <div className="metricValue small">
+                      {Number(creator.live_duration_hours || 0).toFixed(1)}h
+                    </div>
+                    <div className="metricLabel">Hours</div>
+                  </div>
 
-                  <div className="badgeWrap">
-                    {usernameKey === "alfie.harnett" && (
-                      <span className="badge yellow">
-                        Aqua Ascension Winner
-                      </span>
-                    )}
-
-                    {usernameKey === "dylanjinks" && (
-                      <span className="badge blue">
-                        2x Box Battle Winner
-                      </span>
-                    )}
-
-                    {usernameKey === "mavismim" && (
-                      <span className="badge purple">
-                        February Finale Winner
-                      </span>
-                    )}
-
-                    {usernameKey === "xomarky" && (
-                      <>
-                        <span className="badge cyan">
-                          Deep Dive Winner
-                        </span>
-                        <span className="badge green">
-                          Aqua Trials Winner
-                        </span>
-                      </>
-                    )}
-
-                    {usernameKey === "lucylou449" && (
-                      <>
-                        <span className="badge pink">
-                          Box Battle Winner
-                        </span>
-                        <span className="badge roseGold">
-                          Affluent April 128 👤 Tournament Winner
-                        </span>
-                      </>
-                    )}
-
-                    {usernameKey === "elliex035" && (
-                      <span className="badge pink">
-                        Beat The Boss Champion
-                      </span>
-                    )}
-
-                    {usernameKey === "callum.072" && (
-                      <span className="badge cyan">
-                        May Aqua Hours Winner
-                      </span>
-                    )}
+                  <div className="metricBox">
+                    <div className="metricValue small">
+                      {Number(creator.matches || 0).toLocaleString()}
+                    </div>
+                    <div className="metricLabel">Matches</div>
                   </div>
                 </div>
               </div>
-
-              <div className="metrics">
-                <div className="metricBox">
-                  <div className="metricValue">
-                    {creator.lifetime.toLocaleString()}
-                  </div>
-                  <div className="metricLabel">Monthly</div>
-                </div>
-
-                <div className="metricBox">
-                  <div className="metricValue small">
-                    {creator.daily.toLocaleString()}
-                  </div>
-                  <div className="metricLabel">Yesterday</div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </section>
+            );
+          })}
+        </section>
+      )}
 
       <style jsx>{`
         .page {
@@ -170,8 +231,10 @@ export default function LeaderboardPage() {
           text-shadow: 0 0 18px rgba(45, 224, 255, 0.55);
         }
 
-        .subtitle {
+        .subtitle,
+        .loading {
           margin-top: 12px;
+          text-align: center;
           color: rgba(255, 255, 255, 0.65);
           font-size: 14px;
         }
@@ -179,11 +242,12 @@ export default function LeaderboardPage() {
         .list {
           display: grid;
           gap: 12px;
-          max-width: 1000px;
+          max-width: 1100px;
           margin: 0 auto;
         }
 
         .row {
+          position: relative;
           display: grid;
           grid-template-columns: 1fr auto;
           gap: 16px;
@@ -192,9 +256,45 @@ export default function LeaderboardPage() {
           border-radius: 22px;
           background: rgba(8, 18, 35, 0.95);
           border: 1px solid rgba(45, 224, 255, 0.18);
+          overflow: hidden;
+        }
+
+        .rankOne {
+          border-color: rgba(255, 215, 106, 0.7);
+          animation: goldPulse 2.6s ease-in-out infinite;
+        }
+
+        .rankTwo {
+          border-color: rgba(219, 234, 254, 0.65);
+          animation: silverPulse 2.8s ease-in-out infinite;
+        }
+
+        .rankThree {
+          border-color: rgba(251, 146, 60, 0.65);
+          animation: bronzePulse 3s ease-in-out infinite;
+        }
+
+        .rankOne::before,
+        .rankTwo::before,
+        .rankThree::before {
+          content: "";
+          position: absolute;
+          inset: -2px;
+          border-radius: 24px;
+          pointer-events: none;
+          opacity: 0.35;
+          background: linear-gradient(
+            120deg,
+            transparent,
+            rgba(124, 246, 255, 0.35),
+            transparent
+          );
+          animation: waterSweep 3.8s linear infinite;
         }
 
         .mainInfo {
+          position: relative;
+          z-index: 1;
           display: flex;
           align-items: center;
           gap: 12px;
@@ -217,14 +317,17 @@ export default function LeaderboardPage() {
 
         .gold {
           color: #ffd76a;
+          box-shadow: 0 0 18px rgba(255, 215, 106, 0.35);
         }
 
         .silver {
           color: #dbeafe;
+          box-shadow: 0 0 18px rgba(219, 234, 254, 0.25);
         }
 
         .bronze {
           color: #fb923c;
+          box-shadow: 0 0 18px rgba(251, 146, 60, 0.25);
         }
 
         :global(.avatar) {
@@ -257,37 +360,62 @@ export default function LeaderboardPage() {
         }
 
         .badge {
+          position: relative;
           padding: 5px 8px;
           border-radius: 999px;
           font-size: 10px;
           font-weight: 800;
           line-height: 1.15;
           border: 1px solid rgba(255, 255, 255, 0.08);
+          overflow: hidden;
+        }
+
+        .animatedBadge {
+          animation: badgePulse 2.4s ease-in-out infinite;
+        }
+
+        .animatedBadge::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          transform: translateX(-110%);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.28),
+            transparent
+          );
+          animation: badgeShimmer 3.2s ease-in-out infinite;
         }
 
         .yellow {
           color: #ffd76a;
           background: rgba(255, 215, 106, 0.08);
+          border-color: rgba(255, 215, 106, 0.35);
         }
 
         .blue {
           color: #60a5fa;
           background: rgba(96, 165, 250, 0.08);
+          border-color: rgba(96, 165, 250, 0.35);
         }
 
         .purple {
           color: #c084fc;
           background: rgba(192, 132, 252, 0.08);
+          border-color: rgba(192, 132, 252, 0.35);
         }
 
         .cyan {
           color: #7cf6ff;
           background: rgba(124, 246, 255, 0.08);
+          border-color: rgba(124, 246, 255, 0.35);
         }
 
         .green {
           color: #4ade80;
           background: rgba(74, 222, 128, 0.08);
+          border-color: rgba(74, 222, 128, 0.35);
         }
 
         .pink {
@@ -305,12 +433,14 @@ export default function LeaderboardPage() {
         }
 
         .metrics {
+          position: relative;
+          z-index: 1;
           display: flex;
           gap: 10px;
         }
 
         .metricBox {
-          min-width: 110px;
+          min-width: 105px;
           padding: 10px 12px;
           border-radius: 16px;
           background: rgba(255, 255, 255, 0.04);
@@ -331,6 +461,69 @@ export default function LeaderboardPage() {
           font-size: 10px;
           color: rgba(255, 255, 255, 0.5);
           margin-top: 4px;
+        }
+
+        @keyframes badgePulse {
+          0%,
+          100% {
+            filter: brightness(1);
+            box-shadow: 0 0 10px currentColor;
+          }
+          50% {
+            filter: brightness(1.22);
+            box-shadow: 0 0 18px currentColor;
+          }
+        }
+
+        @keyframes badgeShimmer {
+          0% {
+            transform: translateX(-110%);
+          }
+          45% {
+            transform: translateX(120%);
+          }
+          100% {
+            transform: translateX(120%);
+          }
+        }
+
+        @keyframes waterSweep {
+          0% {
+            transform: translateX(-80%);
+          }
+          100% {
+            transform: translateX(80%);
+          }
+        }
+
+        @keyframes goldPulse {
+          0%,
+          100% {
+            box-shadow: 0 0 16px rgba(255, 215, 106, 0.22);
+          }
+          50% {
+            box-shadow: 0 0 30px rgba(255, 215, 106, 0.45);
+          }
+        }
+
+        @keyframes silverPulse {
+          0%,
+          100% {
+            box-shadow: 0 0 16px rgba(219, 234, 254, 0.18);
+          }
+          50% {
+            box-shadow: 0 0 28px rgba(219, 234, 254, 0.36);
+          }
+        }
+
+        @keyframes bronzePulse {
+          0%,
+          100% {
+            box-shadow: 0 0 16px rgba(251, 146, 60, 0.18);
+          }
+          50% {
+            box-shadow: 0 0 28px rgba(251, 146, 60, 0.36);
+          }
         }
 
         @media (max-width: 700px) {
@@ -381,7 +574,7 @@ export default function LeaderboardPage() {
 
           .metrics {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 8px;
             width: 100%;
           }

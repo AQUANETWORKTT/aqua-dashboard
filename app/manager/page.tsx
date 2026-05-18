@@ -58,7 +58,8 @@ export default function ManagerLoginPage() {
 
     localStorage.setItem("manager_logged_in", "true");
     localStorage.setItem("manager_username", cleanUser);
-    router.push("/manager/upload");
+
+    router.push("/manager/portal");
   };
 
   return (
