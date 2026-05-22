@@ -34,7 +34,28 @@ export default function BattleGeneratorPage() {
 
   function formatTime(raw: string) {
     if (!raw) return "";
-    return raw.replace(":00", "") + ":00PM";
+
+    const trimmed = raw.trim().toUpperCase();
+
+    if (trimmed.includes("AM") || trimmed.includes("PM")) {
+      return trimmed;
+    }
+
+    const parts = trimmed.split(":");
+
+    if (parts.length === 3) {
+      return `${parts[0]}:${parts[1]}PM`;
+    }
+
+    if (parts.length === 2) {
+      if (parts[1] === "00") {
+        return `${parts[0]}PM`;
+      }
+
+      return `${parts[0]}:${parts[1]}PM`;
+    }
+
+    return trimmed;
   }
 
   function cleanFileName(value: string) {
