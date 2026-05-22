@@ -1,13 +1,19 @@
 import Link from "next/link";
-import { creators } from "@/data/creators";
+import { submissionsSupabase } from "@/lib/submissions-supabase";
 
-export default function HomePage() {
-  const totalCreators = creators.length;
+const DEFAULT_SELECTED_MONTH = "2026-05";
+
+export default async function HomePage() {
+  const { data } = await submissionsSupabase
+    .from("creator_monthly_stats")
+    .select("username")
+    .eq("month_key", DEFAULT_SELECTED_MONTH);
+
+  const totalCreators = data?.length ?? 0;
 
   return (
     <main className="home-wrapper">
       <div className="hero-grid">
-        {/* LEFT SIDE */}
         <section className="hero-left">
           <img
             src="/aqua-logo.png"
@@ -20,9 +26,7 @@ export default function HomePage() {
             <span className="hero-title-accent"> in one dashboard.</span>
           </h1>
 
-          <p className="hero-subtitle">
-            The dashboard is now live.
-          </p>
+          <p className="hero-subtitle">The dashboard is now live.</p>
 
           <div className="hero-buttons">
             <Link href="/login" className="btn-primary">
@@ -31,7 +35,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* RIGHT SIDE */}
         <section className="hero-right">
           <div className="glow-card">
             <div className="glow-card-header">
@@ -50,9 +53,7 @@ export default function HomePage() {
 
               <div className="glow-stat compact">
                 <div className="glow-stat-label">Status</div>
-                <div className="glow-stat-value status-live">
-                  Live
-                </div>
+                <div className="glow-stat-value status-live">Live</div>
                 <div className="glow-stat-sub">FULLY OPERATIONAL</div>
               </div>
             </div>
