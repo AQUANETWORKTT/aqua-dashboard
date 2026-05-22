@@ -48,10 +48,6 @@ export default function BattleGeneratorPage() {
     }
 
     if (parts.length === 2) {
-      if (parts[1] === "00") {
-        return `${parts[0]}PM`;
-      }
-
       return `${parts[0]}:${parts[1]}PM`;
     }
 
