@@ -467,8 +467,8 @@ export default function BattleGeneratorPage() {
     const node = posterRefs.current[battle.id];
     if (!node) return null;
 
-    const dataUrl = await htmlToImage.toJpeg(node, {
-      quality: 0.95,
+    const dataUrl = await htmlToImage.toPng(node, {
+      quality: 1,
       cacheBust: true,
       pixelRatio: 2,
       skipFonts: true,
@@ -478,15 +478,16 @@ export default function BattleGeneratorPage() {
   }
 
   function getPosterFileName(battle: Battle) {
-    return cleanFileName(
-      `${battle.date || "AQUA-BATTLE"}-${battle.time || "TIME"}-${
-        battle.name1 || "CREATOR-1"
-      }-vs-${battle.name2 || "CREATOR-2"}.jpg`
-    );
+    const creator1 = battle.name1 || "CREATOR1";
+    const creator2 = battle.name2 || "CREATOR2";
+    const date = battle.date || "DATE";
+    const time = battle.time || "TIME";
+
+    return cleanFileName(`${creator1} VS ${creator2} - ${date} - ${time}.png`);
   }
 
   async function downloadSinglePoster() {
-    let battle: Battle = {
+    const battle: Battle = {
       ...singleBattle,
       manager: "AQUA",
       name1: formatName(singleBattle.name1),
