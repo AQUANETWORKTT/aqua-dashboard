@@ -17,21 +17,6 @@ function cleanUsername(username: string | null | undefined) {
   return String(username || "").replace("@", "").trim();
 }
 
-function CreatorAvatar({ username }: { username: string }) {
-  const originalSrc = `/creators/${encodeURIComponent(username)}.jpg`;
-  const fallbackSrc = "/creators/default.jpg";
-  const [src, setSrc] = useState(fallbackSrc);
-
-  useEffect(() => {
-    const img = new window.Image();
-    img.src = originalSrc;
-    img.onload = () => setSrc(originalSrc);
-    img.onerror = () => setSrc(fallbackSrc);
-  }, [originalSrc]);
-
-  return <img src={src} alt={username} className="avatar" />;
-}
-
 function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
 }
@@ -40,6 +25,60 @@ function currentMonthKey() {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   return `${now.getFullYear()}-${month}`;
+}
+
+async function fetchTikTokAvatar(username: string) {
+  if (!username) return "";
+
+  try {
+    const res = await fetch("/api/tiktok-avatar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username }),
+    });
+
+    const json = await res.json();
+    return json.avatar || "";
+  } catch {
+    return "";
+  }
+}
+
+function CreatorAvatar({ username }: { username: string }) {
+  const fallbackSrc = "/creators/default.jpg";
+  const localSrc = `/creators/${encodeURIComponent(username)}.jpg`;
+  const [src, setSrc] = useState(fallbackSrc);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAvatar() {
+      const localImg = new window.Image();
+      localImg.src = localSrc;
+
+      localImg.onload = () => {
+        if (!cancelled) setSrc(localSrc);
+      };
+
+      localImg.onerror = async () => {
+        const scrapedAvatar = await fetchTikTokAvatar(username);
+
+        if (!cancelled) {
+          setSrc(scrapedAvatar || fallbackSrc);
+        }
+      };
+    }
+
+    loadAvatar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [username, localSrc]);
+
+  return <img src={src} alt={username} className="avatar" />;
 }
 
 export default function LeaderboardPage() {
@@ -337,6 +376,7 @@ export default function LeaderboardPage() {
           object-fit: cover;
           flex-shrink: 0;
           border: 1px solid rgba(45, 224, 255, 0.3);
+          background: rgba(255, 255, 255, 0.05);
         }
 
         .info {

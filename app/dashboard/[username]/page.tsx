@@ -90,6 +90,66 @@ function cleanUsername(value: string | null | undefined) {
     .toLowerCase();
 }
 
+async function fetchTikTokAvatar(username: string) {
+  if (!username) return "";
+
+  try {
+    const res = await fetch("/api/tiktok-avatar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username }),
+    });
+
+    const json = await res.json();
+    return json.avatar || "";
+  } catch {
+    return "";
+  }
+}
+
+function CreatorAvatar({
+  username,
+  style,
+}: {
+  username: string;
+  style: React.CSSProperties;
+}) {
+  const fallbackSrc = "/creators/default.jpg";
+  const localSrc = `/creators/${encodeURIComponent(username)}.jpg`;
+  const [src, setSrc] = useState(fallbackSrc);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAvatar() {
+      const img = new window.Image();
+      img.src = localSrc;
+
+      img.onload = () => {
+        if (!cancelled) setSrc(localSrc);
+      };
+
+      img.onerror = async () => {
+        const scrapedAvatar = await fetchTikTokAvatar(username);
+
+        if (!cancelled) {
+          setSrc(scrapedAvatar || fallbackSrc);
+        }
+      };
+    }
+
+    loadAvatar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [username, localSrc]);
+
+  return <img src={src} alt={username} style={style} />;
+}
+
 const TIERS: TierConfig[] = [
   { id: 1, label: "Tier 1", min: 0, color: "#9CA3AF", incentiveCoins: 0 },
   { id: 2, label: "Tier 2", min: 100_000, color: "#84cc16", incentiveCoins: 1_200 },
@@ -403,9 +463,8 @@ export default function CreatorDashboardPage() {
               alignItems: "center",
             }}
           >
-            <img
-              src={`/creators/${username}.jpg`}
-              alt={username}
+            <CreatorAvatar
+              username={username}
               style={{
                 width: 96,
                 height: 96,
