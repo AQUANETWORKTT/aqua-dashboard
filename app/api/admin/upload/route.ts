@@ -28,10 +28,12 @@ type CreatorMonthlyStatsRow = {
 
 function getSupabaseAdmin() {
   const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_URL;
+    process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   const serviceRoleKey =
-    process.env.SUBMISSIONS_SUPABASE_SERVICE_ROLE_KEY;
+    process.env.SUBMISSIONS_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error(
@@ -39,11 +41,15 @@ function getSupabaseAdmin() {
     );
   }
 
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      persistSession: false,
-    },
-  });
+  return createClient(
+    supabaseUrl,
+    serviceRoleKey,
+    {
+      auth: {
+        persistSession: false,
+      },
+    }
+  );
 }
 
 function parseNumber(value: any): number {
@@ -90,13 +96,23 @@ function parseHours(value: any): number {
     }
   }
 
-  const hMatch = str.match(/(\d+(?:\.\d+)?)h/i);
-  const mMatch = str.match(/(\d+(?:\.\d+)?)m/i);
+  const hMatch = str.match(
+    /(\d+(?:\.\d+)?)h/i
+  );
+
+  const mMatch = str.match(
+    /(\d+(?:\.\d+)?)m/i
+  );
 
   let total = 0;
 
-  if (hMatch) total += Number(hMatch[1]);
-  if (mMatch) total += Number(mMatch[1]) / 60;
+  if (hMatch) {
+    total += Number(hMatch[1]);
+  }
+
+  if (mMatch) {
+    total += Number(mMatch[1]) / 60;
+  }
 
   return Number(total.toFixed(2));
 }
@@ -136,10 +152,13 @@ function getValue(
       return exact;
     }
 
-    const normalizedWanted = normalizeKey(wanted);
+    const normalizedWanted =
+      normalizeKey(wanted);
 
     const matchedKey = rowKeys.find(
-      (k) => normalizeKey(k) === normalizedWanted
+      (k) =>
+        normalizeKey(k) ===
+        normalizedWanted
     );
 
     if (matchedKey) {
@@ -184,11 +203,15 @@ function getCreatorStatus(
   );
 
   const daysJoined = parseNumber(
-    getValue(row, ["Days since joining"])
+    getValue(row, [
+      "Days since joining",
+    ])
   );
 
   const matchDiamonds = parseNumber(
-    getValue(row, ["Diamonds from matches"])
+    getValue(row, [
+      "Diamonds from matches",
+    ])
   );
 
   if (daysJoined <= 7 && hours < 1) {
@@ -208,11 +231,17 @@ function getCreatorStatus(
     return "Battle Performer";
   }
 
-  if (hours >= 25 && diamonds < 5000) {
+  if (
+    hours >= 25 &&
+    diamonds < 5000
+  ) {
     return "Doing Hours, Low Diamonds";
   }
 
-  if (hours < 5 && validDays < 3) {
+  if (
+    hours < 5 &&
+    validDays < 3
+  ) {
     return "Needs Focus";
   }
 
@@ -228,25 +257,30 @@ function parseCreatorStatsFile(
     cellDates: true,
   });
 
-  const sheetName = workbook.SheetNames[0];
+  const sheetName =
+    workbook.SheetNames[0];
 
   if (!sheetName) {
-    throw new Error("No sheet found.");
+    throw new Error(
+      "No sheet found."
+    );
   }
 
-  const worksheet = workbook.Sheets[sheetName];
+  const worksheet =
+    workbook.Sheets[sheetName];
 
   const rows =
-    XLSX.utils.sheet_to_json<Record<string, any>>(
-      worksheet,
-      {
-        defval: null,
-      }
-    );
+    XLSX.utils.sheet_to_json<
+      Record<string, any>
+    >(worksheet, {
+      defval: null,
+    });
 
-  const monthKey = getMonthKey(statsDate);
+  const monthKey =
+    getMonthKey(statsDate);
 
-  const parsedRows: CreatorMonthlyStatsRow[] = [];
+  const parsedRows: CreatorMonthlyStatsRow[] =
+    [];
 
   for (const row of rows) {
     const creatorId = String(
@@ -257,7 +291,9 @@ function parseCreatorStatsFile(
       ]) ?? ""
     ).trim();
 
-    if (!creatorId) continue;
+    if (!creatorId) {
+      continue;
+    }
 
     parsedRows.push({
       creator_id: creatorId,
@@ -286,84 +322,107 @@ function parseCreatorStatsFile(
         ]) ?? ""
       ).trim(),
 
-      days_since_joining: parseNumber(
-        getValue(row, [
-          "Days since joining",
-        ])
-      ),
+      days_since_joining:
+        parseNumber(
+          getValue(row, [
+            "Days since joining",
+          ])
+        ),
 
       diamonds: parseNumber(
-        getValue(row, ["Diamonds"])
-      ),
-
-      live_duration_hours: parseHours(
         getValue(row, [
-          "LIVE duration",
-          "Live duration",
-          "Duration",
+          "Diamonds",
         ])
       ),
 
-      valid_go_live_days: parseNumber(
-        getValue(row, [
-          "Valid go LIVE days",
-          "Valid live days",
-        ])
-      ),
+      live_duration_hours:
+        parseHours(
+          getValue(row, [
+            "LIVE duration",
+            "Live duration",
+            "Duration",
+          ])
+        ),
 
-      new_followers: parseNumber(
-        getValue(row, ["New followers"])
-      ),
+      valid_go_live_days:
+        parseNumber(
+          getValue(row, [
+            "Valid go LIVE days",
+            "Valid live days",
+          ])
+        ),
 
-      live_streams: parseNumber(
-        getValue(row, [
-          "LIVE streams",
-          "Live streams",
-        ])
-      ),
+      new_followers:
+        parseNumber(
+          getValue(row, [
+            "New followers",
+          ])
+        ),
+
+      live_streams:
+        parseNumber(
+          getValue(row, [
+            "LIVE streams",
+            "Live streams",
+          ])
+        ),
 
       matches: parseNumber(
-        getValue(row, ["Matches"])
-      ),
-
-      diamonds_from_matches: parseNumber(
         getValue(row, [
-          "Diamonds from matches",
+          "Matches",
         ])
       ),
 
-      graduation_status: String(
+      diamonds_from_matches:
+        parseNumber(
+          getValue(row, [
+            "Diamonds from matches",
+          ])
+        ),
+
+      graduation_status:
+        String(
+          getValue(row, [
+            "Graduation status",
+          ]) ?? ""
+        ).trim(),
+
+      tier_status: String(
         getValue(row, [
-          "Graduation status",
+          "Tier status",
         ]) ?? ""
       ).trim(),
 
-      tier_status: String(
-        getValue(row, ["Tier status"]) ?? ""
-      ).trim(),
-
-      creator_status: getCreatorStatus(row),
+      creator_status:
+        getCreatorStatus(row),
 
       month_key: monthKey,
 
       stats_date: statsDate,
 
-      updated_at: new Date().toISOString(),
+      updated_at:
+        new Date().toISOString(),
     });
   }
 
   return parsedRows;
 }
 
-export async function POST(req: Request) {
+export async function POST(
+  req: Request
+) {
   try {
-    const supabase = getSupabaseAdmin();
+    const supabase =
+      getSupabaseAdmin();
 
     const password =
-      req.headers.get("x-admin-password");
+      req.headers.get(
+        "x-admin-password"
+      );
 
     if (
-      password !== process.env.ADMIN_PASSWORD
+      password !==
+      process.env.ADMIN_PASSWORD
     ) {
       return NextResponse.json(
         {
@@ -375,17 +434,23 @@ export async function POST(req: Request) {
       );
     }
 
-    const form = await req.formData();
+    const form =
+      await req.formData();
 
     const statsDate =
-      form.get("statsDate")?.toString();
+      form
+        .get("statsDate")
+        ?.toString();
 
     const creatorStatsFile =
-      form.get("creatorStatsFile") as
-        | File
-        | null;
+      form.get(
+        "creatorStatsFile"
+      ) as File | null;
 
-    if (!statsDate || !creatorStatsFile) {
+    if (
+      !statsDate ||
+      !creatorStatsFile
+    ) {
       return NextResponse.json(
         {
           error:
@@ -397,7 +462,9 @@ export async function POST(req: Request) {
       );
     }
 
-    const dateISO = new Date(statsDate)
+    const dateISO = new Date(
+      statsDate
+    )
       .toISOString()
       .slice(0, 10);
 
@@ -411,7 +478,9 @@ export async function POST(req: Request) {
         dateISO
       );
 
-    if (creatorRows.length === 0) {
+    if (
+      creatorRows.length === 0
+    ) {
       return NextResponse.json(
         {
           error:
@@ -423,12 +492,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const { error } = await supabase
-      .from("creator_monthly_stats")
-      .upsert(creatorRows, {
-        onConflict:
-          "creator_id,month_key",
-      });
+    const { error } =
+      await supabase
+        .from(
+          "creator_monthly_stats"
+        )
+        .upsert(creatorRows, {
+          onConflict:
+            "creator_id,month_key",
+        });
 
     if (error) {
       return NextResponse.json(
@@ -448,7 +520,8 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          err.message || "Upload failed.",
+          err.message ||
+          "Upload failed.",
       },
       {
         status: 500,
