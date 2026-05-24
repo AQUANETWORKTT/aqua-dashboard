@@ -1,55 +1,121 @@
-import Link from "next/link";
-import { creators } from "@/data/creators";
+"use client";
 
-export default function HomePage() {
-  const totalCreators = creators.length;
+import { useState } from "react";
+
+export default function AdminUploadPage() {
+  const [password, setPassword] = useState("");
+  const [statsDate, setStatsDate] = useState("");
+  const [creatorStatsFile, setCreatorStatsFile] = useState<File | null>(null);
+  const [statsStatus, setStatsStatus] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleStatsSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!creatorStatsFile) {
+      setStatsStatus("❌ Please choose a creator stats Excel file.");
+      return;
+    }
+
+    setUploading(true);
+    setStatsStatus("Uploading…");
+
+    const form = new FormData();
+    form.append("statsDate", statsDate);
+    form.append("creatorStatsFile", creatorStatsFile);
+
+    try {
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        headers: {
+          "x-admin-password": password,
+        },
+        body: form,
+      });
+
+      const json = await res.json();
+
+      if (res.ok && json.message) {
+        setStatsStatus(`✅ ${json.message}`);
+      } else if (json.error) {
+        setStatsStatus(`❌ ${json.error}`);
+      } else {
+        setStatsStatus("❌ Unexpected server response.");
+      }
+    } catch (err: any) {
+      setStatsStatus(`❌ ${err.message || "Upload failed."}`);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
-    <main className="home-wrapper">
-      <div className="hero-grid">
-        <section className="hero-left">
-          <img src="/aqua-logo.png" alt="Aqua Agency" className="hero-logo-img" />
+    <main className="admin-wrapper">
+      <div className="admin-card">
+        <h1 className="admin-title">Upload Monthly Stats</h1>
 
-          <h1 className="hero-title">
-            Diamonds, streaks &amp; rankings
-            <span className="hero-title-accent"> in one dashboard.</span>
-          </h1>
+        <p className="admin-subtitle">
+          Upload the TikTok monthly creator export. This updates your Supabase
+          creator_monthly_stats table, so it works from the public deployed app.
+        </p>
 
-          <p className="hero-subtitle">The dashboard is now live.</p>
+        <form onSubmit={handleStatsSubmit} className="admin-form">
+          <label className="admin-label">
+            Admin Password
+            <input
+              className="admin-input"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
 
-          <div className="hero-buttons">
-            <Link href="/login" className="btn-primary">
-              Creator Login
-            </Link>
-          </div>
-        </section>
+          <label className="admin-label">
+            Stats Date
+            <input
+              className="admin-input"
+              type="date"
+              required
+              value={statsDate}
+              onChange={(e) => setStatsDate(e.target.value)}
+            />
+          </label>
 
-        <section className="hero-right">
-          <div className="glow-card">
-            <div className="glow-card-header">
-              <span className="glow-dot" />
-              <span className="glow-label">Network Snapshot</span>
-            </div>
+          <label className="admin-label">
+            Creator Stats Excel
+            <input
+              className="admin-input-file"
+              type="file"
+              accept=".xlsx,.xls"
+              required
+              onChange={(e) =>
+                setCreatorStatsFile(e.target.files?.[0] ?? null)
+              }
+            />
+          </label>
 
-            <div className="glow-stats glow-stats-split">
-              <div className="glow-stat compact">
-                <div className="glow-stat-label">Creators</div>
-                <div className="glow-stat-value">{totalCreators}</div>
-                <div className="glow-stat-sub">ACTIVE IN THIS DASHBOARD</div>
-              </div>
+          <p
+            style={{
+              marginTop: -8,
+              marginBottom: 8,
+              fontSize: "0.92rem",
+              opacity: 0.8,
+              lineHeight: 1.5,
+            }}
+          >
+            Required columns include Creator ID, Creator&apos;s username,
+            Creator Network manager, Diamonds, LIVE duration, Valid go LIVE
+            days, New followers, LIVE streams, Matches, and Diamonds from
+            matches.
+          </p>
 
-              <div className="glow-divider" />
+          <button className="admin-button" disabled={uploading}>
+            {uploading ? "Uploading…" : "Upload Stats"}
+          </button>
 
-              <div className="glow-stat compact">
-                <div className="glow-stat-label">Status</div>
-                <div className="glow-stat-value status-live">Live</div>
-                <div className="glow-stat-sub">FULLY OPERATIONAL</div>
-              </div>
-            </div>
-
-            <div className="glow-footer"></div>
-          </div>
-        </section>
+          {statsStatus && <p className="admin-status">{statsStatus}</p>}
+        </form>
       </div>
     </main>
   );
