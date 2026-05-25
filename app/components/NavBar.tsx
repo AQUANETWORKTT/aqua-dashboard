@@ -13,11 +13,11 @@ export default function NavBar({ user }: { user: string | null }) {
   if (hideOn.includes(pathname)) return null;
 
   const mobileLinks = [
-    { href: "/banned-help", label: "Ban Help", icon: "/nav-icons/ban-help.png" },
-    { href: `/dashboard/${user}`, label: "Dashboard", icon: "/nav-icons/dashboard.png" },
-    { href: "/", label: "Home", icon: "/nav-icons/home.png" },
-    { href: "/leaderboard", label: "Leaderboard", icon: "/nav-icons/leaderboard.png" },
-    { href: "/merch", label: "Merch", icon: "/nav-icons/merch.png" },
+    { href: "/banned-help", label: "", icon: "/nav-icons/ban-help.png" },
+    { href: `/dashboard/${user}`, label: "", icon: "/nav-icons/dashboard.png" },
+    { href: "/", label: "", icon: "/nav-icons/home.png" },
+    { href: "/leaderboard", label: "", icon: "/nav-icons/leaderboard.png" },
+    { href: "/merch", label: "", icon: "/nav-icons/merch.png" },
   ];
 
   const desktopLinks = [
