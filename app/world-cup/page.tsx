@@ -52,7 +52,6 @@ const TEAMS: Team[] = [
     glow: "shadow-blue-500/30",
     creators: [
       { username: "dylanjinks" },
-      { username: "xemma.bellx" },
       { username: "amzymooxox1" },
       { username: "libbyamberxoxo" },
     ],
@@ -95,7 +94,7 @@ const TEAMS: Team[] = [
       { username: "harryjonesey" },
       { username: "whossoleice" },
       { username: "harleyj23x" },
-      { username: "livy_lucy28" },
+      { username: "callum.072" },
     ],
   },
   {
@@ -108,7 +107,7 @@ const TEAMS: Team[] = [
       { username: "corie.watkins" },
       { username: "xojayyy" },
       { username: "j.wliveacc" },
-      { username: "callum.072" },
+      { username: "livy_lucy28" },
       { username: "ab1ssecret" },
     ],
   },
