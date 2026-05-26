@@ -23,13 +23,14 @@ const defaultManagers: ManagerRow[] = [
   { name: "alfie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "dylan", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "jay", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "ellie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "ellie1", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "jade", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "teddie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "scotty", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "lewis", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "vitali", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "callum", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "harry", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "chloe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "joe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "joechloe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
 ];
 
 const POINTS_PER_RECRUIT = 3;
@@ -40,6 +41,12 @@ function getTotalPoints(row: ManagerRow) {
     row.submissionPoints +
     row.additionalPoints
   );
+}
+
+function getDisplayName(name: string) {
+  if (name === "ellie1") return "ELLIE";
+  if (name === "joechloe") return "JOE & CHLOE";
+  return name.toUpperCase();
 }
 
 export default function ManagerPointsPage() {
@@ -79,6 +86,21 @@ export default function ManagerPointsPage() {
     const dbRows = (data || []) as ManagerPointsDbRow[];
 
     const mergedRows = defaultManagers.map((manager) => {
+      if (manager.name === "joechloe") {
+        const joe = dbRows.find((row) => row.name === "joe");
+        const chloe = dbRows.find((row) => row.name === "chloe");
+
+        return {
+          name: "joechloe",
+          recruitPoints:
+            (joe?.recruit_points ?? 0) + (chloe?.recruit_points ?? 0),
+          submissionPoints:
+            (joe?.submission_points ?? 0) + (chloe?.submission_points ?? 0),
+          additionalPoints:
+            (joe?.additional_points ?? 0) + (chloe?.additional_points ?? 0),
+        };
+      }
+
       const existing = dbRows.find((row) => row.name === manager.name);
 
       return {
@@ -110,12 +132,32 @@ export default function ManagerPointsPage() {
   const savePoints = async () => {
     setMessage("Saving...");
 
-    const payload = rows.map((row) => ({
+    const normalRows = rows.filter((row) => row.name !== "joechloe");
+    const joeChloeRow = rows.find((row) => row.name === "joechloe");
+
+    const payload = normalRows.map((row) => ({
       name: row.name,
       recruit_points: row.recruitPoints,
       submission_points: row.submissionPoints,
       additional_points: row.additionalPoints,
     }));
+
+    if (joeChloeRow) {
+      payload.push(
+        {
+          name: "joe",
+          recruit_points: joeChloeRow.recruitPoints,
+          submission_points: joeChloeRow.submissionPoints,
+          additional_points: joeChloeRow.additionalPoints,
+        },
+        {
+          name: "chloe",
+          recruit_points: 0,
+          submission_points: 0,
+          additional_points: 0,
+        }
+      );
+    }
 
     const { error } = await submissionsSupabase
       .from("manager_points")
@@ -140,12 +182,28 @@ export default function ManagerPointsPage() {
     setLoading(true);
     setMessage("Resetting all manager points...");
 
-    const payload = defaultManagers.map((manager) => ({
-      name: manager.name,
-      recruit_points: 0,
-      submission_points: 0,
-      additional_points: 0,
-    }));
+    const payload = [
+      ...defaultManagers
+        .filter((manager) => manager.name !== "joechloe")
+        .map((manager) => ({
+          name: manager.name,
+          recruit_points: 0,
+          submission_points: 0,
+          additional_points: 0,
+        })),
+      {
+        name: "joe",
+        recruit_points: 0,
+        submission_points: 0,
+        additional_points: 0,
+      },
+      {
+        name: "chloe",
+        recruit_points: 0,
+        submission_points: 0,
+        additional_points: 0,
+      },
+    ];
 
     const { error } = await submissionsSupabase
       .from("manager_points")
@@ -237,7 +295,7 @@ export default function ManagerPointsPage() {
                 }}
               >
                 <div className="manager-card-title">
-                  {row.name.toUpperCase()}
+                  {getDisplayName(row.name)}
                 </div>
 
                 <div
