@@ -34,9 +34,11 @@ function parseHours(value: any): number {
 
   if (str.includes(":")) {
     const parts = str.split(":").map(Number);
+
     if (parts.length === 3) {
       return Number((parts[0] + parts[1] / 60 + parts[2] / 3600).toFixed(2));
     }
+
     if (parts.length === 2) {
       return Number((parts[0] + parts[1] / 60).toFixed(2));
     }
@@ -53,10 +55,7 @@ function parseHours(value: any): number {
 }
 
 function cleanUsername(value: any) {
-  return String(value ?? "")
-    .trim()
-    .replace(/^@/, "")
-    .toLowerCase();
+  return String(value ?? "").trim().replace(/^@/, "").toLowerCase();
 }
 
 function normalizeKey(key: string) {
@@ -110,10 +109,16 @@ function getCreatorStatus(row: Record<string, any>) {
 }
 
 function parseCreatorStatsFile(buffer: Buffer, statsDate: string) {
-  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: true });
+  const workbook = XLSX.read(buffer, {
+    type: "buffer",
+    cellDates: true,
+  });
+
   const sheetName = workbook.SheetNames[0];
 
-  if (!sheetName) throw new Error("No sheet found.");
+  if (!sheetName) {
+    throw new Error("No sheet found.");
+  }
 
   const rows = XLSX.utils.sheet_to_json<Record<string, any>>(
     workbook.Sheets[sheetName],
@@ -216,15 +221,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: statsError.message }, { status: 500 });
     }
 
-const loginRows = creatorRows
-  .filter((creator) => creator.username)
-  .map((creator) => ({
-    username: creator.username,
-    password: `${creator.username}1`,
-    creator_id: creator.creator_id,
-    manager: creator.manager,
-    updated_at: new Date().toISOString(),
-  }));
+    const loginRows = creatorRows
+      .filter((creator) => creator.username)
+      .map((creator) => ({
+        username: creator.username,
+        password: `${creator.username}1`,
+        creator_id: creator.creator_id,
+        manager: creator.manager,
+        updated_at: new Date().toISOString(),
+      }));
 
     if (loginRows.length > 0) {
       const { error: loginError } = await supabase

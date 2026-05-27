@@ -1,12 +1,30 @@
 import { NextResponse } from "next/server";
-import { creators } from "@/data/creators";
+import { createClient } from "@supabase/supabase-js";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUBMISSIONS_SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing Supabase env vars.");
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false },
+  });
+}
 
 function normalise(value: string) {
-  return value.trim().toLowerCase();
+  return value.trim().replace(/^@/, "").toLowerCase();
 }
 
 export async function POST(req: Request) {
   try {
+    const supabase = getSupabaseAdmin();
+
     const { username, password } = await req.json();
 
     if (!username || !password) {
@@ -16,35 +34,45 @@ export async function POST(req: Request) {
       );
     }
 
-    const cleanUsername = normalise(username);
+    const cleanUsername = normalise(String(username));
     const cleanPassword = String(password).trim();
 
-    const creator = creators.find(
-      (c) => normalise(c.username) === cleanUsername
-    );
+    const { data: login, error } = await supabase
+      .from("creator_logins")
+      .select("username, password")
+      .eq("username", cleanUsername)
+      .maybeSingle();
 
-    if (!creator) {
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!login) {
       return NextResponse.json({ error: "Creator not found" }, { status: 404 });
     }
 
-    const expectedPassword = `${cleanUsername}1`;
-
-    if (cleanPassword !== expectedPassword) {
+    if (login.password !== cleanPassword) {
       return NextResponse.json({ error: "Invalid password" }, { status: 401 });
     }
 
-    // Save canonical username into cookie
-    const res = NextResponse.json({ ok: true, username: creator.username });
-    res.cookies.set("aqua_user", creator.username, {
-      secure: true,
+    const res = NextResponse.json({
+      ok: true,
+      username: login.username,
+    });
+
+    res.cookies.set("aqua_user", login.username, {
+      secure: process.env.NODE_ENV === "production",
       httpOnly: false,
       sameSite: "lax",
       path: "/",
     });
 
     return res;
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || "Server error" },
+      { status: 500 }
+    );
   }
 }
