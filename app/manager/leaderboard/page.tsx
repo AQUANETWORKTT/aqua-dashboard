@@ -84,6 +84,11 @@ function getDisplayName(name: string) {
 
 function getImageNames(name: string) {
   if (name === "joechloe") return ["joe", "chloe"];
+
+  if (name === "jade") return ["jade-new"];
+  if (name === "ellie1") return ["ellieb-new"];
+  if (name === "teddie") return ["teddie-new"];
+
   return [name];
 }
 

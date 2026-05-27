@@ -57,9 +57,7 @@ export default function UploadPage() {
           .select("image_names")
           .eq("username", cleanUsername);
 
-      if (existingError) {
-        throw new Error(existingError.message);
-      }
+      if (existingError) throw new Error(existingError.message);
 
       const previousFileNames = new Set<string>();
 
@@ -87,9 +85,7 @@ export default function UploadPage() {
           .from("submission-images")
           .upload(filePath, file);
 
-        if (uploadError) {
-          throw new Error(uploadError.message);
-        }
+        if (uploadError) throw new Error(uploadError.message);
 
         const { data: publicUrlData } = submissionsSupabase.storage
           .from("submission-images")
@@ -113,21 +109,31 @@ export default function UploadPage() {
           duplicate_file_names: duplicateFileNames,
         });
 
-      if (insertError) {
-        throw new Error(insertError.message);
-      }
+      if (insertError) throw new Error(insertError.message);
+
+      await fetch("/api/manager-upload-notify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          manager: cleanUsername,
+          imageCount: files.length,
+          points,
+          possibleDuplicate,
+          duplicateFileNames,
+        }),
+      });
 
       setFiles([]);
 
-      if (possibleDuplicate) {
-        setMessage(
-          `Upload submitted for approval. ${files.length} image${files.length === 1 ? "" : "s"} selected • ${points} point${points === 1 ? "" : "s"} pending. Possible duplicate flagged for admin review.`
-        );
-      } else {
-        setMessage(
-          `Upload submitted for approval. ${files.length} image${files.length === 1 ? "" : "s"} selected • ${points} point${points === 1 ? "" : "s"} pending.`
-        );
-      }
+      setMessage(
+        `Upload submitted for approval. ${files.length} image${
+          files.length === 1 ? "" : "s"
+        } selected • ${points} point${
+          points === 1 ? "" : "s"
+        } pending.${possibleDuplicate ? " Possible duplicate flagged for admin review." : ""}`
+      );
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Upload failed.";
