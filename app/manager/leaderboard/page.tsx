@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 const POINTS_PER_RECRUIT = 3;
-const MONTHLY_TARGET = 35;
+const DEFAULT_TARGET = 35;
+const SMALL_TARGET = 15;
 const BONUS_POINTS = 50;
 const DOUBLE_BONUS_POINTS = 70;
 
@@ -31,16 +32,22 @@ const defaultManagers: ManagerRow[] = [
   { name: "ellie1", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "jade", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "teddie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "scotty", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "millie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "lewis", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "vitali", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "harry", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "joechloe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
 ];
 
+const smallTargetManagers = new Set(["millie", "jade", "ellie1", "teddie", "harry"]);
+
 function toNumber(value: unknown) {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
+}
+
+function getTarget(name: string) {
+  return smallTargetManagers.has(name) ? SMALL_TARGET : DEFAULT_TARGET;
 }
 
 function getRecruitScore(row: ManagerRow) {
@@ -55,15 +62,22 @@ function getCurrentPoints(row: ManagerRow) {
   );
 }
 
-function getBonusLabel(points: number) {
+function getBonusStatus(points: number, target: number) {
+  if (points >= DOUBLE_BONUS_POINTS) return "double";
+  if (points >= BONUS_POINTS) return "bonus";
+  if (points >= target) return "target";
+  return "behind";
+}
+
+function getBonusLabel(points: number, target: number) {
   if (points >= DOUBLE_BONUS_POINTS) return "Double Bonus";
   if (points >= BONUS_POINTS) return "Bonus Unlocked";
-  if (points >= MONTHLY_TARGET) return "Target Hit";
-  return `${Math.max(MONTHLY_TARGET - points, 0)} Points To Target`;
+  if (points >= target) return "Target Hit";
+  return `${Math.max(target - points, 0)} Points To Target`;
 }
 
 function getDisplayName(name: string) {
-  if (name === "ellie1") return "Ellie 1";
+  if (name === "ellie1") return "LEB";
   if (name === "joechloe") return "Joe & Chloe";
   return name;
 }
@@ -73,49 +87,39 @@ function getImageNames(name: string) {
   return [name];
 }
 
-function ManagerImageFade({
-  name,
-  variant = "list",
-}: {
-  name: string;
-  variant?: "podium" | "list";
-}) {
+function getRankClass(index: number) {
+  if (index === 0) return "gold";
+  if (index === 1) return "silver";
+  if (index === 2) return "bronze";
+  return "red";
+}
+
+function ManagerImageFade({ name }: { name: string }) {
   const imageNames = getImageNames(name);
 
   return (
-    <div
-      className={`manager-image-wrap ${variant} ${
-        imageNames.length > 1 ? "dual" : ""
-      }`}
-    >
+    <div className={`manager-image-wrap ${imageNames.length > 1 ? "dual" : ""}`}>
       {imageNames.map((imageName) => (
-        <SingleManagerImage
-          key={imageName}
-          name={imageName}
-          variant={variant}
-        />
+        <SingleManagerImage key={imageName} name={imageName} />
       ))}
     </div>
   );
 }
 
-function SingleManagerImage({
-  name,
-  variant,
-}: {
-  name: string;
-  variant: "podium" | "list";
-}) {
-  const originalSrc = `/creators/${encodeURIComponent(name)}.jpg`;
-  const fallbackSrc = "/creators/default.jpg";
-  const [src, setSrc] = useState(originalSrc);
+function SingleManagerImage({ name }: { name: string }) {
+  const jpgSrc = `/creators/${encodeURIComponent(name)}.jpg`;
+  const pngSrc = `/creators/${encodeURIComponent(name)}.png`;
+  const [src, setSrc] = useState(jpgSrc);
 
   return (
     <img
       src={src}
       alt={name}
-      onError={() => setSrc(fallbackSrc)}
-      className={`manager-image-real ${variant}`}
+      onError={() => {
+        if (src === jpgSrc) setSrc(pngSrc);
+        else setSrc("/creators/default.jpg");
+      }}
+      className="manager-image-real"
     />
   );
 }
@@ -129,10 +133,7 @@ export default function ManagerLeaderboardPage() {
   }, []);
 
   const loadPoints = async () => {
-    const { data } = await submissionsSupabase
-      .from("manager_points")
-      .select("*");
-
+    const { data } = await submissionsSupabase.from("manager_points").select("*");
     const dbRows = (data || []) as ManagerPointsDbRow[];
 
     const merged = defaultManagers.map((manager) => {
@@ -142,8 +143,7 @@ export default function ManagerLeaderboardPage() {
 
         return {
           name: "joechloe",
-          recruitPoints:
-            (joe?.recruit_points ?? 0) + (chloe?.recruit_points ?? 0),
+          recruitPoints: (joe?.recruit_points ?? 0) + (chloe?.recruit_points ?? 0),
           submissionPoints:
             (joe?.submission_points ?? 0) + (chloe?.submission_points ?? 0),
           additionalPoints:
@@ -169,9 +169,6 @@ export default function ManagerLeaderboardPage() {
     return [...rows].sort((a, b) => getCurrentPoints(b) - getCurrentPoints(a));
   }, [rows]);
 
-  const podiumRows = sortedRows.slice(0, 3);
-  const listRows = sortedRows.slice(3);
-
   return (
     <section className="manager-page">
       <style>{`
@@ -192,7 +189,7 @@ export default function ManagerLeaderboardPage() {
 
         .manager-hero {
           text-align: center;
-          margin-bottom: 26px;
+          margin-bottom: 22px;
         }
 
         .manager-pill {
@@ -217,181 +214,23 @@ export default function ManagerLeaderboardPage() {
           text-transform: uppercase;
         }
 
-        .bonus-strip {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
+        .bonus-info {
+          display: flex;
+          justify-content: center;
           gap: 12px;
-          margin: 26px 0 32px;
+          flex-wrap: wrap;
+          margin: 22px 0 26px;
         }
 
-        .bonus-item {
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.14);
-          border-radius: 22px;
-          padding: 18px;
-          text-align: center;
-        }
-
-        .bonus-number {
-          font-size: 34px;
-          font-weight: 950;
-          color: #ff4d6d;
-        }
-
-        .bonus-label {
+        .bonus-info-pill {
+          padding: 12px 18px;
+          border-radius: 999px;
           font-size: 13px;
-          color: rgba(255,255,255,0.72);
-          margin-top: 4px;
+          font-weight: 950;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-        }
-
-        .podium {
-          display: grid;
-          grid-template-columns: 1fr 1.14fr 1fr;
-          gap: 16px;
-          align-items: end;
-          margin-bottom: 22px;
-        }
-
-        .podium-card {
-          position: relative;
-          overflow: hidden;
-          border-radius: 32px;
-          min-height: 320px;
-          display: flex;
-          align-items: flex-end;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.18);
-        }
-
-        .podium-card.rank-1 {
-          order: 2;
-        }
-
-        .podium-card.rank-2 {
-          order: 1;
-        }
-
-        .podium-card.rank-3 {
-          order: 3;
-        }
-
-        .manager-image-wrap {
-          position: absolute;
-          overflow: hidden;
-          z-index: 0;
-          display: flex;
-        }
-
-        .manager-image-wrap.podium {
-          inset: 0;
-        }
-
-        .manager-image-wrap.list {
-          width: 177px;
-          height: 177px;
-          left: 0;
-          top: 0;
-          bottom: 0;
-
-          mask-image: linear-gradient(
-            90deg,
-            black 0%,
-            black 82%,
-            rgba(0,0,0,0.5) 92%,
-            transparent 100%
-          );
-
-          -webkit-mask-image: linear-gradient(
-            90deg,
-            black 0%,
-            black 82%,
-            rgba(0,0,0,0.5) 92%,
-            transparent 100%
-          );
-        }
-
-        .manager-image-wrap.dual .manager-image-real {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .manager-image-real {
-          display: block;
-          object-fit: cover;
-        }
-
-        .manager-image-real.podium {
-          width: 100%;
-          height: 100%;
-          opacity: 0.96;
-        }
-
-        .manager-image-real.list {
-          width: 177px;
-          height: 177px;
-          opacity: 0.95;
-        }
-
-        .podium-content {
-          position: relative;
-          z-index: 3;
-          width: 100%;
-          padding: 24px 18px;
-          background: linear-gradient(
-            0deg,
-            rgba(0,0,0,0.5) 0%,
-            rgba(0,0,0,0.2) 55%,
-            transparent 100%
-          );
-        }
-
-        .row-content,
-        .row-stats {
-          position: relative;
-          z-index: 3;
-        }
-
-        .rank-badge {
-          width: 48px;
-          height: 48px;
-          display: inline-grid;
-          place-items: center;
-          border-radius: 16px;
-          color: white;
-          font-weight: 950;
-          margin-bottom: 12px;
-          background: rgba(0,0,0,0.45);
-        }
-
-        .podium-name {
-          font-size: 25px;
-          font-weight: 950;
-          text-transform: capitalize;
-          text-shadow: 0 4px 18px rgba(0,0,0,0.55);
-        }
-
-        .podium-points {
-          margin-top: 4px;
-          font-size: 48px;
-          font-weight: 950;
-          color: #ff4d6d;
-          line-height: 1;
-        }
-
-        .podium-meta {
-          display: inline-flex;
-          margin-top: 8px;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: rgba(255, 77, 109, 0.18);
-          border: 1px solid rgba(255, 77, 109, 0.35);
-          color: #ffd6df;
-          font-size: 12px;
-          font-weight: 900;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.16);
         }
 
         .manager-list {
@@ -412,15 +251,38 @@ export default function ManagerLeaderboardPage() {
           background: rgba(255,255,255,0.08);
         }
 
+        .manager-image-wrap {
+          position: absolute;
+          width: 177px;
+          height: 177px;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          overflow: hidden;
+          z-index: 0;
+          display: flex;
+          mask-image: linear-gradient(90deg, black 0%, black 82%, rgba(0,0,0,0.5) 92%, transparent 100%);
+          -webkit-mask-image: linear-gradient(90deg, black 0%, black 82%, rgba(0,0,0,0.5) 92%, transparent 100%);
+        }
+
+        .manager-image-real {
+          width: 177px;
+          height: 177px;
+          object-fit: cover;
+          opacity: 0.95;
+        }
+
         .card-shade {
           position: absolute;
           inset: 0;
-          background: linear-gradient(
-            90deg,
-            rgba(0,0,0,0.08),
-            rgba(0,0,0,0.34)
-          );
+          background: linear-gradient(90deg, rgba(0,0,0,0.08), rgba(0,0,0,0.34));
           z-index: 1;
+        }
+
+        .row-content,
+        .row-stats {
+          position: relative;
+          z-index: 3;
         }
 
         .row-content {
@@ -432,19 +294,65 @@ export default function ManagerLeaderboardPage() {
           font-size: 23px;
           font-weight: 950;
           text-transform: capitalize;
-          text-shadow: 0 4px 16px rgba(0,0,0,0.55);
         }
 
         .row-bonus {
           margin-top: 6px;
           display: inline-flex;
-          padding: 6px 10px;
+          padding: 7px 12px;
           border-radius: 999px;
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.14);
           font-size: 11px;
-          font-weight: 900;
+          font-weight: 950;
           text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .row-bonus.double {
+          color: #2a1700;
+          background: linear-gradient(135deg, #ffd86b, #ffae00, #fff2a8);
+          box-shadow: 0 0 22px rgba(255, 190, 35, 0.7);
+          animation: strongPulse 0.95s infinite;
+        }
+
+        .row-bonus.bonus {
+          color: #111;
+          background: linear-gradient(135deg, #f4f4f4, #aeb7c2, #ffffff);
+          box-shadow: 0 0 14px rgba(220, 230, 240, 0.45);
+          animation: softPulse 1.6s infinite;
+        }
+
+        .row-bonus.target {
+          color: #001f0c;
+          background: linear-gradient(135deg, #55ff95, #00c853);
+          box-shadow: 0 0 14px rgba(0, 255, 120, 0.35);
+        }
+
+        .row-bonus.behind {
+          color: #241a00;
+          background: linear-gradient(135deg, #fff176, #ffc400);
+          box-shadow: 0 0 12px rgba(255, 220, 50, 0.28);
+        }
+
+        @keyframes strongPulse {
+          0%, 100% {
+            transform: scale(1);
+            filter: brightness(1);
+          }
+          50% {
+            transform: scale(1.08);
+            filter: brightness(1.35);
+          }
+        }
+
+        @keyframes softPulse {
+          0%, 100% {
+            transform: scale(1);
+            filter: brightness(1);
+          }
+          50% {
+            transform: scale(1.035);
+            filter: brightness(1.14);
+          }
         }
 
         .row-stats {
@@ -459,11 +367,28 @@ export default function ManagerLeaderboardPage() {
           border-radius: 14px;
           padding: 11px 10px;
           text-align: center;
-          background: linear-gradient(
-            135deg,
-            rgba(255,49,88,0.94),
-            rgba(100,8,26,0.9)
-          );
+        }
+
+        .stat-slash.red {
+          background: linear-gradient(135deg, rgba(255,49,88,0.94), rgba(100,8,26,0.9));
+        }
+
+        .stat-slash.gold {
+          color: #2a1700;
+          background: linear-gradient(135deg, #ffe58a, #ffb300, #fff1b5);
+          box-shadow: 0 0 18px rgba(255, 190, 35, 0.35);
+        }
+
+        .stat-slash.silver {
+          color: #101820;
+          background: linear-gradient(135deg, #f5f7fa, #aab4c0, #ffffff);
+          box-shadow: 0 0 16px rgba(220, 230, 240, 0.26);
+        }
+
+        .stat-slash.bronze {
+          color: #2b1200;
+          background: linear-gradient(135deg, #d88a42, #9a4f18, #f3b06c);
+          box-shadow: 0 0 16px rgba(210, 120, 50, 0.28);
         }
 
         .stat-number {
@@ -476,93 +401,13 @@ export default function ManagerLeaderboardPage() {
           display: block;
           margin-top: 4px;
           font-size: 10px;
+          font-weight: 900;
           text-transform: uppercase;
         }
 
         @media (max-width: 780px) {
           .manager-page {
             padding: 24px 12px;
-          }
-
-          .bonus-strip {
-            grid-template-columns: 1fr;
-          }
-
-          .podium {
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-
-          .podium-card,
-          .podium-card.rank-1,
-          .podium-card.rank-2,
-          .podium-card.rank-3 {
-            order: initial;
-            min-height: 170px;
-            border-radius: 24px;
-          }
-
-          .manager-image-wrap.podium {
-            width: 170px;
-            height: 170px;
-            left: 50%;
-            top: 0;
-            bottom: auto;
-            transform: translateX(-50%);
-
-            mask-image: linear-gradient(
-              90deg,
-              transparent 0%,
-              black 14%,
-              black 86%,
-              transparent 100%
-            );
-
-            -webkit-mask-image: linear-gradient(
-              90deg,
-              transparent 0%,
-              black 14%,
-              black 86%,
-              transparent 100%
-            );
-          }
-
-          .manager-image-real.podium {
-            width: 170px;
-            height: 170px;
-            object-fit: contain;
-          }
-
-          .podium-content {
-            display: grid;
-            grid-template-columns: 52px 1fr;
-            gap: 12px;
-            align-items: center;
-            padding: 14px;
-            min-height: 170px;
-            background: transparent;
-          }
-
-          .rank-badge {
-            width: 42px;
-            height: 42px;
-            margin-bottom: 0;
-          }
-
-          .podium-name {
-            font-size: 21px;
-            line-height: 1;
-          }
-
-          .podium-points {
-            font-size: 34px;
-            margin-top: 2px;
-          }
-
-          .podium-meta {
-            font-size: 11px;
-            padding: 5px 8px;
-            margin-top: 4px;
           }
 
           .manager-row {
@@ -572,12 +417,12 @@ export default function ManagerLeaderboardPage() {
             padding: 14px;
           }
 
-          .manager-image-wrap.list {
+          .manager-image-wrap {
             width: 150px;
             height: 150px;
           }
 
-          .manager-image-real.list {
+          .manager-image-real {
             width: 150px;
             height: 150px;
           }
@@ -610,97 +455,52 @@ export default function ManagerLeaderboardPage() {
         <div className="manager-hero">
           <div className="manager-pill">Aqua Manager Leaderboard</div>
           <h1 className="manager-title">Manager Points</h1>
-        </div>
 
-        <div className="bonus-strip">
-          <div className="bonus-item">
-            <div className="bonus-number">3</div>
-            <div className="bonus-label">Points Per Recruit</div>
-          </div>
-
-          <div className="bonus-item">
-            <div className="bonus-number">50</div>
-            <div className="bonus-label">Bonus Points</div>
-          </div>
-
-          <div className="bonus-item">
-            <div className="bonus-number">70</div>
-            <div className="bonus-label">Double Bonus</div>
+          <div className="bonus-info">
+            <div className="bonus-info-pill">Bonus: £15</div>
+            <div className="bonus-info-pill">Double Bonus: £30</div>
           </div>
         </div>
 
         {!loading && (
-          <>
-            <div className="podium">
-              {podiumRows.map((row, index) => {
-                const points = getCurrentPoints(row);
+          <div className="manager-list">
+            {sortedRows.map((row, index) => {
+              const points = getCurrentPoints(row);
+              const target = getTarget(row.name);
+              const status = getBonusStatus(points, target);
+              const rankClass = getRankClass(index);
 
-                return (
-                  <div
-                    key={row.name}
-                    className={`podium-card rank-${index + 1}`}
-                  >
-                    <ManagerImageFade name={row.name} variant="podium" />
+              return (
+                <div key={row.name} className="manager-row">
+                  <ManagerImageFade name={row.name} />
 
-                    <div className="podium-content">
-                      <div className="rank-badge">#{index + 1}</div>
+                  <div className="card-shade" />
 
-                      <div>
-                        <div className="podium-name">
-                          {getDisplayName(row.name)}
-                        </div>
+                  <div className="row-content">
+                    <div className="row-name">
+                      #{index + 1} • {getDisplayName(row.name)}
+                    </div>
 
-                        <div className="podium-points">{points}</div>
-
-                        <div className="podium-meta">
-                          {row.recruitPoints} recruits ·{" "}
-                          {getBonusLabel(points)}
-                        </div>
-                      </div>
+                    <div className={`row-bonus ${status}`}>
+                      {getBonusLabel(points, target)}
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            <div className="manager-list">
-              {listRows.map((row) => {
-                const points = getCurrentPoints(row);
-
-                return (
-                  <div key={row.name} className="manager-row">
-                    <ManagerImageFade name={row.name} variant="list" />
-
-                    <div className="card-shade" />
-
-                    <div className="row-content">
-                      <div className="row-name">
-                        {getDisplayName(row.name)}
-                      </div>
-
-                      <div className="row-bonus">
-                        {getBonusLabel(points)}
-                      </div>
+                  <div className="row-stats">
+                    <div className={`stat-slash ${rankClass}`}>
+                      <span className="stat-number">{row.recruitPoints}</span>
+                      <span className="stat-label">Recruits</span>
                     </div>
 
-                    <div className="row-stats">
-                      <div className="stat-slash">
-                        <span className="stat-number">
-                          {row.recruitPoints}
-                        </span>
-                        <span className="stat-label">Recruits</span>
-                      </div>
-
-                      <div className="stat-slash">
-                        <span className="stat-number">{points}</span>
-                        <span className="stat-label">Points</span>
-                      </div>
+                    <div className={`stat-slash ${rankClass}`}>
+                      <span className="stat-number">{points}</span>
+                      <span className="stat-label">Points</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </section>
