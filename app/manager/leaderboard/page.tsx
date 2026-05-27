@@ -77,7 +77,7 @@ function getBonusLabel(points: number, target: number) {
 }
 
 function getDisplayName(name: string) {
-  if (name === "ellie1") return "LEB";
+  if (name === "ellie1") return "Ellie B";
   if (name === "joechloe") return "Joe & Chloe";
   return name;
 }
