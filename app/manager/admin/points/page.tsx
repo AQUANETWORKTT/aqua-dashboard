@@ -23,10 +23,10 @@ const defaultManagers: ManagerRow[] = [
   { name: "alfie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "dylan", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "jay", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "ellie1", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "ellie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "jade", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "teddie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "scotty", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "millie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "lewis", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "vitali", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
   { name: "harry", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
@@ -44,7 +44,7 @@ function getTotalPoints(row: ManagerRow) {
 }
 
 function getDisplayName(name: string) {
-  if (name === "ellie1") return "ELLIE";
+  if (name === "ellie") return "ELLIE";
   if (name === "joechloe") return "JOE & CHLOE";
   return name.toUpperCase();
 }
