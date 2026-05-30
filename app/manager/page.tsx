@@ -17,6 +17,7 @@ const allowedUsers = [
   "jade",
   "teddie",
   "millie",
+  "chris",
 ];
 
 const userKeys: Record<string, string> = {
@@ -33,6 +34,7 @@ const userKeys: Record<string, string> = {
   jade: "J13",
   teddie: "T14",
   millie: "M15",
+  chris: "C16",
 };
 
 export default function ManagerLoginPage() {
