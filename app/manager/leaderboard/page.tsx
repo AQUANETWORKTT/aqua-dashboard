@@ -4,10 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 const POINTS_PER_RECRUIT = 3;
-const DEFAULT_TARGET = 35;
-const SMALL_TARGET = 15;
-const BONUS_POINTS = 50;
-const DOUBLE_BONUS_POINTS = 70;
 
 type ManagerRow = {
   name: string;
@@ -42,15 +38,53 @@ const defaultManagers: ManagerRow[] = [
   { name: "joechloe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
 ];
 
-const smallTargetManagers = new Set(["millie", "jade", "ellie1", "teddie", "harry"]);
+const managerTargets: Record<string, number> = {
+  james: 50,
+  alfie: 50,
+  dylan: 35,
+  jay: 40,
+  chris: 40,
+
+  ellie: 35,
+  ellie1: 35,
+
+  jade: 30,
+  teddie: 30,
+  millie: 30,
+  lewis: 25,
+  vitali: 50,
+  harry: 35,
+  joechloe: 40,
+};
 
 function toNumber(value: unknown) {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
 }
 
+function roundToNearest5(value: number) {
+  return Math.round(value / 5) * 5;
+}
+
 function getTarget(name: string) {
-  return smallTargetManagers.has(name) ? SMALL_TARGET : DEFAULT_TARGET;
+  return managerTargets[name] ?? 35;
+}
+
+function getBonusPoints(target: number) {
+  if (target <= 35) return 50;
+  if (target >= 50) return 75;
+
+  const scaled = 50 + ((target - 35) / 15) * 25;
+  return Math.max(50, roundToNearest5(scaled));
+}
+
+function getDoubleBonusPoints(target: number) {
+  if (target <= 30) return 70;
+  if (target === 35) return 75;
+  if (target >= 50) return 100;
+
+  const scaled = 75 + ((target - 35) / 15) * 25;
+  return Math.max(70, roundToNearest5(scaled));
 }
 
 function getRecruitScore(row: ManagerRow) {
@@ -66,15 +100,21 @@ function getCurrentPoints(row: ManagerRow) {
 }
 
 function getBonusStatus(points: number, target: number) {
-  if (points >= DOUBLE_BONUS_POINTS) return "double";
-  if (points >= BONUS_POINTS) return "bonus";
+  const bonusPoints = getBonusPoints(target);
+  const doubleBonusPoints = getDoubleBonusPoints(target);
+
+  if (points >= doubleBonusPoints) return "double";
+  if (points >= bonusPoints) return "bonus";
   if (points >= target) return "target";
   return "behind";
 }
 
 function getBonusLabel(points: number, target: number) {
-  if (points >= DOUBLE_BONUS_POINTS) return "Double Bonus";
-  if (points >= BONUS_POINTS) return "Bonus Unlocked";
+  const bonusPoints = getBonusPoints(target);
+  const doubleBonusPoints = getDoubleBonusPoints(target);
+
+  if (points >= doubleBonusPoints) return "Double Bonus";
+  if (points >= bonusPoints) return "Bonus Unlocked";
   if (points >= target) return "Target Hit";
   return `${Math.max(target - points, 0)} Points To Target`;
 }
@@ -465,8 +505,8 @@ export default function ManagerLeaderboardPage() {
           <h1 className="manager-title">Manager Points</h1>
 
           <div className="bonus-info">
-            <div className="bonus-info-pill">Bonus: £15</div>
-            <div className="bonus-info-pill">Double Bonus: £30</div>
+            <div className="bonus-info-pill">Bonus: target based</div>
+            <div className="bonus-info-pill">Double Bonus: target based</div>
           </div>
         </div>
 
