@@ -30,10 +30,26 @@ const managerSearchMap: Record<string, string[]> = {
   harry: ["harry"],
   chloe: ["chloe"],
   joe: ["joe", "chloe"],
+
+  millie: ["millie"],
+  jade: ["jade", "jade1"],
+  teddie1: ["teddie", "teddie1"],
+  ellie1: ["ellie1", "ellie b", "leb"],
+  chris: ["matt"],
+};
+
+const managerDisplayMap: Record<string, string> = {
+  teddie1: "Teddie",
+  ellie1: "Ellie B",
+  chris: "Chris",
 };
 
 function titleCase(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+function getManagerDisplayName(value: string) {
+  return managerDisplayMap[value] || titleCase(value);
 }
 
 function cleanUsername(value: string | null | undefined) {
@@ -50,7 +66,8 @@ function formatHours(value: number | null | undefined) {
 
 function isManagerMatch(managerField: string | null, managerUsername: string) {
   const field = String(managerField || "").toLowerCase();
-  const keys = managerSearchMap[managerUsername] || [managerUsername];
+  const cleanManagerUsername = String(managerUsername || "").toLowerCase().trim();
+  const keys = managerSearchMap[cleanManagerUsername] || [cleanManagerUsername];
 
   return keys.some((key) => field.includes(key.toLowerCase()));
 }
@@ -168,7 +185,7 @@ export default function ManagerPortalPage() {
       return;
     }
 
-    setManagerUsername(user);
+    setManagerUsername(user.toLowerCase().trim());
   }, [router]);
 
   useEffect(() => {
@@ -226,6 +243,18 @@ export default function ManagerPortalPage() {
           font-size: clamp(2rem, 5vw, 4rem);
           font-weight: 950;
           margin: 10px 0;
+        }
+
+        .manager-pill {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.12);
+          border-radius: 999px;
+          padding: 8px 13px;
+          font-weight: 900;
+          color: rgba(255,255,255,0.8);
         }
 
         .portal-toolbar {
@@ -383,7 +412,7 @@ export default function ManagerPortalPage() {
       <div className="manager-pill">Manager Portal</div>
 
       <h1 className="portal-title">
-        {titleCase(managerUsername)}'s Creators
+        {getManagerDisplayName(managerUsername)}'s Creators
       </h1>
 
       <div className="portal-toolbar">
