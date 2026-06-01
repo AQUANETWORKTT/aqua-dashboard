@@ -41,7 +41,7 @@ const defaultManagers: ManagerRow[] = [
 const managerTargets: Record<string, number> = {
   james: 50,
   alfie: 50,
-  dylan: 35,
+  dylan: 40,
   jay: 40,
   chris: 40,
 
@@ -222,7 +222,7 @@ export default function ManagerLeaderboardPage() {
       <style>{`
         .manager-page {
           min-height: 100vh;
-          padding: 34px 18px;
+          padding: 28px 12px 42px;
           background:
             radial-gradient(circle at top left, rgba(255, 80, 120, 0.3), transparent 34%),
             radial-gradient(circle at top right, rgba(255, 0, 60, 0.22), transparent 32%),
@@ -237,7 +237,7 @@ export default function ManagerLeaderboardPage() {
 
         .manager-hero {
           text-align: center;
-          margin-bottom: 22px;
+          margin-bottom: 20px;
         }
 
         .manager-pill {
@@ -254,7 +254,7 @@ export default function ManagerLeaderboardPage() {
         }
 
         .manager-title {
-          font-size: clamp(38px, 7vw, 78px);
+          font-size: clamp(36px, 9vw, 78px);
           line-height: 0.95;
           margin: 0;
           font-weight: 950;
@@ -265,94 +265,160 @@ export default function ManagerLeaderboardPage() {
         .bonus-info {
           display: flex;
           justify-content: center;
-          gap: 12px;
+          gap: 10px;
           flex-wrap: wrap;
-          margin: 22px 0 26px;
+          margin: 18px 0 24px;
         }
 
         .bonus-info-pill {
-          padding: 12px 18px;
+          padding: 11px 15px;
           border-radius: 999px;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 950;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.06em;
           background: rgba(255,255,255,0.1);
           border: 1px solid rgba(255,255,255,0.16);
         }
 
         .manager-list {
           display: grid;
-          gap: 12px;
+          gap: 14px;
         }
 
         .manager-row {
           position: relative;
           overflow: hidden;
-          min-height: 177px;
           display: grid;
-          grid-template-columns: 1fr 190px;
-          align-items: center;
-          gap: 16px;
-          padding: 18px;
-          border-radius: 24px;
-          background: rgba(255,255,255,0.08);
+          grid-template-columns: 178px 1fr;
+          gap: 18px;
+          min-height: 188px;
+          padding: 16px 18px 16px 0;
+          border-radius: 28px;
+          background:
+            linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04)),
+            rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.1);
+          box-shadow: 0 14px 34px rgba(0,0,0,0.24);
         }
 
-        .manager-image-wrap {
+        .rank-rail {
           position: absolute;
-          width: 177px;
-          height: 177px;
           left: 0;
           top: 0;
           bottom: 0;
-          overflow: hidden;
-          z-index: 0;
+          width: 44px;
+          z-index: 5;
           display: flex;
-          mask-image: linear-gradient(90deg, black 0%, black 82%, rgba(0,0,0,0.5) 92%, transparent 100%);
-          -webkit-mask-image: linear-gradient(90deg, black 0%, black 82%, rgba(0,0,0,0.5) 92%, transparent 100%);
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          font-weight: 950;
+          border-radius: 28px 0 0 28px;
+          writing-mode: vertical-rl;
+          transform: rotate(180deg);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
+        .rank-rail.gold {
+          color: #2a1700;
+          background: linear-gradient(180deg, #fff2a8, #ffb300, #ffe58a);
+        }
+
+        .rank-rail.silver {
+          color: #111820;
+          background: linear-gradient(180deg, #ffffff, #aab4c0, #f5f7fa);
+        }
+
+        .rank-rail.bronze {
+          color: #2b1200;
+          background: linear-gradient(180deg, #f3b06c, #9a4f18, #d88a42);
+        }
+
+        .rank-rail.red {
+          color: white;
+          background: linear-gradient(180deg, #ff3158, #74091f);
+        }
+
+        .manager-image-wrap {
+          position: relative;
+          width: 178px;
+          height: 178px;
+          overflow: hidden;
+          z-index: 2;
+          display: flex;
+          border-radius: 0 24px 24px 0;
+          margin-left: 0;
+          padding-left: 44px;
+          box-sizing: border-box;
+        }
+
+        .manager-image-wrap.dual {
+          gap: 0;
         }
 
         .manager-image-real {
-          width: 177px;
-          height: 177px;
+          width: 134px;
+          height: 178px;
           object-fit: cover;
-          opacity: 0.95;
+          opacity: 0.96;
+        }
+
+        .manager-image-wrap.dual .manager-image-real {
+          width: 67px;
         }
 
         .card-shade {
           position: absolute;
           inset: 0;
-          background: linear-gradient(90deg, rgba(0,0,0,0.08), rgba(0,0,0,0.34));
+          background:
+            linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.34)),
+            radial-gradient(circle at left, rgba(255,255,255,0.08), transparent 35%);
           z-index: 1;
         }
 
-        .row-content,
-        .row-stats {
+        .row-main {
           position: relative;
-          z-index: 3;
+          z-index: 4;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-width: 0;
         }
 
-        .row-content {
-          text-align: center;
-          padding-left: 180px;
+        .row-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          margin-bottom: 12px;
+        }
+
+        .row-name-wrap {
+          min-width: 0;
         }
 
         .row-name {
-          font-size: 23px;
+          font-size: clamp(22px, 3.4vw, 34px);
           font-weight: 950;
           text-transform: capitalize;
+          line-height: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .row-bonus {
-          margin-top: 6px;
+          margin-top: 8px;
           display: inline-flex;
-          padding: 7px 12px;
+          padding: 8px 13px;
           border-radius: 999px;
           font-size: 11px;
           font-weight: 950;
           text-transform: uppercase;
           letter-spacing: 0.05em;
+          width: fit-content;
         }
 
         .row-bonus.double {
@@ -404,36 +470,37 @@ export default function ManagerLeaderboardPage() {
         }
 
         .row-stats {
-          display: flex;
-          gap: 10px;
-          justify-content: flex-end;
-          align-items: center;
+          display: grid;
+          grid-template-columns: repeat(5, minmax(90px, 1fr));
+          gap: 9px;
+          width: 100%;
         }
 
-        .stat-slash {
-          min-width: 82px;
-          border-radius: 14px;
-          padding: 11px 10px;
+        .stat-box {
+          min-height: 74px;
+          border-radius: 16px;
+          padding: 10px 8px;
           text-align: center;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          border: 1px solid rgba(255,255,255,0.12);
+          background: linear-gradient(135deg, rgba(255,49,88,0.92), rgba(100,8,26,0.88));
         }
 
-        .stat-slash.red {
-          background: linear-gradient(135deg, rgba(255,49,88,0.94), rgba(100,8,26,0.9));
-        }
-
-        .stat-slash.gold {
+        .stat-box.gold {
           color: #2a1700;
           background: linear-gradient(135deg, #ffe58a, #ffb300, #fff1b5);
           box-shadow: 0 0 18px rgba(255, 190, 35, 0.35);
         }
 
-        .stat-slash.silver {
+        .stat-box.silver {
           color: #101820;
           background: linear-gradient(135deg, #f5f7fa, #aab4c0, #ffffff);
           box-shadow: 0 0 16px rgba(220, 230, 240, 0.26);
         }
 
-        .stat-slash.bronze {
+        .stat-box.bronze {
           color: #2b1200;
           background: linear-gradient(135deg, #d88a42, #9a4f18, #f3b06c);
           box-shadow: 0 0 16px rgba(210, 120, 50, 0.28);
@@ -441,60 +508,137 @@ export default function ManagerLeaderboardPage() {
 
         .stat-number {
           display: block;
-          font-size: 25px;
+          font-size: 24px;
+          line-height: 1;
           font-weight: 950;
         }
 
         .stat-label {
           display: block;
-          margin-top: 4px;
-          font-size: 10px;
-          font-weight: 900;
+          margin-top: 7px;
+          font-size: 9px;
+          line-height: 1.05;
+          font-weight: 950;
           text-transform: uppercase;
+          letter-spacing: 0.04em;
         }
 
-        @media (max-width: 780px) {
+        @media (max-width: 820px) {
           .manager-page {
-            padding: 24px 12px;
+            padding: 22px 10px 34px;
           }
 
           .manager-row {
-            min-height: 150px;
-            grid-template-columns: 1fr 118px;
+            grid-template-columns: 112px 1fr;
             gap: 10px;
-            padding: 14px;
+            min-height: 230px;
+            padding: 12px 10px 12px 0;
+            border-radius: 24px;
+          }
+
+          .rank-rail {
+            width: 32px;
+            font-size: 13px;
+            border-radius: 24px 0 0 24px;
           }
 
           .manager-image-wrap {
-            width: 150px;
+            width: 112px;
             height: 150px;
+            padding-left: 32px;
+            border-radius: 0 18px 18px 0;
+            align-self: start;
           }
 
           .manager-image-real {
-            width: 150px;
+            width: 80px;
             height: 150px;
           }
 
-          .row-content {
-            padding-left: 150px;
+          .manager-image-wrap.dual .manager-image-real {
+            width: 40px;
+          }
+
+          .row-main {
+            justify-content: flex-start;
+            padding-top: 2px;
+          }
+
+          .row-top {
+            display: block;
+            margin-bottom: 10px;
           }
 
           .row-name {
-            font-size: 19px;
+            font-size: 22px;
+            white-space: normal;
+            line-height: 1.05;
+          }
+
+          .row-bonus {
+            margin-top: 7px;
+            font-size: 10px;
+            padding: 7px 10px;
+            max-width: 100%;
           }
 
           .row-stats {
-            flex-direction: column;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 7px;
           }
 
-          .stat-slash {
-            min-width: 88px;
-            padding: 8px;
+          .stat-box {
+            min-height: 58px;
+            border-radius: 13px;
+            padding: 8px 5px;
           }
 
           .stat-number {
             font-size: 20px;
+          }
+
+          .stat-label {
+            font-size: 8px;
+            margin-top: 5px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .manager-row {
+            grid-template-columns: 96px 1fr;
+            min-height: 250px;
+          }
+
+          .manager-image-wrap {
+            width: 96px;
+            height: 140px;
+            padding-left: 30px;
+          }
+
+          .manager-image-real {
+            width: 66px;
+            height: 140px;
+          }
+
+          .manager-image-wrap.dual .manager-image-real {
+            width: 33px;
+          }
+
+          .rank-rail {
+            width: 30px;
+            font-size: 12px;
+          }
+
+          .row-name {
+            font-size: 20px;
+          }
+
+          .row-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .stat-number {
+            font-size: 18px;
           }
         }
       `}</style>
@@ -505,8 +649,8 @@ export default function ManagerLeaderboardPage() {
           <h1 className="manager-title">Manager Points</h1>
 
           <div className="bonus-info">
-            <div className="bonus-info-pill">Bonus: target based</div>
-            <div className="bonus-info-pill">Double Bonus: target based</div>
+            <div className="bonus-info-pill">Targets are manager based</div>
+            <div className="bonus-info-pill">Bonus + double bonus visible</div>
           </div>
         </div>
 
@@ -515,34 +659,55 @@ export default function ManagerLeaderboardPage() {
             {sortedRows.map((row, index) => {
               const points = getCurrentPoints(row);
               const target = getTarget(row.name);
+              const bonusTarget = getBonusPoints(target);
+              const doubleBonusTarget = getDoubleBonusPoints(target);
               const status = getBonusStatus(points, target);
               const rankClass = getRankClass(index);
 
               return (
                 <div key={row.name} className="manager-row">
+                  <div className={`rank-rail ${rankClass}`}>#{index + 1}</div>
+
                   <ManagerImageFade name={row.name} />
 
                   <div className="card-shade" />
 
-                  <div className="row-content">
-                    <div className="row-name">
-                      #{index + 1} • {getDisplayName(row.name)}
+                  <div className="row-main">
+                    <div className="row-top">
+                      <div className="row-name-wrap">
+                        <div className="row-name">{getDisplayName(row.name)}</div>
+
+                        <div className={`row-bonus ${status}`}>
+                          {getBonusLabel(points, target)}
+                        </div>
+                      </div>
                     </div>
 
-                    <div className={`row-bonus ${status}`}>
-                      {getBonusLabel(points, target)}
-                    </div>
-                  </div>
+                    <div className="row-stats">
+                      <div className={`stat-box ${rankClass}`}>
+                        <span className="stat-number">{row.recruitPoints}</span>
+                        <span className="stat-label">Recruits</span>
+                      </div>
 
-                  <div className="row-stats">
-                    <div className={`stat-slash ${rankClass}`}>
-                      <span className="stat-number">{row.recruitPoints}</span>
-                      <span className="stat-label">Recruits</span>
-                    </div>
+                      <div className={`stat-box ${rankClass}`}>
+                        <span className="stat-number">{points}</span>
+                        <span className="stat-label">Points</span>
+                      </div>
 
-                    <div className={`stat-slash ${rankClass}`}>
-                      <span className="stat-number">{points}</span>
-                      <span className="stat-label">Points</span>
+                      <div className={`stat-box ${rankClass}`}>
+                        <span className="stat-number">{target}</span>
+                        <span className="stat-label">Target</span>
+                      </div>
+
+                      <div className={`stat-box ${rankClass}`}>
+                        <span className="stat-number">{bonusTarget}</span>
+                        <span className="stat-label">Bonus Target</span>
+                      </div>
+
+                      <div className={`stat-box ${rankClass}`}>
+                        <span className="stat-number">{doubleBonusTarget}</span>
+                        <span className="stat-label">Double Bonus Target</span>
+                      </div>
                     </div>
                   </div>
                 </div>
