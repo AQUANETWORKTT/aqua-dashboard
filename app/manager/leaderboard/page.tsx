@@ -54,7 +54,7 @@ const managerTargets: Record<string, number> = {
   lewis: 25,
   vitali: 50,
   harry: 35,
-  joechloe: 40,
+  joechloe: 30,
 };
 
 function toNumber(value: unknown) {
