@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import * as htmlToImage from "html-to-image";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
@@ -17,6 +17,13 @@ type Battle = {
 };
 
 type Mode = "single" | "mass";
+
+const BRAND = {
+  name: "Aqua Battle Poster Generator",
+  manager: "AQUA",
+  posterBackground: "/posters/aqua-battle/background.png",
+  zipName: "Aqua-Battle-Posters.zip",
+};
 
 const DEFAULT_YEAR = 2026;
 
@@ -39,11 +46,11 @@ function makeId() {
   return crypto.randomUUID();
 }
 
-function emptyBattle(): Battle {
+function createBattle(id?: string): Battle {
   return {
-    id: makeId(),
+    id: id || makeId(),
     date: "",
-    manager: "AQUA",
+    manager: BRAND.manager,
     name1: "",
     name2: "",
     time: "",
@@ -151,6 +158,14 @@ function cleanFileName(value: string) {
     .replaceAll("—", "-")
     .replaceAll(",", "")
     .replaceAll("@", "");
+}
+
+
+function addCacheBustToImageUrl(url: string, key?: string | number) {
+  if (!url || url.startsWith("data:") || url.startsWith("blob:")) return url;
+
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}avatarRefresh=${key || Date.now()}`;
 }
 
 function TextInput({
@@ -268,15 +283,22 @@ function TimeSelect({
 }
 
 export default function BattleGeneratorPage() {
+  const stableId = useId().replaceAll(":", "");
   const posterRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const [activeMode, setActiveMode] = useState<Mode>("single");
 
   const [paste, setPaste] = useState("");
   const [singlePaste, setSinglePaste] = useState("");
-  const [singleBattle, setSingleBattle] = useState<Battle>(() => emptyBattle());
+  const [singleBattle, setSingleBattle] = useState<Battle>(() =>
+    createBattle(`single-${stableId}`)
+  );
   const [singleDay, setSingleDay] = useState("");
   const [singleMonth, setSingleMonth] = useState("4");
+
+  const [massDay, setMassDay] = useState("");
+  const [massMonth, setMassMonth] = useState("4");
+  const [massDate, setMassDate] = useState("");
 
   const [battles, setBattles] = useState<Battle[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -284,6 +306,41 @@ export default function BattleGeneratorPage() {
   const [saving, setSaving] = useState(false);
 
   const selectedBattle = battles.find((b) => b.id === selectedId) || null;
+
+  const blankPreviewBattle: Battle = {
+    id: "blank-preview",
+    date: "",
+    manager: BRAND.manager,
+    name1: "",
+    name2: "",
+    time: "",
+    image1: "",
+    image2: "",
+  };
+
+  useEffect(() => {
+    const username = singleBattle.name1.replace("@", "").trim();
+    if (!username || singleBattle.image1) return;
+
+    const timer = setTimeout(async () => {
+      const avatar = await fetchTikTokAvatar(username);
+      if (avatar) updateSingleBattle({ image1: avatar });
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [singleBattle.name1, singleBattle.image1]);
+
+  useEffect(() => {
+    const username = singleBattle.name2.replace("@", "").trim();
+    if (!username || singleBattle.image2) return;
+
+    const timer = setTimeout(async () => {
+      const avatar = await fetchTikTokAvatar(username);
+      if (avatar) updateSingleBattle({ image2: avatar });
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [singleBattle.name2, singleBattle.image2]);
 
   function updateSingleDate(day: string, month: string) {
     updateSingleBattle({ date: formatDateFromParts(day, month) });
@@ -306,6 +363,23 @@ export default function BattleGeneratorPage() {
     updateSingleDate(fixedDay, value);
   }
 
+  function handleMassDayChange(value: string) {
+    setMassDay(value);
+    setMassDate(formatDateFromParts(value, massMonth));
+  }
+
+  function handleMassMonthChange(value: string) {
+    const daysInNewMonth = getDaysInMonth(value);
+    const fixedDay =
+      massDay && Number(massDay) > daysInNewMonth
+        ? String(daysInNewMonth)
+        : massDay;
+
+    setMassMonth(value);
+    setMassDay(fixedDay);
+    setMassDate(formatDateFromParts(fixedDay, value));
+  }
+
   function updateBattle(id: string, changes: Partial<Battle>) {
     setBattles((prev) =>
       prev.map((battle) =>
@@ -322,20 +396,52 @@ export default function BattleGeneratorPage() {
     setSingleBattle((prev) => ({ ...prev, ...changes }));
   }
 
+  function clearSinglePoster() {
+    setSingleBattle(createBattle(`single-${stableId}`));
+    setSinglePaste("");
+    setSingleDay("");
+    setSingleMonth("4");
+    setSelectedId("");
+  }
+
+  function clearMassPosters() {
+    setPaste("");
+    setBattles([]);
+    setSelectedId("");
+    setMassDay("");
+    setMassMonth("4");
+    setMassDate("");
+  }
+
   async function fetchTikTokAvatar(username: string) {
-    if (!username) return "";
+    const cleanUsername = username.replace("@", "").trim().toLowerCase();
+    if (!cleanUsername) return "";
+
+    const refreshKey = Date.now();
 
     try {
-      const res = await fetch("/api/tiktok-avatar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username }),
-      });
+      const res = await fetch(
+        `/api/tiktok-avatar?username=${encodeURIComponent(
+          cleanUsername
+        )}&refresh=${refreshKey}`,
+        {
+          method: "POST",
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+          body: JSON.stringify({
+            username: cleanUsername,
+            forceRefresh: true,
+            refresh: refreshKey,
+          }),
+        }
+      );
 
       const json = await res.json();
-      return json.avatar || "";
+      return addCacheBustToImageUrl(json.avatar || "", refreshKey);
     } catch {
       return "";
     }
@@ -352,6 +458,39 @@ export default function BattleGeneratorPage() {
     if (!avatar) return;
 
     updateSingleBattle({ [field]: avatar });
+  }
+
+  async function autoFillBattleAvatar(
+    id: string,
+    field: "image1" | "image2",
+    username: string
+  ) {
+    const cleanUsername = username.replace("@", "").trim();
+    if (!cleanUsername) return;
+
+    const avatar = await fetchTikTokAvatar(cleanUsername);
+    if (!avatar) return;
+
+    updateBattle(id, { [field]: avatar });
+  }
+
+  async function refreshTikTokAvatar(
+    battle: Battle,
+    field: "image1" | "image2",
+    single = false
+  ) {
+    const username = field === "image1" ? battle.name1 : battle.name2;
+    const cleanUsername = username.replace("@", "").trim();
+    if (!cleanUsername) return;
+
+    const avatar = await fetchTikTokAvatar(cleanUsername);
+    if (!avatar) return;
+
+    if (single) {
+      updateSingleBattle({ [field]: avatar });
+    } else {
+      updateBattle(battle.id, { [field]: avatar });
+    }
   }
 
   function uploadImageFile(
@@ -401,21 +540,54 @@ export default function BattleGeneratorPage() {
     uploadImageFile(file, id, field, single);
   }
 
-  async function parseBattleRow(row: string) {
+  async function parseSingleBattleRow(row: string) {
+  const parts = row.split(/\t+/);
+
+  const selectedDate =
+    singleBattle.date || massDate || formatDateFromParts(singleDay, singleMonth);
+
+  const name1Raw =
+    getTikTokUsername(parts[3] || "") ||
+    String(parts[0] || "").replace("@", "").trim().toLowerCase();
+
+  const name2Raw = getTikTokUsername(parts[5] || "");
+
+  const time = formatTime(parts[6] || parts[4] || "");
+  const manager = formatDate(parts[1] || BRAND.manager);
+
+  const image1 = await fetchTikTokAvatar(name1Raw);
+  const image2 = await fetchTikTokAvatar(name2Raw);
+
+  return {
+    id: makeId(),
+    date: selectedDate,
+    manager,
+    name1: formatName(name1Raw),
+    name2: formatName(name2Raw),
+    time,
+    image1,
+    image2,
+  };
+}
+
+  async function parseMassBattleRow(row: string, selectedDate: string) {
     const parts = row.split(/\t+/);
 
-    const date = formatDate(parts[0] || "");
-    const name1Raw = (parts[1] || "").toLowerCase().replace("@", "");
-    const manager = formatDate(parts[2] || "UNKNOWN");
-    const name2Raw = getTikTokUsername(parts[6] || "");
-    const time = formatTime(parts[7] || "");
+    const name1Raw =
+      getTikTokUsername(parts[3] || "") ||
+      String(parts[0] || "").replace("@", "").trim().toLowerCase();
+
+    const name2Raw = getTikTokUsername(parts[5] || "");
+
+    const time = formatTime(parts[6] || parts[4] || "");
+    const manager = formatDate(parts[1] || BRAND.manager);
 
     const image1 = await fetchTikTokAvatar(name1Raw);
     const image2 = await fetchTikTokAvatar(name2Raw);
 
     return {
       id: makeId(),
-      date,
+      date: selectedDate,
       manager,
       name1: formatName(name1Raw),
       name2: formatName(name2Raw),
@@ -435,7 +607,7 @@ export default function BattleGeneratorPage() {
 
     setLoading(true);
 
-    const parsed = await parseBattleRow(row);
+    const parsed = await parseSingleBattleRow(row);
 
     setSingleBattle(parsed);
     setSelectedId(parsed.id);
@@ -444,18 +616,22 @@ export default function BattleGeneratorPage() {
   }
 
   async function readRows() {
+    if (!massDate) {
+      alert("Please select a date for the mass posters first.");
+      return;
+    }
+
     setLoading(true);
 
     const rows = paste
       .split("\n")
       .map((row) => row.trim())
-      .filter((row) => row.length > 0)
-      .filter((row) => row.includes("tiktok.com"));
+      .filter((row) => row.length > 0);
 
     const parsed: Battle[] = [];
 
     for (const row of rows) {
-      parsed.push(await parseBattleRow(row));
+      parsed.push(await parseMassBattleRow(row, massDate));
     }
 
     setBattles(parsed);
@@ -464,18 +640,24 @@ export default function BattleGeneratorPage() {
   }
 
   async function makePosterBlob(battle: Battle) {
-    const node = posterRefs.current[battle.id];
-    if (!node) return null;
+  await document.fonts.ready;
 
-    const dataUrl = await htmlToImage.toPng(node, {
-      quality: 1,
+  const node = posterRefs.current[battle.id];
+  if (!node) return null;
+
+  try {
+    const blob = await htmlToImage.toBlob(node, {
       cacheBust: true,
       pixelRatio: 2,
-      skipFonts: true,
+      backgroundColor: "#000000",
     });
 
-    return await fetch(dataUrl).then((res) => res.blob());
+    return blob;
+  } catch (err) {
+    console.error("POSTER EXPORT ERROR:", err);
+    return null;
   }
+}
 
   function getPosterFileName(battle: Battle) {
     const creator1 = battle.name1 || "CREATOR1";
@@ -489,7 +671,7 @@ export default function BattleGeneratorPage() {
   async function downloadSinglePoster() {
     const battle: Battle = {
       ...singleBattle,
-      manager: "AQUA",
+      manager: BRAND.manager,
       name1: formatName(singleBattle.name1),
       name2: formatName(singleBattle.name2),
       date: formatDate(singleBattle.date),
@@ -525,7 +707,7 @@ export default function BattleGeneratorPage() {
     }
 
     const zipBlob = await zip.generateAsync({ type: "blob" });
-    saveAs(zipBlob, "Aqua-Battle-Posters.zip");
+    saveAs(zipBlob, BRAND.zipName);
   }
 
   async function downloadSelectedPoster() {
@@ -608,7 +790,7 @@ export default function BattleGeneratorPage() {
 
         {image ? (
           <img
-            src={image}
+            src={addCacheBustToImageUrl(image, `${battle.id}-${field}-${field === "image1" ? battle.name1 : battle.name2}`)}
             alt=""
             className="w-24 h-24 rounded-full object-cover mx-auto mt-3 border-2 border-cyan-300"
           />
@@ -622,12 +804,23 @@ export default function BattleGeneratorPage() {
           Drag photo here or click to choose
         </p>
 
-        <label
-          htmlFor={inputId}
-          className="mt-3 inline-block cursor-pointer bg-cyan-300 text-black font-black px-4 py-2 rounded uppercase text-xs"
-        >
-          Choose Image
-        </label>
+        <div className="mt-3 flex flex-col gap-2 items-center">
+          <label
+            htmlFor={inputId}
+            className="inline-block cursor-pointer bg-[#5CEEFF] text-black font-black px-4 py-2 rounded uppercase text-xs"
+          >
+            Choose Image
+          </label>
+
+          <button
+            type="button"
+            onClick={() => refreshTikTokAvatar(battle, field, single)}
+            disabled={!(field === "image1" ? battle.name1 : battle.name2)}
+            className="bg-[#5CEEFF] disabled:opacity-40 disabled:cursor-not-allowed text-black font-black px-4 py-2 rounded uppercase text-xs"
+          >
+            Refresh TikTok Photo
+          </button>
+        </div>
 
         <input
           id={inputId}
@@ -662,14 +855,18 @@ export default function BattleGeneratorPage() {
             className="relative w-[1080px] h-[1920px] overflow-hidden bg-black"
           >
             <img
-              src="/posters/aqua-battle/background.png"
+              src={BRAND.posterBackground}
               className="absolute inset-0 w-full h-full"
               alt=""
             />
 
             {battle.image1 && (
               <img
-                src={battle.image1}
+                crossOrigin="anonymous"
+                src={addCacheBustToImageUrl(
+                  battle.image1,
+                  `${battle.id}-image1-${battle.name1}`
+                )}
                 className="absolute left-[97px] top-[616px] w-[336px] h-[336px] rounded-full object-cover"
                 alt=""
               />
@@ -677,7 +874,11 @@ export default function BattleGeneratorPage() {
 
             {battle.image2 && (
               <img
-                src={battle.image2}
+                crossOrigin="anonymous"
+                src={addCacheBustToImageUrl(
+                  battle.image2,
+                  `${battle.id}-image2-${battle.name2}`
+                )}
                 className="absolute left-[664px] top-[622px] w-[340px] h-[340px] rounded-full object-cover"
                 alt=""
               />
@@ -740,7 +941,15 @@ export default function BattleGeneratorPage() {
             onChange={(value) =>
               updateBattle(selectedBattle.id, {
                 name1: formatName(value),
+                image1: "",
               })
+            }
+            onBlur={() =>
+              autoFillBattleAvatar(
+                selectedBattle.id,
+                "image1",
+                selectedBattle.name1
+              )
             }
           />
 
@@ -750,7 +959,15 @@ export default function BattleGeneratorPage() {
             onChange={(value) =>
               updateBattle(selectedBattle.id, {
                 name2: formatName(value),
+                image2: "",
               })
+            }
+            onBlur={() =>
+              autoFillBattleAvatar(
+                selectedBattle.id,
+                "image2",
+                selectedBattle.name2
+              )
             }
           />
 
@@ -835,7 +1052,7 @@ export default function BattleGeneratorPage() {
               BLANK TEMPLATE PREVIEW
             </div>
 
-            <PosterPreview battle={emptyBattle()} />
+            <PosterPreview battle={blankPreviewBattle} />
           </div>
         </section>
       );
@@ -869,10 +1086,25 @@ export default function BattleGeneratorPage() {
   return (
     <div className="min-h-screen bg-[#02080d] text-white p-8">
       <div className="max-w-[1700px] mx-auto space-y-6">
+	<div className="flex gap-3 mb-4">
+  <a
+    href="/"
+    className="bg-[#5CEEFF] text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest hover:bg-cyan-300 transition"
+  >
+    Home
+  </a>
+
+  <a
+    href="/events"
+    className="bg-black/40 border border-white/20 text-white font-black px-4 py-3 rounded-lg uppercase tracking-widest hover:border-cyan-300 transition"
+  >
+    Events
+  </a>
+</div>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <h1 className="text-[#5CEEFF] text-3xl font-black tracking-[0.18em] uppercase">
-              Aqua Battle Poster Generator
+              {BRAND.name}
             </h1>
 
             <p className="text-white/45 text-sm mt-2">
@@ -920,7 +1152,10 @@ export default function BattleGeneratorPage() {
                   value={singleBattle.name1}
                   placeholder="XOJAYYY"
                   onChange={(value) =>
-                    updateSingleBattle({ name1: formatName(value) })
+                    updateSingleBattle({
+                      name1: formatName(value),
+                      image1: "",
+                    })
                   }
                   onBlur={() =>
                     autoFillSingleAvatar("image1", singleBattle.name1)
@@ -932,7 +1167,10 @@ export default function BattleGeneratorPage() {
                   value={singleBattle.name2}
                   placeholder="XOMARKY"
                   onChange={(value) =>
-                    updateSingleBattle({ name2: formatName(value) })
+                    updateSingleBattle({
+                      name2: formatName(value),
+                      image2: "",
+                    })
                   }
                   onBlur={() =>
                     autoFillSingleAvatar("image2", singleBattle.name2)
@@ -984,6 +1222,14 @@ export default function BattleGeneratorPage() {
                 >
                   Download Poster
                 </button>
+
+                <button
+                  type="button"
+                  onClick={clearSinglePoster}
+                  className="w-full bg-white/10 hover:bg-white/20 transition text-white font-black px-4 py-4 rounded-lg cursor-pointer uppercase tracking-widest border border-white/20"
+                >
+                  Clear Single Poster
+                </button>
               </div>
 
               <div className="bg-black/35 border border-white/15 rounded-xl p-5 space-y-4">
@@ -1001,7 +1247,7 @@ export default function BattleGeneratorPage() {
                 <button
                   type="button"
                   onClick={readSinglePaste}
-                  className="w-full bg-cyan-300 hover:bg-cyan-200 transition text-black font-black px-4 py-4 rounded-lg cursor-pointer uppercase tracking-widest"
+                  className="w-full bg-[#5CEEFF] hover:bg-cyan-300 transition text-black font-black px-4 py-4 rounded-lg cursor-pointer uppercase tracking-widest"
                 >
                   {loading ? "Reading..." : "Read Single Row"}
                 </button>
@@ -1020,6 +1266,22 @@ export default function BattleGeneratorPage() {
                   Mass Poster Generator
                 </h2>
 
+                <DayMonthDateSelect
+                  day={massDay}
+                  month={massMonth}
+                  onDayChange={handleMassDayChange}
+                  onMonthChange={handleMassMonthChange}
+                />
+
+                <div className="bg-black/30 border border-white/10 rounded-lg p-3">
+                  <p className="text-white/45 text-xs uppercase tracking-widest font-black">
+                    Mass Poster Date
+                  </p>
+                  <p className="text-[#5CEEFF] font-black mt-1">
+                    {massDate || "NO DATE SELECTED"}
+                  </p>
+                </div>
+
                 <textarea
                   value={paste}
                   onChange={(e) => setPaste(e.target.value)}
@@ -1027,11 +1289,11 @@ export default function BattleGeneratorPage() {
                   className="w-full h-72 bg-black/40 border border-white/20 text-white p-5 rounded-lg text-sm outline-none focus:border-cyan-300"
                 />
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-3">
                   <button
                     type="button"
                     onClick={readRows}
-                    className="bg-[#5CEEFF] hover:bg-cyan-300 transition text-black font-black px-4 py-5 rounded-lg cursor-pointer uppercase tracking-widest"
+                    className="bg-[#5CEEFF] hover:bg-cyan-300 transition text-black font-black px-2 py-4 text-sm rounded-lg cursor-pointer uppercase tracking-widest"
                   >
                     {loading ? "Loading..." : "Read Rows"}
                   </button>
@@ -1040,7 +1302,7 @@ export default function BattleGeneratorPage() {
                     type="button"
                     onClick={downloadAllPosters}
                     disabled={battles.length === 0}
-                    className="bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 transition text-black font-black px-4 py-5 rounded-lg cursor-pointer uppercase tracking-widest"
+                    className="bg-yellow-400 hover:bg-yellow-300 disabled:opacity-40 transition text-black font-black px-2 py-4 text-sm rounded-lg cursor-pointer uppercase tracking-widest"
                   >
                     Download ZIP
                   </button>
@@ -1049,9 +1311,17 @@ export default function BattleGeneratorPage() {
                     type="button"
                     onClick={saveAllToFolder}
                     disabled={battles.length === 0 || saving}
-                    className="bg-green-400 hover:bg-green-300 disabled:opacity-40 transition text-black font-black px-4 py-5 rounded-lg cursor-pointer uppercase tracking-widest"
+                    className="bg-green-400 hover:bg-green-300 disabled:opacity-40 transition text-black font-black px-2 py-4 text-sm rounded-lg cursor-pointer uppercase tracking-widest"
                   >
                     {saving ? "Saving..." : "Save Folder"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={clearMassPosters}
+                    className="bg-white/10 hover:bg-white/20 transition text-white font-black px-2 py-4 text-sm rounded-lg cursor-pointer uppercase tracking-widest border border-white/20"
+                  >
+                    Clear
                   </button>
                 </div>
               </div>
@@ -1065,15 +1335,16 @@ export default function BattleGeneratorPage() {
                 </p>
 
                 <p className="text-white/50 text-xs mt-2">
-                  Save Folder creates manager folders directly. Download ZIP is the
-                  backup option.
+                  Save Folder creates manager folders directly. Download ZIP is the backup option.
                 </p>
               </div>
 
               <SelectedPosterEditor />
             </section>
 
-            <PosterGrid />
+            <section>
+              <PosterGrid />
+            </section>
           </div>
         )}
       </div>
