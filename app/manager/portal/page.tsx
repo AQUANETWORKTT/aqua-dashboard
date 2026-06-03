@@ -16,6 +16,12 @@ type CreatorStat = {
   new_followers: number | null;
   live_streams: number | null;
   tier_status: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  month?: string | number | null;
+  stat_month?: string | number | null;
+  month_key?: string | null;
+  year?: string | number | null;
 };
 
 const managerSearchMap: Record<string, string[]> = {
@@ -62,6 +68,100 @@ function formatNumber(value: number | null | undefined) {
 
 function formatHours(value: number | null | undefined) {
   return `${Number(value || 0).toFixed(1)}h`;
+}
+
+function getCurrentMonthRange() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+
+  return {
+    label: now.toLocaleDateString("en-GB", {
+      month: "long",
+      year: "numeric",
+    }),
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+    monthNumber: now.getMonth() + 1,
+    year: now.getFullYear(),
+    monthKey: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`,
+  };
+}
+
+function creatorMonthValue(creator: CreatorStat) {
+  return creator.month_key || creator.stat_month || creator.month || null;
+}
+
+function isCurrentMonthCreator(creator: CreatorStat, currentMonth: ReturnType<typeof getCurrentMonthRange>) {
+  const monthValue = creatorMonthValue(creator);
+
+  if (monthValue !== null && monthValue !== undefined && monthValue !== "") {
+    const clean = String(monthValue).toLowerCase().trim();
+
+    if (clean === currentMonth.monthKey) return true;
+    if (clean === String(currentMonth.monthNumber)) return true;
+    if (clean === String(currentMonth.monthNumber).padStart(2, "0")) return true;
+    if (clean.includes(currentMonth.monthKey)) return true;
+  }
+
+  if (creator.year !== null && creator.year !== undefined) {
+    const creatorYear = Number(creator.year);
+    const creatorMonth = Number(monthValue);
+
+    if (
+      creatorYear === currentMonth.year &&
+      creatorMonth === currentMonth.monthNumber
+    ) {
+      return true;
+    }
+  }
+
+  const dateValue = creator.updated_at || creator.created_at;
+  if (!dateValue) return true;
+
+  const date = new Date(dateValue).getTime();
+  return (
+    date >= new Date(currentMonth.startIso).getTime() &&
+    date < new Date(currentMonth.endIso).getTime()
+  );
+}
+
+function dedupeCreatorsByUsername(creators: CreatorStat[]) {
+  const map = new Map<string, CreatorStat>();
+
+  for (const creator of creators) {
+    const username = cleanUsername(creator.username).toLowerCase();
+    if (!username) continue;
+
+    const existing = map.get(username);
+
+    if (!existing) {
+      map.set(username, creator);
+      continue;
+    }
+
+    const creatorDiamonds = Number(creator.diamonds || 0);
+    const existingDiamonds = Number(existing.diamonds || 0);
+    const creatorHours = Number(creator.live_duration_hours || 0);
+    const existingHours = Number(existing.live_duration_hours || 0);
+    const creatorDate = new Date(creator.updated_at || creator.created_at || 0).getTime();
+    const existingDate = new Date(existing.updated_at || existing.created_at || 0).getTime();
+
+    if (
+      creatorDiamonds > existingDiamonds ||
+      (creatorDiamonds === existingDiamonds && creatorHours > existingHours) ||
+      (creatorDiamonds === existingDiamonds &&
+        creatorHours === existingHours &&
+        creatorDate > existingDate)
+    ) {
+      map.set(username, creator);
+    }
+  }
+
+  return Array.from(map.values());
 }
 
 function isManagerMatch(managerField: string | null, managerUsername: string) {
@@ -176,6 +276,8 @@ export default function ManagerPortalPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
+  const currentMonth = useMemo(() => getCurrentMonthRange(), []);
+
   useEffect(() => {
     const loggedIn = localStorage.getItem("manager_logged_in");
     const user = localStorage.getItem("manager_username");
@@ -192,21 +294,32 @@ export default function ManagerPortalPage() {
     async function loadCreators() {
       if (!managerUsername) return;
 
-      const { data } = await submissionsSupabase
+      const { data, error } = await submissionsSupabase
         .from("creator_monthly_stats")
         .select("*")
+        .gte("created_at", currentMonth.startIso)
+        .lt("created_at", currentMonth.endIso)
         .order("diamonds", { ascending: false });
 
-      const filtered = (data || []).filter((creator) =>
-        isManagerMatch(creator.manager, managerUsername)
-      ) as CreatorStat[];
+      if (error) {
+        console.error("Manager portal month filter error:", error);
+        setCreators([]);
+        setLoading(false);
+        return;
+      }
 
-      setCreators(sortCreators(filtered));
+      const filtered = ((data || []) as CreatorStat[])
+        .filter((creator) => isCurrentMonthCreator(creator, currentMonth))
+        .filter((creator) => isManagerMatch(creator.manager, managerUsername));
+
+      const deduped = dedupeCreatorsByUsername(filtered);
+
+      setCreators(sortCreators(deduped));
       setLoading(false);
     }
 
     loadCreators();
-  }, [managerUsername]);
+  }, [managerUsername, currentMonth]);
 
   const filteredCreators = useMemo(() => {
     return creators.filter((creator) => {
@@ -417,7 +530,7 @@ export default function ManagerPortalPage() {
 
       <div className="portal-toolbar">
         <div className="portal-small">
-          Showing {filteredCreators.length} creators
+          Showing {filteredCreators.length} creators for {currentMonth.label}
         </div>
 
         <select
