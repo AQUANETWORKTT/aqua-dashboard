@@ -173,7 +173,7 @@ const ACTIVENESS_RULES: ActivenessRule[] = [
 
 const MIN_VALID_DAYS = 15;
 const MIN_HOURS = 40;
-const DEFAULT_SELECTED_MONTH = "2026-05";
+const DEFAULT_SELECTED_MONTH = "2026-06";
 
 function getTier(monthlyDiamonds: number) {
   let current = TIERS[0];
