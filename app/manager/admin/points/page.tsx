@@ -31,7 +31,6 @@ const defaultManagers: ManagerRow[] = [
   { name: "jade", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
   { name: "teddie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
   { name: "millie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
-  { name: "lewis", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
   { name: "vitali", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
   { name: "harry", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
   { name: "joechloe", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
