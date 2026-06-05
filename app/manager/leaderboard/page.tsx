@@ -9,7 +9,7 @@ type ManagerRow = {
   name: string;
   recruitPoints: number;
   submissionPoints: number;
-  additionalPoints: number;
+  adjustments: number;
 };
 
 type ManagerPointsDbRow = {
@@ -20,22 +20,22 @@ type ManagerPointsDbRow = {
 };
 
 const defaultManagers: ManagerRow[] = [
-  { name: "james", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "alfie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "dylan", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "jay", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "chris", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "james", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "alfie", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "dylan", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "jay", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "chris", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
 
-  { name: "ellie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "ellie1", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "ellie", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "ellie1", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
 
-  { name: "jade", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "teddie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "millie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "lewis", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "vitali", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "harry", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "joechloe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "jade", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "teddie", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "millie", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "lewis", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "vitali", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "harry", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "joechloe", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
 ];
 
 const managerTargets: Record<string, number> = {
@@ -60,6 +60,12 @@ const managerTargets: Record<string, number> = {
 function toNumber(value: unknown) {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
+}
+
+function formatSigned(value: number) {
+  const num = toNumber(value);
+  if (num > 0) return `+${num}`;
+  return `${num}`;
 }
 
 function roundToNearest5(value: number) {
@@ -95,7 +101,7 @@ function getCurrentPoints(row: ManagerRow) {
   return (
     getRecruitScore(row) +
     toNumber(row.submissionPoints) +
-    toNumber(row.additionalPoints)
+    toNumber(row.adjustments)
   );
 }
 
@@ -194,7 +200,7 @@ export default function ManagerLeaderboardPage() {
           recruitPoints: (joe?.recruit_points ?? 0) + (chloe?.recruit_points ?? 0),
           submissionPoints:
             (joe?.submission_points ?? 0) + (chloe?.submission_points ?? 0),
-          additionalPoints:
+          adjustments:
             (joe?.additional_points ?? 0) + (chloe?.additional_points ?? 0),
         };
       }
@@ -205,7 +211,7 @@ export default function ManagerLeaderboardPage() {
         name: manager.name,
         recruitPoints: existing?.recruit_points ?? 0,
         submissionPoints: existing?.submission_points ?? 0,
-        additionalPoints: existing?.additional_points ?? 0,
+        adjustments: existing?.additional_points ?? 0,
       };
     });
 
@@ -471,7 +477,7 @@ export default function ManagerLeaderboardPage() {
 
         .row-stats {
           display: grid;
-          grid-template-columns: repeat(5, minmax(90px, 1fr));
+          grid-template-columns: repeat(6, minmax(86px, 1fr));
           gap: 9px;
           width: 100%;
         }
@@ -692,6 +698,13 @@ export default function ManagerLeaderboardPage() {
                       <div className={`stat-box ${rankClass}`}>
                         <span className="stat-number">{points}</span>
                         <span className="stat-label">Points</span>
+                      </div>
+
+                      <div className={`stat-box ${rankClass}`}>
+                        <span className="stat-number">
+                          {formatSigned(row.adjustments)}
+                        </span>
+                        <span className="stat-label">Adjustments</span>
                       </div>
 
                       <div className={`stat-box ${rankClass}`}>
