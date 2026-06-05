@@ -8,7 +8,7 @@ type ManagerRow = {
   name: string;
   recruitPoints: number;
   submissionPoints: number;
-  additionalPoints: number;
+  pointAdjustments: number;
 };
 
 type ManagerPointsDbRow = {
@@ -19,22 +19,22 @@ type ManagerPointsDbRow = {
 };
 
 const defaultManagers: ManagerRow[] = [
-  { name: "james", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "alfie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "dylan", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "jay", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "chris", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "james", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "alfie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "dylan", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "jay", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "chris", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
 
-  { name: "ellie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "ellie1", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "ellie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "ellie1", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
 
-  { name: "jade", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "teddie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "millie", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "lewis", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "vitali", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "harry", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
-  { name: "joechloe", recruitPoints: 0, submissionPoints: 0, additionalPoints: 0 },
+  { name: "jade", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "teddie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "millie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "lewis", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "vitali", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "harry", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "joechloe", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
 ];
 
 const POINTS_PER_RECRUIT = 3;
@@ -43,7 +43,7 @@ function getTotalPoints(row: ManagerRow) {
   return (
     row.recruitPoints * POINTS_PER_RECRUIT +
     row.submissionPoints +
-    row.additionalPoints
+    row.pointAdjustments
   );
 }
 
@@ -101,7 +101,7 @@ export default function ManagerPointsPage() {
             (joe?.recruit_points ?? 0) + (chloe?.recruit_points ?? 0),
           submissionPoints:
             (joe?.submission_points ?? 0) + (chloe?.submission_points ?? 0),
-          additionalPoints:
+          pointAdjustments:
             (joe?.additional_points ?? 0) + (chloe?.additional_points ?? 0),
         };
       }
@@ -112,7 +112,7 @@ export default function ManagerPointsPage() {
         name: manager.name,
         recruitPoints: existing?.recruit_points ?? 0,
         submissionPoints: existing?.submission_points ?? 0,
-        additionalPoints: existing?.additional_points ?? 0,
+        pointAdjustments: existing?.additional_points ?? 0,
       };
     });
 
@@ -122,10 +122,12 @@ export default function ManagerPointsPage() {
 
   const updateRow = (
     name: string,
-    field: "recruitPoints" | "submissionPoints" | "additionalPoints",
+    field: "recruitPoints" | "submissionPoints" | "pointAdjustments",
     value: string
   ) => {
-    const numberValue = Math.max(0, Number(value) || 0);
+    const rawNumber = Number(value) || 0;
+    const numberValue =
+      field === "pointAdjustments" ? rawNumber : Math.max(0, rawNumber);
 
     setRows((current) =>
       current.map((row) =>
@@ -144,7 +146,7 @@ export default function ManagerPointsPage() {
       name: row.name,
       recruit_points: row.recruitPoints,
       submission_points: row.submissionPoints,
-      additional_points: row.additionalPoints,
+      additional_points: row.pointAdjustments,
     }));
 
     if (joeChloeRow) {
@@ -153,7 +155,7 @@ export default function ManagerPointsPage() {
           name: "joe",
           recruit_points: joeChloeRow.recruitPoints,
           submission_points: joeChloeRow.submissionPoints,
-          additional_points: joeChloeRow.additionalPoints,
+          additional_points: joeChloeRow.pointAdjustments,
         },
         {
           name: "chloe",
@@ -234,7 +236,7 @@ export default function ManagerPointsPage() {
         <h1 className="manager-title">Edit Points</h1>
 
         <p className="manager-subtitle">
-          Manually adjust manager points for this month. 1 recruit = 3 points.
+          Manually adjust manager points for this month. 1 recruit = 3 points. Point adjustments can be positive or negative.
         </p>
 
         <div
@@ -353,13 +355,13 @@ export default function ManagerPointsPage() {
                 </label>
 
                 <label className="manager-label">
-                  Additional Points
+                  Point Adjustments
                   <input
                     type="number"
-                    min="0"
-                    value={row.additionalPoints}
+                    step="1"
+                    value={row.pointAdjustments}
                     onChange={(e) =>
-                      updateRow(row.name, "additionalPoints", e.target.value)
+                      updateRow(row.name, "pointAdjustments", e.target.value)
                     }
                     className="manager-input"
                   />
