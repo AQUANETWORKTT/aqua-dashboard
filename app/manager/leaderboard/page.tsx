@@ -27,7 +27,6 @@ const defaultManagers: ManagerRow[] = [
   { name: "chris", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
 
   { name: "ellie", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
-  { name: "ellie1", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
 
   { name: "jade", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
   { name: "teddie", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
@@ -45,7 +44,6 @@ const managerTargets: Record<string, number> = {
   chris: 40,
 
   ellie: 35,
-  ellie1: 35,
 
   jade: 30,
   teddie: 30,
