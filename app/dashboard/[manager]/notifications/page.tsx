@@ -43,7 +43,7 @@ export default function ManagerNotificationsPage() {
 
         setPermission(Notification.permission);
 
-        const registration = await navigator.serviceWorker.register("/sw.js");
+        const registration = await navigator.serviceWorker.register("/push-sw.js");
         const existingSubscription = await registration.pushManager.getSubscription();
 
         setEnabled(Boolean(existingSubscription));
@@ -79,7 +79,7 @@ export default function ManagerNotificationsPage() {
         return;
       }
 
-      const registration = await navigator.serviceWorker.register("/sw.js");
+      const registration = await navigator.serviceWorker.register("/push-sw.js");
 
       let subscription = await registration.pushManager.getSubscription();
 
