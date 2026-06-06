@@ -76,7 +76,7 @@ export async function POST(req: Request) {
       .select("duplicate_key")
       .in(
         "duplicate_key",
-        rows.map((row) => row.duplicate_key)
+        rows.map((row: { duplicate_key: string }) => row.duplicate_key)
       );
 
     if (existingError) {
