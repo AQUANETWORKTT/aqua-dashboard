@@ -541,46 +541,23 @@ export default function BattleGeneratorPage() {
   }
 
   async function parseSingleBattleRow(row: string) {
-  const parts = row.split(/\t+/);
-
-  const selectedDate =
-    singleBattle.date || massDate || formatDateFromParts(singleDay, singleMonth);
-
-  const name1Raw =
-    getTikTokUsername(parts[3] || "") ||
-    String(parts[0] || "").replace("@", "").trim().toLowerCase();
-
-  const name2Raw = getTikTokUsername(parts[5] || "");
-
-  const time = formatTime(parts[6] || parts[4] || "");
-  const manager = formatDate(parts[1] || BRAND.manager);
-
-  const image1 = await fetchTikTokAvatar(name1Raw);
-  const image2 = await fetchTikTokAvatar(name2Raw);
-
-  return {
-    id: makeId(),
-    date: selectedDate,
-    manager,
-    name1: formatName(name1Raw),
-    name2: formatName(name2Raw),
-    time,
-    image1,
-    image2,
-  };
-}
-
-  async function parseMassBattleRow(row: string, selectedDate: string) {
     const parts = row.split(/\t+/);
 
+    const selectedDate =
+      formatDate(parts[0] || "") ||
+      singleBattle.date ||
+      massDate ||
+      formatDateFromParts(singleDay, singleMonth);
+
     const name1Raw =
-      getTikTokUsername(parts[3] || "") ||
-      String(parts[0] || "").replace("@", "").trim().toLowerCase();
+      getTikTokUsername(parts[4] || "") ||
+      String(parts[1] || "").replace("@", "").trim().toLowerCase();
 
-    const name2Raw = getTikTokUsername(parts[5] || "");
+    const manager = formatDate(parts[2] || BRAND.manager);
 
-    const time = formatTime(parts[6] || parts[4] || "");
-    const manager = formatDate(parts[1] || BRAND.manager);
+    const name2Raw = getTikTokUsername(parts[6] || "");
+
+    const time = formatTime(parts[7] || parts[5] || "");
 
     const image1 = await fetchTikTokAvatar(name1Raw);
     const image2 = await fetchTikTokAvatar(name2Raw);
@@ -588,6 +565,36 @@ export default function BattleGeneratorPage() {
     return {
       id: makeId(),
       date: selectedDate,
+      manager,
+      name1: formatName(name1Raw),
+      name2: formatName(name2Raw),
+      time,
+      image1,
+      image2,
+    };
+  }
+
+  async function parseMassBattleRow(row: string, selectedDate: string) {
+    const parts = row.split(/\t+/);
+
+    const rowDate = formatDate(parts[0] || "") || selectedDate;
+
+    const name1Raw =
+      getTikTokUsername(parts[4] || "") ||
+      String(parts[1] || "").replace("@", "").trim().toLowerCase();
+
+    const manager = formatDate(parts[2] || BRAND.manager);
+
+    const name2Raw = getTikTokUsername(parts[6] || "");
+
+    const time = formatTime(parts[7] || parts[5] || "");
+
+    const image1 = await fetchTikTokAvatar(name1Raw);
+    const image2 = await fetchTikTokAvatar(name2Raw);
+
+    return {
+      id: makeId(),
+      date: rowDate,
       manager,
       name1: formatName(name1Raw),
       name2: formatName(name2Raw),
