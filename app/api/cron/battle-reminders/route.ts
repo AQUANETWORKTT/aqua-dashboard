@@ -77,7 +77,6 @@ function getDueCheck(battle: BattleReminder, setting: ManagerNotificationSetting
   const targetSendTime = new Date(battleDateTime.getTime() - minutesBefore * 60 * 1000);
 
   const now = new Date();
-
   const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
   const twoMinutesFromNow = new Date(now.getTime() + 2 * 60 * 1000);
 
@@ -93,6 +92,16 @@ function getDueCheck(battle: BattleReminder, setting: ManagerNotificationSetting
   };
 }
 
+function isFinishedMoreThanTenMinutesAgo(battle: BattleReminder) {
+  const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
+
+  if (!battleDateTime) return false;
+
+  const tenMinutesAfterBattle = new Date(battleDateTime.getTime() + 10 * 60 * 1000);
+
+  return tenMinutesAfterBattle <= new Date();
+}
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -103,14 +112,34 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: battles, error: battlesError } = await supabase
+    const { data: allBattles, error: allBattlesError } = await supabase
       .from("battle_reminders")
-      .select("id, manager, creator, opponent, battle_date, battle_time, reminder_sent_at")
-      .is("reminder_sent_at", null);
+      .select("id, manager, creator, opponent, battle_date, battle_time, reminder_sent_at");
 
-    if (battlesError) {
-      return NextResponse.json({ error: battlesError.message }, { status: 500 });
+    if (allBattlesError) {
+      return NextResponse.json({ error: allBattlesError.message }, { status: 500 });
     }
+
+    const expiredBattleIds = ((allBattles || []) as BattleReminder[])
+      .filter((battle) => isFinishedMoreThanTenMinutesAgo(battle))
+      .map((battle) => battle.id);
+
+    if (expiredBattleIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("battle_reminders")
+        .delete()
+        .in("id", expiredBattleIds);
+
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      }
+    }
+
+    const battles = ((allBattles || []) as BattleReminder[]).filter(
+      (battle) =>
+        !expiredBattleIds.includes(battle.id) &&
+        !battle.reminder_sent_at
+    );
 
     const { data: settings, error: settingsError } = await supabase
       .from("manager_notification_settings")
@@ -130,7 +159,8 @@ export async function GET(req: Request) {
     if (enabledSettings.length === 0) {
       return NextResponse.json({
         success: true,
-        checked: battles?.length || 0,
+        checked: battles.length,
+        deleted_expired: expiredBattleIds.length,
         due: 0,
         sent: 0,
         failed: 0,
@@ -145,7 +175,7 @@ export async function GET(req: Request) {
       notifyManager: string;
     }[] = [];
 
-    for (const battle of (battles || []) as BattleReminder[]) {
+    for (const battle of battles) {
       const battleManager = normaliseManager(battle.manager);
 
       for (const setting of enabledSettings) {
@@ -170,13 +200,8 @@ export async function GET(req: Request) {
           });
         }
 
-        if (!managerMatches) {
-          continue;
-        }
-
-        if (!dueCheck.due) {
-          continue;
-        }
+        if (!managerMatches) continue;
+        if (!dueCheck.due) continue;
 
         dueItems.push({
           battle,
@@ -189,7 +214,8 @@ export async function GET(req: Request) {
     if (dueItems.length === 0) {
       return NextResponse.json({
         success: true,
-        checked: battles?.length || 0,
+        checked: battles.length,
+        deleted_expired: expiredBattleIds.length,
         enabled_managers: enabledSettings.length,
         due: 0,
         sent: 0,
@@ -231,9 +257,7 @@ export async function GET(req: Request) {
         (sub) => normaliseManager(sub.manager) === notifyManager
       );
 
-      if (managerSubscriptions.length === 0) {
-        continue;
-      }
+      if (managerSubscriptions.length === 0) continue;
 
       const title = "Aqua Battle Reminder";
       const body = `${battle.creator || "Your creator"} vs ${
@@ -283,7 +307,8 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       success: true,
-      checked: battles?.length || 0,
+      checked: battles.length,
+      deleted_expired: expiredBattleIds.length,
       enabled_managers: enabledSettings.length,
       due: dueItems.length,
       sent,
