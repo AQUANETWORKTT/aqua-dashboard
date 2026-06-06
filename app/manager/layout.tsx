@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -12,6 +13,13 @@ export default function ManagerLayout({
 }) {
   const pathname = usePathname();
   const isLoginPage = pathname === "/manager";
+
+  const [managerUsername, setManagerUsername] = useState("james");
+
+  useEffect(() => {
+    const username = localStorage.getItem("manager_username") || "james";
+    setManagerUsername(username.trim().toLowerCase());
+  }, []);
 
   return (
     <div className="manager-shell">
@@ -51,7 +59,10 @@ export default function ManagerLayout({
                 Poster Generator
               </Link>
 
-              <Link href="/dashboard/james/notifications" className="manager-link">
+              <Link
+                href={`/dashboard/${managerUsername}/notifications`}
+                className="manager-link"
+              >
                 Notifications
               </Link>
 
