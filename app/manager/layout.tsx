@@ -47,11 +47,12 @@ export default function ManagerLayout({
                 Upload
               </Link>
 
-              <Link
-                href="/manager/battle-generator"
-                className="manager-link"
-              >
+              <Link href="/manager/battle-generator" className="manager-link">
                 Poster Generator
+              </Link>
+
+              <Link href="/dashboard/james/notifications" className="manager-link">
+                Notifications
               </Link>
 
               <Link href="/manager/admin" className="manager-link">

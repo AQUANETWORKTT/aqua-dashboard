@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
@@ -118,7 +119,7 @@ export default function ManagerNotificationsPage() {
     try {
       setStatus("Turning notifications off...");
 
-      const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+      const registration = await navigator.serviceWorker.getRegistration("/push-sw.js");
       const subscription = await registration?.pushManager.getSubscription();
 
       if (subscription) {
@@ -166,6 +167,19 @@ export default function ManagerNotificationsPage() {
           boxShadow: "0 18px 60px rgba(0,0,0,0.28)",
         }}
       >
+        <Link
+          href="/manager/portal"
+          style={{
+            display: "inline-block",
+            marginBottom: "16px",
+            color: "#67e8f9",
+            textDecoration: "none",
+            fontWeight: 700,
+          }}
+        >
+          ← Back to Dashboard
+        </Link>
+
         <h1
           style={{
             margin: "0 0 8px",
@@ -183,7 +197,8 @@ export default function ManagerNotificationsPage() {
             lineHeight: 1.5,
           }}
         >
-          Turn these on to receive browser reminders before your scheduled Aqua battles.
+          Turn these on to receive browser reminders before your scheduled Aqua
+          battles.
         </p>
 
         <div
