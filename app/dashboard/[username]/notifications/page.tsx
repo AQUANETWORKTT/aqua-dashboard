@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
+type ReminderScope = "mine" | "all";
+type ReminderMinutes = "5" | "10" | "15" | "30";
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -24,7 +27,10 @@ export default function ManagerNotificationsPage() {
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [enabled, setEnabled] = useState(false);
+  const [scope, setScope] = useState<ReminderScope>("mine");
+  const [minutes, setMinutes] = useState<ReminderMinutes>("5");
   const [status, setStatus] = useState("Checking notification support...");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function checkNotifications() {
@@ -53,16 +59,55 @@ export default function ManagerNotificationsPage() {
             ? "Notifications are already turned on."
             : "Notifications are not turned on yet."
         );
+
+        const settingsResponse = await fetch(
+          `/api/notifications/settings?manager=${encodeURIComponent(manager)}`,
+          { cache: "no-store" }
+        );
+
+        if (settingsResponse.ok) {
+          const settings = await settingsResponse.json();
+
+          if (settings?.settings) {
+            setEnabled(Boolean(settings.settings.enabled && existingSubscription));
+            setScope(settings.settings.scope === "all" ? "all" : "mine");
+            setMinutes(String(settings.settings.minutes_before || "5") as ReminderMinutes);
+          }
+        }
       } catch (error) {
         setStatus(error instanceof Error ? error.message : "Could not check notifications.");
       }
     }
 
-    checkNotifications();
-  }, []);
+    if (manager) {
+      checkNotifications();
+    }
+  }, [manager]);
+
+  async function saveSettings(nextEnabled: boolean) {
+    const response = await fetch("/api/notifications/settings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        manager,
+        enabled: nextEnabled,
+        scope,
+        minutes_before: Number(minutes),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to save notification settings.");
+    }
+  }
 
   async function enableNotifications() {
     try {
+      setSaving(true);
       setStatus("Requesting notification permission...");
 
       const permissionResult = await Notification.requestPermission();
@@ -108,15 +153,20 @@ export default function ManagerNotificationsPage() {
         throw new Error(data.error || "Failed to save notification subscription.");
       }
 
+      await saveSettings(true);
+
       setEnabled(true);
-      setStatus("Notifications are now turned on.");
+      setStatus("Notifications and settings are saved.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to turn notifications on.");
+    } finally {
+      setSaving(false);
     }
   }
 
   async function disableNotifications() {
     try {
+      setSaving(true);
       setStatus("Turning notifications off...");
 
       const registration = await navigator.serviceWorker.getRegistration("/push-sw.js");
@@ -136,10 +186,29 @@ export default function ManagerNotificationsPage() {
         await subscription.unsubscribe();
       }
 
+      await saveSettings(false);
+
       setEnabled(false);
       setStatus("Notifications are turned off.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to turn notifications off.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveOnlySettings() {
+    try {
+      setSaving(true);
+      setStatus("Saving notification settings...");
+
+      await saveSettings(enabled);
+
+      setStatus("Notification settings saved.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Failed to save settings.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -158,7 +227,7 @@ export default function ManagerNotificationsPage() {
       <section
         style={{
           width: "100%",
-          maxWidth: "620px",
+          maxWidth: "720px",
           margin: "0 auto",
           background: "rgba(255,255,255,0.08)",
           border: "1px solid rgba(255,255,255,0.16)",
@@ -180,13 +249,7 @@ export default function ManagerNotificationsPage() {
           ← Back to Dashboard
         </Link>
 
-        <h1
-          style={{
-            margin: "0 0 8px",
-            fontSize: "30px",
-            lineHeight: 1.1,
-          }}
-        >
+        <h1 style={{ margin: "0 0 8px", fontSize: "30px", lineHeight: 1.1 }}>
           Aqua Battle Notifications
         </h1>
 
@@ -197,8 +260,8 @@ export default function ManagerNotificationsPage() {
             lineHeight: 1.5,
           }}
         >
-          Turn these on to receive browser reminders before your scheduled Aqua
-          battles.
+          Turn notifications on, choose which battles you want, and set how long before each battle
+          you want the reminder.
         </p>
 
         <div
@@ -225,47 +288,180 @@ export default function ManagerNotificationsPage() {
           </p>
         </div>
 
-        {!supported ? (
-          <p style={{ color: "#fecaca" }}>
-            This browser or device does not support push notifications.
-          </p>
-        ) : enabled ? (
+        <div style={{ display: "grid", gap: "18px" }}>
+          <section
+            style={{
+              padding: "16px",
+              borderRadius: "16px",
+              background: "rgba(0,0,0,0.2)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <h2 style={{ margin: "0 0 12px", fontSize: "20px" }}>Reminder Type</h2>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={() => setScope("mine")}
+                style={{
+                  border: scope === "mine" ? "1px solid #22d3ee" : "1px solid rgba(255,255,255,0.14)",
+                  borderRadius: "14px",
+                  padding: "14px",
+                  background: scope === "mine" ? "rgba(34,211,238,0.22)" : "rgba(0,0,0,0.25)",
+                  color: "white",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                My Battles Only
+                <span style={{ display: "block", opacity: 0.7, fontWeight: 500, marginTop: "6px" }}>
+                  Only battles assigned to me.
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setScope("all")}
+                style={{
+                  border: scope === "all" ? "1px solid #22d3ee" : "1px solid rgba(255,255,255,0.14)",
+                  borderRadius: "14px",
+                  padding: "14px",
+                  background: scope === "all" ? "rgba(34,211,238,0.22)" : "rgba(0,0,0,0.25)",
+                  color: "white",
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                All Battles
+                <span style={{ display: "block", opacity: 0.7, fontWeight: 500, marginTop: "6px" }}>
+                  Every battle uploaded.
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <section
+            style={{
+              padding: "16px",
+              borderRadius: "16px",
+              background: "rgba(0,0,0,0.2)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <h2 style={{ margin: "0 0 12px", fontSize: "20px" }}>Reminder Time</h2>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px" }}>
+              {(["5", "10", "15", "30"] as ReminderMinutes[]).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setMinutes(option)}
+                  style={{
+                    border: minutes === option ? "1px solid #22d3ee" : "1px solid rgba(255,255,255,0.14)",
+                    borderRadius: "14px",
+                    padding: "14px 8px",
+                    background: minutes === option ? "rgba(34,211,238,0.22)" : "rgba(0,0,0,0.25)",
+                    color: "white",
+                    fontWeight: 900,
+                    cursor: "pointer",
+                  }}
+                >
+                  {option} mins
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section
+            style={{
+              padding: "16px",
+              borderRadius: "16px",
+              background: "rgba(0,0,0,0.2)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
+          >
+            <h2 style={{ margin: "0 0 12px", fontSize: "20px" }}>Current Setup</h2>
+
+            <p style={{ margin: "0 0 6px" }}>
+              <strong>Status:</strong> {enabled ? "Enabled" : "Disabled"}
+            </p>
+            <p style={{ margin: "0 0 6px" }}>
+              <strong>Notifications:</strong>{" "}
+              {scope === "mine" ? "My Battles Only" : "All Battles"}
+            </p>
+            <p style={{ margin: 0 }}>
+              <strong>Reminder:</strong> {minutes} minutes before
+            </p>
+          </section>
+
+          {!supported ? (
+            <p style={{ color: "#fecaca" }}>
+              This browser or device does not support push notifications.
+            </p>
+          ) : enabled ? (
+            <button
+              type="button"
+              onClick={disableNotifications}
+              disabled={saving}
+              style={{
+                width: "100%",
+                border: 0,
+                borderRadius: "15px",
+                padding: "15px 18px",
+                background: "#ef4444",
+                color: "white",
+                fontWeight: 900,
+                fontSize: "16px",
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.65 : 1,
+              }}
+            >
+              {saving ? "Saving..." : "Turn Notifications Off"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={enableNotifications}
+              disabled={saving}
+              style={{
+                width: "100%",
+                border: 0,
+                borderRadius: "15px",
+                padding: "15px 18px",
+                background: "#22c55e",
+                color: "#052e16",
+                fontWeight: 900,
+                fontSize: "16px",
+                cursor: saving ? "not-allowed" : "pointer",
+                opacity: saving ? 0.65 : 1,
+              }}
+            >
+              {saving ? "Saving..." : "Enable Notifications"}
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={disableNotifications}
+            onClick={saveOnlySettings}
+            disabled={saving}
             style={{
               width: "100%",
-              border: 0,
+              border: "1px solid rgba(255,255,255,0.18)",
               borderRadius: "15px",
               padding: "15px 18px",
-              background: "#ef4444",
+              background: "rgba(255,255,255,0.08)",
               color: "white",
               fontWeight: 900,
               fontSize: "16px",
-              cursor: "pointer",
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.65 : 1,
             }}
           >
-            Turn Notifications Off
+            Save Settings
           </button>
-        ) : (
-          <button
-            type="button"
-            onClick={enableNotifications}
-            style={{
-              width: "100%",
-              border: 0,
-              borderRadius: "15px",
-              padding: "15px 18px",
-              background: "#22c55e",
-              color: "#052e16",
-              fontWeight: 900,
-              fontSize: "16px",
-              cursor: "pointer",
-            }}
-          >
-            Turn Notifications On
-          </button>
-        )}
+        </div>
       </section>
     </main>
   );

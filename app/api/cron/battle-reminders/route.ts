@@ -28,6 +28,13 @@ type PushSubscriptionRow = {
   auth: string;
 };
 
+type ManagerNotificationSetting = {
+  manager: string | null;
+  enabled: boolean | null;
+  scope: "mine" | "all" | string | null;
+  minutes_before: number | null;
+};
+
 function normaliseManager(value: string | null | undefined) {
   return String(value || "").trim().toLowerCase();
 }
@@ -49,6 +56,21 @@ function minutesUntil(date: Date) {
   return Math.max(0, Math.round((date.getTime() - Date.now()) / 60000));
 }
 
+function isBattleDueForSetting(battle: BattleReminder, setting: ManagerNotificationSetting) {
+  const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
+
+  if (!battleDateTime) return false;
+
+  const minutesBefore = Number(setting.minutes_before || 5);
+  const targetSendTime = new Date(battleDateTime.getTime() - minutesBefore * 60 * 1000);
+
+  const now = new Date();
+  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+  const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+
+  return targetSendTime >= fiveMinutesAgo && targetSendTime <= fiveMinutesFromNow;
+}
+
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -57,9 +79,6 @@ export async function GET(req: Request) {
     if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const now = new Date();
-    const twentyMinutesFromNow = new Date(now.getTime() + 20 * 60 * 1000);
 
     const { data: battles, error: battlesError } = await supabase
       .from("battle_reminders")
@@ -70,15 +89,20 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: battlesError.message }, { status: 500 });
     }
 
-    const dueBattles = ((battles || []) as BattleReminder[]).filter((battle) => {
-      const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
+    const { data: settings, error: settingsError } = await supabase
+      .from("manager_notification_settings")
+      .select("manager, enabled, scope, minutes_before")
+      .eq("enabled", true);
 
-      if (!battleDateTime) return false;
+    if (settingsError) {
+      return NextResponse.json({ error: settingsError.message }, { status: 500 });
+    }
 
-      return battleDateTime >= now && battleDateTime <= twentyMinutesFromNow;
-    });
+    const enabledSettings = ((settings || []) as ManagerNotificationSetting[]).filter(
+      (setting) => normaliseManager(setting.manager)
+    );
 
-    if (dueBattles.length === 0) {
+    if (enabledSettings.length === 0) {
       return NextResponse.json({
         success: true,
         checked: battles?.length || 0,
@@ -86,18 +110,60 @@ export async function GET(req: Request) {
         sent: 0,
         failed: 0,
         marked_sent: 0,
-        message: "No battle reminders due.",
+        message: "No managers have notifications enabled.",
       });
     }
 
-    const managers = Array.from(
-      new Set(dueBattles.map((battle) => normaliseManager(battle.manager)).filter(Boolean))
+    const dueItems: {
+      battle: BattleReminder;
+      setting: ManagerNotificationSetting;
+      notifyManager: string;
+    }[] = [];
+
+    for (const battle of (battles || []) as BattleReminder[]) {
+      const battleManager = normaliseManager(battle.manager);
+
+      for (const setting of enabledSettings) {
+        const settingManager = normaliseManager(setting.manager);
+        const scope = setting.scope === "all" ? "all" : "mine";
+
+        if (scope === "mine" && battleManager !== settingManager) {
+          continue;
+        }
+
+        if (!isBattleDueForSetting(battle, setting)) {
+          continue;
+        }
+
+        dueItems.push({
+          battle,
+          setting,
+          notifyManager: settingManager,
+        });
+      }
+    }
+
+    if (dueItems.length === 0) {
+      return NextResponse.json({
+        success: true,
+        checked: battles?.length || 0,
+        enabled_managers: enabledSettings.length,
+        due: 0,
+        sent: 0,
+        failed: 0,
+        marked_sent: 0,
+        message: "No battle reminders due for current settings.",
+      });
+    }
+
+    const notificationManagers = Array.from(
+      new Set(dueItems.map((item) => item.notifyManager).filter(Boolean))
     );
 
     const { data: subscriptions, error: subscriptionsError } = await supabase
       .from("manager_push_subscriptions")
       .select("id, manager, endpoint, p256dh, auth")
-      .in("manager", managers);
+      .in("manager", notificationManagers);
 
     if (subscriptionsError) {
       return NextResponse.json({ error: subscriptionsError.message }, { status: 500 });
@@ -107,15 +173,16 @@ export async function GET(req: Request) {
 
     let sent = 0;
     let failed = 0;
-    const sentBattleIds: string[] = [];
+    const sentBattleIds = new Set<string>();
 
-    for (const battle of dueBattles) {
-      const manager = normaliseManager(battle.manager);
+    for (const item of dueItems) {
+      const battle = item.battle;
+      const notifyManager = item.notifyManager;
       const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
-      const mins = battleDateTime ? minutesUntil(battleDateTime) : 20;
+      const mins = battleDateTime ? minutesUntil(battleDateTime) : Number(item.setting.minutes_before || 5);
 
       const managerSubscriptions = ((subscriptions || []) as PushSubscriptionRow[]).filter(
-        (sub) => normaliseManager(sub.manager) === manager
+        (sub) => normaliseManager(sub.manager) === notifyManager
       );
 
       if (managerSubscriptions.length === 0) {
@@ -130,7 +197,7 @@ export async function GET(req: Request) {
       const payload = JSON.stringify({
         title,
         body,
-        url: `/dashboard/${manager}/notifications`,
+        url: `/dashboard/${notifyManager}/notifications`,
       });
 
       for (const sub of managerSubscriptions) {
@@ -147,6 +214,7 @@ export async function GET(req: Request) {
           );
 
           sent += 1;
+          sentBattleIds.add(battle.id);
         } catch {
           failed += 1;
 
@@ -156,26 +224,25 @@ export async function GET(req: Request) {
             .eq("endpoint", sub.endpoint);
         }
       }
-
-      sentBattleIds.push(battle.id);
     }
 
-    if (sentBattleIds.length > 0) {
+    if (sentBattleIds.size > 0) {
       await supabase
         .from("battle_reminders")
         .update({
           reminder_sent_at: new Date().toISOString(),
         })
-        .in("id", sentBattleIds);
+        .in("id", Array.from(sentBattleIds));
     }
 
     return NextResponse.json({
       success: true,
       checked: battles?.length || 0,
-      due: dueBattles.length,
+      enabled_managers: enabledSettings.length,
+      due: dueItems.length,
       sent,
       failed,
-      marked_sent: sentBattleIds.length,
+      marked_sent: sentBattleIds.size,
     });
   } catch (error) {
     return NextResponse.json(
