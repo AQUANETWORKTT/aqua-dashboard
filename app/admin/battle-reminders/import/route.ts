@@ -90,10 +90,13 @@ export async function POST(req: Request) {
       (existingRows || []).map((row) => row.duplicate_key)
     );
 
-    const newRows = rows.filter((row) => !existingKeys.has(row.duplicate_key));
-    const duplicateRows = rows.filter((row) =>
-      existingKeys.has(row.duplicate_key)
-    );
+const newRows = rows.filter(
+  (row: { duplicate_key: string }) => !existingKeys.has(row.duplicate_key)
+);
+
+const duplicateRows = rows.filter(
+  (row: { duplicate_key: string }) => existingKeys.has(row.duplicate_key)
+);
 
     if (newRows.length > 0) {
       const { error: insertError } = await supabase
