@@ -12,17 +12,17 @@ const supabase = createClient(
 
 type BattleReminder = {
   id: string;
-  manager: string;
+  manager: string | null;
   creator: string | null;
   opponent: string | null;
-  day: string | null;
+  battle_date: string | null;
   battle_time: string | null;
   reminder_sent_at: string | null;
 };
 
 type PushSubscriptionRow = {
   id: string;
-  manager: string;
+  manager: string | null;
   endpoint: string;
   p256dh: string;
   auth: string;
@@ -32,13 +32,13 @@ function normaliseManager(value: string | null | undefined) {
   return String(value || "").trim().toLowerCase();
 }
 
-function parseBattleDateTime(day: string | null, battleTime: string | null) {
-  if (!day || !battleTime) return null;
+function parseBattleDateTime(battleDate: string | null, battleTime: string | null) {
+  if (!battleDate || !battleTime) return null;
 
-  const cleanDay = day.trim();
-  const cleanTime = battleTime.trim();
+  const cleanDate = String(battleDate).trim();
+  const cleanTime = String(battleTime).trim();
 
-  const date = new Date(`${cleanDay} ${cleanTime}`);
+  const date = new Date(`${cleanDate}T${cleanTime}:00`);
 
   if (Number.isNaN(date.getTime())) return null;
 
@@ -46,7 +46,7 @@ function parseBattleDateTime(day: string | null, battleTime: string | null) {
 }
 
 function minutesUntil(date: Date) {
-  return Math.round((date.getTime() - Date.now()) / 60000);
+  return Math.max(0, Math.round((date.getTime() - Date.now()) / 60000));
 }
 
 export async function GET(req: Request) {
@@ -63,25 +63,29 @@ export async function GET(req: Request) {
 
     const { data: battles, error: battlesError } = await supabase
       .from("battle_reminders")
-      .select("id, manager, creator, opponent, day, battle_time, reminder_sent_at")
+      .select("id, manager, creator, opponent, battle_date, battle_time, reminder_sent_at")
       .is("reminder_sent_at", null);
 
     if (battlesError) {
       return NextResponse.json({ error: battlesError.message }, { status: 500 });
     }
 
-    const dueBattles = (battles || []).filter((battle: BattleReminder) => {
-      const battleDate = parseBattleDateTime(battle.day, battle.battle_time);
-      if (!battleDate) return false;
+    const dueBattles = ((battles || []) as BattleReminder[]).filter((battle) => {
+      const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
 
-      return battleDate >= now && battleDate <= twentyMinutesFromNow;
+      if (!battleDateTime) return false;
+
+      return battleDateTime >= now && battleDateTime <= twentyMinutesFromNow;
     });
 
     if (dueBattles.length === 0) {
       return NextResponse.json({
         success: true,
         checked: battles?.length || 0,
+        due: 0,
         sent: 0,
+        failed: 0,
+        marked_sent: 0,
         message: "No battle reminders due.",
       });
     }
@@ -107,11 +111,11 @@ export async function GET(req: Request) {
 
     for (const battle of dueBattles) {
       const manager = normaliseManager(battle.manager);
-      const battleDate = parseBattleDateTime(battle.day, battle.battle_time);
-      const mins = battleDate ? minutesUntil(battleDate) : 20;
+      const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
+      const mins = battleDateTime ? minutesUntil(battleDateTime) : 20;
 
-      const managerSubscriptions = (subscriptions || []).filter(
-        (sub: PushSubscriptionRow) => normaliseManager(sub.manager) === manager
+      const managerSubscriptions = ((subscriptions || []) as PushSubscriptionRow[]).filter(
+        (sub) => normaliseManager(sub.manager) === manager
       );
 
       if (managerSubscriptions.length === 0) {
