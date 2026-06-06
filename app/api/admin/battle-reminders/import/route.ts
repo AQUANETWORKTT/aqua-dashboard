@@ -21,24 +21,9 @@ function getSupabaseAdmin() {
 
 export async function POST(req: Request) {
   try {
-    const password = req.headers.get("x-admin-password");
-
-    if (password !== process.env.ADMIN_PASSWORD) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-        },
-        {
-          status: 401,
-        }
-      );
-    }
-
     const body = await req.json();
 
-    const battles = Array.isArray(body?.battles)
-      ? body.battles
-      : [];
+    const battles = Array.isArray(body?.battles) ? body.battles : [];
 
     if (battles.length === 0) {
       return NextResponse.json(
@@ -53,19 +38,35 @@ export async function POST(req: Request) {
 
     const supabase = getSupabaseAdmin();
 
-    const rows = battles.map((battle: any) => ({
-      battle_date_text: battle.battleDateText,
-      battle_time: battle.battleTime,
-      creator: battle.creator,
-      opponent: battle.opponent,
-      manager: battle.manager,
-      agency: battle.agency,
-      requested_time: battle.requestedTime,
-      range_text: battle.range,
-      confirmed: battle.confirmed,
-      duplicate_key: battle.duplicateKey,
-      status: "scheduled",
-    }));
+    const rows = battles
+      .filter((battle: any) => {
+        return battle.creator && battle.manager && battle.battleTime;
+      })
+      .map((battle: any) => ({
+        battle_date_text: battle.battleDateText,
+        battle_time: battle.battleTime,
+        creator: battle.creator,
+        opponent: battle.opponent || null,
+        manager: battle.manager,
+        agency: battle.agency || null,
+        requested_time: battle.requestedTime || null,
+        range_text: battle.range || null,
+        confirmed: battle.confirmed || null,
+        duplicate_key: battle.duplicateKey,
+        status: "scheduled",
+        updated_at: new Date().toISOString(),
+      }));
+
+    if (rows.length === 0) {
+      return NextResponse.json(
+        {
+          error: "No valid battles to save.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     const { data, error } = await supabase
       .from("battle_reminders")
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       imported: data?.length || 0,
+      message: `Saved ${data?.length || 0} battles.`,
     });
   } catch (err: any) {
     return NextResponse.json(
