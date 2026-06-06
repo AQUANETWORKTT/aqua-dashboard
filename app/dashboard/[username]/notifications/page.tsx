@@ -18,7 +18,7 @@ function urlBase64ToUint8Array(base64String: string) {
 
 export default function ManagerNotificationsPage() {
   const params = useParams();
-  const manager = String(params.manager || "").trim().toLowerCase();
+  const manager = String(params.username || "").trim().toLowerCase();
 
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
