@@ -19,6 +19,66 @@ function getSupabaseAdmin() {
   });
 }
 
+function parseBattleDate(dateText: string) {
+  const text = String(dateText || "").toUpperCase().trim();
+
+  const match = text.match(
+    /(MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY|SATURDAY|SUNDAY)\s+(\d+)(ST|ND|RD|TH)\s+([A-Z]+)/
+  );
+
+  if (!match) return null;
+
+  const day = Number(match[2]);
+
+  const months: Record<string, number> = {
+    JANUARY: 1,
+    FEBRUARY: 2,
+    MARCH: 3,
+    APRIL: 4,
+    MAY: 5,
+    JUNE: 6,
+    JULY: 7,
+    AUGUST: 8,
+    SEPTEMBER: 9,
+    OCTOBER: 10,
+    NOVEMBER: 11,
+    DECEMBER: 12,
+  };
+
+  const month = months[match[4]];
+
+  if (!month || !day) return null;
+
+  return `2026-${String(month).padStart(2, "0")}-${String(day).padStart(
+    2,
+    "0"
+  )}`;
+}
+
+function normaliseManagerName(manager: string) {
+  const clean = String(manager || "").trim().toLowerCase();
+
+  const map: Record<string, string> = {
+    alf: "alfie",
+    alfie: "alfie",
+    james: "james",
+    ellie: "ellie",
+    dylan: "dylan",
+    jay: "jay",
+    vitali: "vitali",
+    harry: "harry",
+    chloe: "chloe",
+    jade: "jade",
+    teddie: "teddie",
+    teddy: "teddie",
+    millie: "millie",
+    chris: "chris",
+    matt: "chris",
+  };
+
+  return map[clean] || clean;
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -44,16 +104,18 @@ export async function POST(req: Request) {
       })
       .map((battle: any) => ({
         battle_date_text: battle.battleDateText,
+        battle_date: parseBattleDate(battle.battleDateText),
         battle_time: battle.battleTime,
         creator: battle.creator,
         opponent: battle.opponent || null,
-        manager: battle.manager,
+        manager: normaliseManagerName(battle.manager),
         agency: battle.agency || null,
         requested_time: battle.requestedTime || null,
         range_text: battle.range || null,
         confirmed: battle.confirmed || null,
         duplicate_key: battle.duplicateKey,
         status: "scheduled",
+        reminder_sent_at: null,
         updated_at: new Date().toISOString(),
       }));
 

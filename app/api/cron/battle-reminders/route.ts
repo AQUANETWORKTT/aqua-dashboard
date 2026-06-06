@@ -43,9 +43,13 @@ function parseBattleDateTime(battleDate: string | null, battleTime: string | nul
   if (!battleDate || !battleTime) return null;
 
   const cleanDate = String(battleDate).trim();
-  const cleanTime = String(battleTime).trim();
+  let cleanTime = String(battleTime).trim();
 
-  const date = new Date(`${cleanDate}T${cleanTime}:00`);
+  if (/^\d{1,2}:\d{2}$/.test(cleanTime)) {
+    cleanTime = `${cleanTime}:00`;
+  }
+
+  const date = new Date(`${cleanDate}T${cleanTime}+01:00`);
 
   if (Number.isNaN(date.getTime())) return null;
 
@@ -56,25 +60,44 @@ function minutesUntil(date: Date) {
   return Math.max(0, Math.round((date.getTime() - Date.now()) / 60000));
 }
 
-function isBattleDueForSetting(battle: BattleReminder, setting: ManagerNotificationSetting) {
+function getDueCheck(battle: BattleReminder, setting: ManagerNotificationSetting) {
   const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
 
-  if (!battleDateTime) return false;
+  if (!battleDateTime) {
+    return {
+      due: false,
+      reason: "Could not parse battle date/time",
+      battleDateTime: null,
+      targetSendTime: null,
+      now: new Date().toISOString(),
+    };
+  }
 
   const minutesBefore = Number(setting.minutes_before || 5);
   const targetSendTime = new Date(battleDateTime.getTime() - minutesBefore * 60 * 1000);
 
   const now = new Date();
-  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
-  const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
 
-  return targetSendTime >= fiveMinutesAgo && targetSendTime <= fiveMinutesFromNow;
+  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+  const twoMinutesFromNow = new Date(now.getTime() + 2 * 60 * 1000);
+
+  const due = targetSendTime >= tenMinutesAgo && targetSendTime <= twoMinutesFromNow;
+
+  return {
+    due,
+    reason: due ? "Due now" : "Not inside reminder window",
+    battleDateTime: battleDateTime.toISOString(),
+    targetSendTime: targetSendTime.toISOString(),
+    now: now.toISOString(),
+    minutesBefore,
+  };
 }
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const secret = url.searchParams.get("secret");
+    const debug = url.searchParams.get("debug") === "1";
 
     if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -102,6 +125,8 @@ export async function GET(req: Request) {
       (setting) => normaliseManager(setting.manager)
     );
 
+    const debugRows: any[] = [];
+
     if (enabledSettings.length === 0) {
       return NextResponse.json({
         success: true,
@@ -127,11 +152,29 @@ export async function GET(req: Request) {
         const settingManager = normaliseManager(setting.manager);
         const scope = setting.scope === "all" ? "all" : "mine";
 
-        if (scope === "mine" && battleManager !== settingManager) {
+        const managerMatches = scope === "all" || battleManager === settingManager;
+        const dueCheck = getDueCheck(battle, setting);
+
+        if (debug) {
+          debugRows.push({
+            battle_id: battle.id,
+            battle_manager: battleManager,
+            setting_manager: settingManager,
+            scope,
+            managerMatches,
+            battle_date: battle.battle_date,
+            battle_time: battle.battle_time,
+            creator: battle.creator,
+            opponent: battle.opponent,
+            dueCheck,
+          });
+        }
+
+        if (!managerMatches) {
           continue;
         }
 
-        if (!isBattleDueForSetting(battle, setting)) {
+        if (!dueCheck.due) {
           continue;
         }
 
@@ -153,6 +196,7 @@ export async function GET(req: Request) {
         failed: 0,
         marked_sent: 0,
         message: "No battle reminders due for current settings.",
+        debug: debug ? debugRows : undefined,
       });
     }
 
@@ -179,7 +223,9 @@ export async function GET(req: Request) {
       const battle = item.battle;
       const notifyManager = item.notifyManager;
       const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
-      const mins = battleDateTime ? minutesUntil(battleDateTime) : Number(item.setting.minutes_before || 5);
+      const mins = battleDateTime
+        ? minutesUntil(battleDateTime)
+        : Number(item.setting.minutes_before || 5);
 
       const managerSubscriptions = ((subscriptions || []) as PushSubscriptionRow[]).filter(
         (sub) => normaliseManager(sub.manager) === notifyManager
@@ -243,6 +289,7 @@ export async function GET(req: Request) {
       sent,
       failed,
       marked_sent: sentBattleIds.size,
+      debug: debug ? debugRows : undefined,
     });
   } catch (error) {
     return NextResponse.json(
