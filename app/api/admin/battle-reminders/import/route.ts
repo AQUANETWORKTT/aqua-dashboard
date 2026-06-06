@@ -119,7 +119,11 @@ export async function POST(req: Request) {
         updated_at: new Date().toISOString(),
       }));
 
-    if (rows.length === 0) {
+    const uniqueRows = Array.from(
+      new Map(rows.map((row) => [row.duplicate_key, row])).values()
+    );
+
+    if (uniqueRows.length === 0) {
       return NextResponse.json(
         {
           error: "No valid battles to save.",
@@ -132,7 +136,7 @@ export async function POST(req: Request) {
 
     const { data, error } = await supabase
       .from("battle_reminders")
-      .upsert(rows, {
+      .upsert(uniqueRows, {
         onConflict: "duplicate_key",
       })
       .select();
@@ -151,7 +155,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       imported: data?.length || 0,
-      message: `Saved ${data?.length || 0} battles.`,
+      skipped_duplicates_in_paste: rows.length - uniqueRows.length,
+      message: `Saved ${data?.length || 0} battles. Skipped ${
+        rows.length - uniqueRows.length
+      } duplicate rows in paste.`,
     });
   } catch (err: any) {
     return NextResponse.json(
