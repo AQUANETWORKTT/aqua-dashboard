@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/battle-reminders?secret=1234",
-      "schedule": "* * * * *"
-    }
-  ]
-}
