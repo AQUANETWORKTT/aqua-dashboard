@@ -56,10 +56,6 @@ function parseBattleDateTime(battleDate: string | null, battleTime: string | nul
   return date;
 }
 
-function minutesUntil(date: Date) {
-  return Math.max(0, Math.round((date.getTime() - Date.now()) / 60000));
-}
-
 function getDueCheck(battle: BattleReminder, setting: ManagerNotificationSetting) {
   const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
 
@@ -77,10 +73,10 @@ function getDueCheck(battle: BattleReminder, setting: ManagerNotificationSetting
   const targetSendTime = new Date(battleDateTime.getTime() - minutesBefore * 60 * 1000);
 
   const now = new Date();
-  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-  const twoMinutesFromNow = new Date(now.getTime() + 2 * 60 * 1000);
+  const oneMinuteAgo = new Date(now.getTime() - 1 * 60 * 1000);
+  const oneMinuteFromNow = new Date(now.getTime() + 1 * 60 * 1000);
 
-  const due = targetSendTime >= tenMinutesAgo && targetSendTime <= twoMinutesFromNow;
+  const due = targetSendTime >= oneMinuteAgo && targetSendTime <= oneMinuteFromNow;
 
   return {
     due,
@@ -136,9 +132,7 @@ export async function GET(req: Request) {
     }
 
     const battles = ((allBattles || []) as BattleReminder[]).filter(
-      (battle) =>
-        !expiredBattleIds.includes(battle.id) &&
-        !battle.reminder_sent_at
+      (battle) => !expiredBattleIds.includes(battle.id) && !battle.reminder_sent_at
     );
 
     const { data: settings, error: settingsError } = await supabase
@@ -180,9 +174,8 @@ export async function GET(req: Request) {
 
       for (const setting of enabledSettings) {
         const settingManager = normaliseManager(setting.manager);
-        const scope = setting.scope === "all" ? "all" : "mine";
-
-        const managerMatches = scope === "all" || battleManager === settingManager;
+        const scope = "mine";
+        const managerMatches = battleManager === settingManager;
         const dueCheck = getDueCheck(battle, setting);
 
         if (debug) {
@@ -248,10 +241,6 @@ export async function GET(req: Request) {
     for (const item of dueItems) {
       const battle = item.battle;
       const notifyManager = item.notifyManager;
-      const battleDateTime = parseBattleDateTime(battle.battle_date, battle.battle_time);
-      const mins = battleDateTime
-        ? minutesUntil(battleDateTime)
-        : Number(item.setting.minutes_before || 5);
 
       const managerSubscriptions = ((subscriptions || []) as PushSubscriptionRow[]).filter(
         (sub) => normaliseManager(sub.manager) === notifyManager
@@ -262,7 +251,7 @@ export async function GET(req: Request) {
       const title = "Aqua Battle Reminder";
       const body = `${battle.creator || "Your creator"} vs ${
         battle.opponent || "opponent"
-      } starts in about ${mins} minutes.`;
+      } starts at ${battle.battle_time || "the scheduled time"}.`;
 
       const payload = JSON.stringify({
         title,
