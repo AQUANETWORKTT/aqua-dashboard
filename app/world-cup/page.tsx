@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 type Creator = {
   username: string;
+  diamonds: number;
 };
 
 type Team = {
@@ -27,9 +28,12 @@ const TEAMS: Team[] = [
     accent: "border-[#FEDD00]",
     glow: "shadow-yellow-400/30",
     creators: [
-      { username: "lucylou449" },
-      { username: "damo_bafc" },
-      { username: "keeton663" },
+      { username: "lucylou449", diamonds: 0 },
+      { username: "sasha.firstclass.agency", diamonds: 0 },
+      { username: "livburns5", diamonds: 0 },
+      { username: "junior.fontana80", diamonds: 0 },
+      { username: "dotlonl", diamonds: 0 },
+      { username: ".caitlynrn", diamonds: 0 },
     ],
   },
   {
@@ -39,9 +43,13 @@ const TEAMS: Team[] = [
     accent: "border-[#6CACE4]",
     glow: "shadow-sky-400/30",
     creators: [
-      { username: "xomarky" },
-      { username: "maximillion231" },
-      { username: "willem_yates" },
+      { username: "xomarky", diamonds: 0 },
+      { username: "keeton663", diamonds: 0 },
+      { username: "nwowen07", diamonds: 0 },
+      { username: "x_ruby_x3", diamonds: 0 },
+      { username: "lacey.xo.1", diamonds: 0 },
+      { username: "e.xm07", diamonds: 0 },
+      { username: "livy_lucy28", diamonds: 0 },
     ],
   },
   {
@@ -51,9 +59,13 @@ const TEAMS: Team[] = [
     accent: "border-[#ED2939]",
     glow: "shadow-blue-500/30",
     creators: [
-      { username: "dylanjinks" },
-      { username: "amzymooxox1" },
-      { username: "libbyamberxoxo" },
+      { username: "arabellama_y", diamonds: 0 },
+      { username: "xojayyy", diamonds: 0 },
+      { username: "jake_pearson_1", diamonds: 0 },
+      { username: "maximillion231", diamonds: 0 },
+      { username: "nathansonfiree", diamonds: 0 },
+      { username: "ayo_itz_phoebe", diamonds: 0 },
+      { username: "beccahughes853", diamonds: 0 },
     ],
   },
   {
@@ -63,11 +75,13 @@ const TEAMS: Team[] = [
     accent: "border-[#F1BF00]",
     glow: "shadow-red-500/30",
     creators: [
-      { username: "georgiabrookss20" },
-      { username: "doltonl" },
-      { username: "alfiedavies048" },
-      { username: "rubesamari4" },
-      { username: "georgiaa.dale" },
+      { username: "z.diness", diamonds: 0 },
+      { username: "georgiabrookss20", diamonds: 0 },
+      { username: "lukealbert4", diamonds: 0 },
+      { username: "candiceI05", diamonds: 0 },
+      { username: "alfiedavies048", diamonds: 0 },
+      { username: "whossoleice", diamonds: 0 },
+      { username: "tionneitaliaa", diamonds: 0 },
     ],
   },
   {
@@ -77,11 +91,13 @@ const TEAMS: Team[] = [
     accent: "border-[#FFCE00]",
     glow: "shadow-red-500/30",
     creators: [
-      { username: "arabellama_y" },
-      { username: "adam_gym234" },
-      { username: "jordan.sears_" },
-      { username: "ayo_itz_phoebe" },
-      { username: "rubes.wh1tw0rth" },
+      { username: "corie.watkins", diamonds: 0 },
+      { username: "avangalinefarr_x0", diamonds: 0 },
+      { username: "matt.in.motion_", diamonds: 0 },
+      { username: "mikeybrennan05", diamonds: 0 },
+      { username: "christina_eva.xo", diamonds: 0 },
+      { username: "sarahashy123", diamonds: 0 },
+      { username: "sum.cxx", diamonds: 0 },
     ],
   },
   {
@@ -91,10 +107,13 @@ const TEAMS: Team[] = [
     accent: "border-white",
     glow: "shadow-red-400/30",
     creators: [
-      { username: "harryjonesey" },
-      { username: "whossoleice" },
-      { username: "harleyj23x" },
-      { username: "callum.072" },
+      { username: "j.wliveacc", diamonds: 0 },
+      { username: "elliex035", diamonds: 0 },
+      { username: "shaysullivan316", diamonds: 0 },
+      { username: "adam_gym234", diamonds: 0 },
+      { username: "essexdollabi", diamonds: 0 },
+      { username: "libbyamberxoxo", diamonds: 0 },
+      { username: "lukersuv", diamonds: 0 },
     ],
   },
   {
@@ -104,11 +123,13 @@ const TEAMS: Team[] = [
     accent: "border-[#006600]",
     glow: "shadow-green-500/30",
     creators: [
-      { username: "corie.watkins" },
-      { username: "xojayyy" },
-      { username: "j.wliveacc" },
-      { username: "livy_lucy28" },
-      { username: "ab1ssecret" },
+      { username: "dylanjinks", diamonds: 0 },
+      { username: "mollsjadex", diamonds: 0 },
+      { username: "nelly.parsnipsx40", diamonds: 0 },
+      { username: "jordan.sears_", diamonds: 0 },
+      { username: "georgia.dale", diamonds: 0 },
+      { username: "chappers97", diamonds: 0 },
+      { username: "libbiejayne1", diamonds: 0 },
     ],
   },
   {
@@ -118,15 +139,22 @@ const TEAMS: Team[] = [
     accent: "border-[#21468B]",
     glow: "shadow-blue-500/30",
     creators: [
-      { username: "elliex035" },
-      { username: "lukealbert4" },
-      { username: "livburns5" },
-      { username: "clyall05" },
+      { username: "harryjonesey", diamonds: 0 },
+      { username: "damo_bafc", diamonds: 0 },
+      { username: "kaidensc07", diamonds: 0 },
+      { username: "zeedz", diamonds: 0 },
+      { username: "rubesamari4", diamonds: 0 },
+      { username: "y0ur_local_j", diamonds: 0 },
+      { username: "callum.072", diamonds: 0 },
     ],
   },
 ];
 
 const HERO_IMAGE = "/world-cup/world-cup-hero.jpg";
+
+function cleanUsername(value: string | null | undefined) {
+  return String(value || "").replace("@", "").trim().toLowerCase();
+}
 
 function getInitials(username: string) {
   return (
@@ -140,11 +168,18 @@ function getInitials(username: string) {
   );
 }
 
-function cleanUsername(value: string | null | undefined) {
-  return String(value || "")
-    .replace("@", "")
-    .trim()
-    .toLowerCase();
+function formatDiamonds(value: number) {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(2)}m`;
+  if (value >= 1000) return `${Math.round(value / 1000)}k`;
+  return value.toLocaleString();
+}
+
+function getTeamTotal(team: Team) {
+  return team.creators.reduce((sum, creator) => sum + creator.diamonds, 0);
+}
+
+function sortCreators(creators: Creator[]) {
+  return [...creators].sort((a, b) => b.diamonds - a.diamonds);
 }
 
 async function fetchTikTokAvatar(username: string) {
@@ -166,7 +201,15 @@ async function fetchTikTokAvatar(username: string) {
   }
 }
 
-function CreatorAvatar({ username }: { username: string }) {
+function CreatorAvatar({
+  username,
+  size = "small",
+  captain = false,
+}: {
+  username: string;
+  size?: "tiny" | "small" | "medium" | "large";
+  captain?: boolean;
+}) {
   const clean = cleanUsername(username);
   const fallbackSrc = "/creators/default.jpg";
 
@@ -189,27 +232,20 @@ function CreatorAvatar({ username }: { username: string }) {
       const scrapedAvatar = await fetchTikTokAvatar(clean);
 
       if (scrapedAvatar) {
-        if (!cancelled) {
-          setSrc(scrapedAvatar);
-        }
+        if (!cancelled) setSrc(scrapedAvatar);
         return;
       }
 
       const localSrc = `/creators/${encodeURIComponent(clean)}.jpg`;
-
       const img = new window.Image();
       img.src = localSrc;
 
       img.onload = () => {
-        if (!cancelled) {
-          setSrc(localSrc);
-        }
+        if (!cancelled) setSrc(localSrc);
       };
 
       img.onerror = () => {
-        if (!cancelled) {
-          setSrc(fallbackSrc);
-        }
+        if (!cancelled) setSrc(fallbackSrc);
       };
     }
 
@@ -220,36 +256,55 @@ function CreatorAvatar({ username }: { username: string }) {
     };
   }, [clean]);
 
-  const showFallbackInitials = failed || !src;
+  const sizeClass =
+    size === "large"
+      ? "h-20 w-20"
+      : size === "medium"
+        ? "h-14 w-14"
+        : size === "tiny"
+          ? "h-9 w-9"
+          : "h-11 w-11";
+
+  const textSize =
+    size === "large"
+      ? "text-lg"
+      : size === "medium"
+        ? "text-sm"
+        : "text-xs";
 
   return (
-    <div className="flex min-w-[82px] flex-col items-center gap-2 sm:min-w-[96px]">
-      <div className="relative">
-        <div className="absolute inset-[-5px] rounded-full bg-white/25 blur-md" />
+    <div className="relative shrink-0">
+      {captain && (
+        <>
+          <div className="absolute inset-[-7px] animate-pulse rounded-full bg-yellow-300/60 blur-md" />
+          <div className="absolute inset-[-3px] rounded-full border-2 border-yellow-200 shadow-[0_0_18px_rgba(250,204,21,0.95)]" />
+        </>
+      )}
 
-        <div className="relative grid h-16 w-16 place-items-center overflow-hidden rounded-full border-2 border-white bg-slate-950 shadow-lg sm:h-20 sm:w-20">
-          {showFallbackInitials ? (
-            <span className="text-lg font-black text-white">
-              {getInitials(username)}
-            </span>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={src}
-              alt={username}
-              className="h-full w-full object-cover"
-              onError={() => {
-                setFailed(true);
-                setSrc("");
-              }}
-            />
-          )}
-        </div>
+      <div
+        className={`relative grid ${sizeClass} place-items-center overflow-hidden rounded-full border-2 ${
+          captain
+            ? "border-yellow-200 bg-yellow-400/20"
+            : "border-white/80 bg-[#07314a]"
+        } shadow-lg`}
+      >
+        {failed || !src ? (
+          <span className={`font-black text-white ${textSize}`}>
+            {getInitials(username)}
+          </span>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={username}
+            className="h-full w-full object-cover"
+            onError={() => {
+              setFailed(true);
+              setSrc("");
+            }}
+          />
+        )}
       </div>
-
-      <p className="max-w-[95px] truncate text-center font-mono text-[11px] font-black uppercase tracking-[-0.02em] text-white sm:max-w-[120px] sm:text-xs">
-        {username}
-      </p>
     </div>
   );
 }
@@ -257,7 +312,7 @@ function CreatorAvatar({ username }: { username: string }) {
 function CountryFlag({ country }: { country: string }) {
   if (country === "France") {
     return (
-      <div className="grid h-12 w-12 grid-cols-3 overflow-hidden rounded-2xl shadow-lg">
+      <div className="grid h-12 w-12 grid-cols-3 overflow-hidden rounded-full shadow-lg">
         <div className="bg-[#002654]" />
         <div className="bg-white" />
         <div className="bg-[#ED2939]" />
@@ -267,7 +322,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "Germany") {
     return (
-      <div className="grid h-12 w-12 grid-rows-3 overflow-hidden rounded-2xl shadow-lg">
+      <div className="grid h-12 w-12 grid-rows-3 overflow-hidden rounded-full shadow-lg">
         <div className="bg-black" />
         <div className="bg-[#DD0000]" />
         <div className="bg-[#FFCE00]" />
@@ -277,7 +332,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "Netherlands") {
     return (
-      <div className="grid h-12 w-12 grid-rows-3 overflow-hidden rounded-2xl shadow-lg">
+      <div className="grid h-12 w-12 grid-rows-3 overflow-hidden rounded-full shadow-lg">
         <div className="bg-[#AE1C28]" />
         <div className="bg-white" />
         <div className="bg-[#21468B]" />
@@ -287,7 +342,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "Spain") {
     return (
-      <div className="grid h-12 w-12 overflow-hidden rounded-2xl shadow-lg">
+      <div className="grid h-12 w-12 overflow-hidden rounded-full shadow-lg">
         <div className="h-3 bg-[#AA151B]" />
         <div className="h-6 bg-[#F1BF00]" />
         <div className="h-3 bg-[#AA151B]" />
@@ -297,7 +352,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "Argentina") {
     return (
-      <div className="grid h-12 w-12 grid-rows-3 overflow-hidden rounded-2xl shadow-lg">
+      <div className="grid h-12 w-12 grid-rows-3 overflow-hidden rounded-full shadow-lg">
         <div className="bg-[#6CACE4]" />
         <div className="relative bg-white">
           <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F6B40E]" />
@@ -309,7 +364,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "England") {
     return (
-      <div className="relative h-12 w-12 overflow-hidden rounded-2xl bg-white shadow-lg">
+      <div className="relative h-12 w-12 overflow-hidden rounded-full bg-white shadow-lg">
         <div className="absolute left-1/2 top-0 h-full w-2 -translate-x-1/2 bg-[#C8102E]" />
         <div className="absolute left-0 top-1/2 h-2 w-full -translate-y-1/2 bg-[#C8102E]" />
       </div>
@@ -318,7 +373,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "Portugal") {
     return (
-      <div className="relative flex h-12 w-12 overflow-hidden rounded-2xl shadow-lg">
+      <div className="relative flex h-12 w-12 overflow-hidden rounded-full shadow-lg">
         <div className="w-[42%] bg-[#006600]" />
         <div className="flex-1 bg-[#FF0000]" />
         <div className="absolute left-[34%] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-[#FFCC00]" />
@@ -327,141 +382,264 @@ function CountryFlag({ country }: { country: string }) {
   }
 
   return (
-    <div className="relative h-12 w-12 overflow-hidden rounded-2xl bg-[#009739] shadow-lg">
+    <div className="relative h-12 w-12 overflow-hidden rounded-full bg-[#009739] shadow-lg">
       <div className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#FEDD00]" />
       <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#012169]" />
     </div>
   );
 }
 
-function TeamCard({ team, index }: { team: Team; index: number }) {
-  const captain = team.creators[0];
-  const players = team.creators.slice(1);
+function FullTeamDropdown({ team }: { team: Team }) {
+  const sortedCreators = sortCreators(team.creators);
 
   return (
-    <section
-      className={`relative overflow-hidden rounded-[2rem] border ${team.accent} bg-black/55 shadow-2xl ${team.glow} backdrop-blur-md`}
-    >
-      <div className={`absolute inset-x-0 top-0 h-2 bg-gradient-to-r ${team.kit}`} />
-      <div
-        className={`absolute -right-16 -top-16 h-44 w-44 rounded-full bg-gradient-to-br ${team.kit} opacity-30 blur-2xl`}
-      />
+    <div className="px-3 pb-4">
+      <div className="rounded-2xl border border-cyan-200/15 bg-[#041a2b]/80 p-3">
+        <p className="mb-3 text-center text-xs font-black uppercase tracking-[0.25em] text-cyan-100/60">
+          Full Team
+        </p>
 
-      <div className="relative p-4 sm:p-5">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <CountryFlag country={team.country} />
+        <div className="flex flex-col gap-2">
+          {sortedCreators.map((creator, index) => (
+            <div
+              key={creator.username}
+              className="flex w-full items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+            >
+              <CreatorAvatar
+                username={creator.username}
+                size="tiny"
+                captain={index === 0}
+              />
 
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-white/55">
-                Team {index + 1}
+              <div className="min-w-0 flex-1">
+                <p className="break-all text-sm font-black leading-tight text-white">
+                  {creator.username}
+                </p>
+
+                {index === 0 && (
+                  <p className="mt-0.5 text-[10px] font-black uppercase text-yellow-200">
+                    Captain
+                  </p>
+                )}
+              </div>
+
+              <p className="shrink-0 text-sm font-black text-cyan-100/80">
+                {formatDiamonds(creator.diamonds)}
               </p>
-
-              <h2 className="text-2xl font-black uppercase tracking-tight text-white">
-                {team.country}
-              </h2>
             </div>
-          </div>
-
-          <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-black text-white">
-            {team.creators.length} players
-          </div>
-        </div>
-
-        <div className="mb-6 flex justify-center">
-          <div className="relative">
-            <div className="absolute inset-[-10px] rounded-full bg-yellow-400/30 blur-xl" />
-
-            <div className="relative flex flex-col items-center">
-              <div className="mb-2 rounded-full border border-yellow-300/50 bg-yellow-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.25em] text-yellow-200">
-                Captain
-              </div>
-
-              <div className="scale-110">
-                <CreatorAvatar username={captain.username} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap justify-center gap-x-5 gap-y-5">
-          {players.map((creator) => (
-            <CreatorAvatar key={creator.username} username={creator.username} />
           ))}
         </div>
       </div>
-    </section>
+    </div>
+  );
+}
+
+function PodiumCard({ team, place }: { team: Team; place: number }) {
+  const total = getTeamTotal(team);
+  const sortedCreators = sortCreators(team.creators);
+  const captain = sortedCreators[0];
+  const second = sortedCreators[1];
+  const third = sortedCreators[2];
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-2xl border ${team.accent} bg-[#06324f]/95 text-center shadow-xl ${team.glow}`}
+    >
+      <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${team.kit}`} />
+
+      <div className="p-3">
+        <div className="mb-2 flex justify-center">
+          <CountryFlag country={team.country} />
+        </div>
+
+        <p className="truncate text-sm font-black uppercase text-white">
+          Team {team.country}
+        </p>
+
+        <p className="mt-1 text-lg font-black text-cyan-200">
+          {formatDiamonds(total)}
+        </p>
+
+        <div className="mt-3 flex items-start justify-center gap-1">
+          {second && (
+            <div className="-mr-2 flex min-w-0 flex-col items-center opacity-95">
+              <CreatorAvatar username={second.username} size="small" />
+              
+              
+            </div>
+          )}
+
+          <div className="z-10 flex min-w-0 flex-col items-center">
+            <CreatorAvatar username={captain.username} size="medium" captain />
+            
+          </div>
+
+          {third && (
+            <div className="-ml-2 flex min-w-0 flex-col items-center opacity-95">
+              <CreatorAvatar username={third.username} size="small" />
+              
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-xs font-black text-[#052f4a]">
+        #{place}
+      </div>
+    </div>
+  );
+}
+
+function TeamRow({ team, index }: { team: Team; index: number }) {
+  const [open, setOpen] = useState(false);
+
+  const total = getTeamTotal(team);
+  const sortedCreators = sortCreators(team.creators);
+  const captain = sortedCreators[0];
+  const nextThree = sortedCreators.slice(1, 4);
+
+  return (
+    <div className="overflow-hidden border-b border-cyan-200/10 bg-[#052f4a]/85 last:border-b-0">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center gap-3 px-3 py-4 text-left"
+      >
+        <div className="w-7 shrink-0 text-center text-xl font-black text-white">
+          {index + 1}
+        </div>
+
+        <CountryFlag country={team.country} />
+
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-xl font-black uppercase text-white">
+            Team {team.country}
+          </h2>
+
+          <div className="mt-2 flex items-center gap-3">
+            <CreatorAvatar username={captain.username} size="medium" captain />
+
+            <div className="flex items-center">
+              {nextThree.map((creator, avatarIndex) => (
+                <div
+                  key={creator.username}
+                  className={avatarIndex === 0 ? "" : "-ml-3"}
+                >
+                  <CreatorAvatar username={creator.username} size="small" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p className="text-xs font-black text-cyan-100/45">Points</p>
+          <p className="text-2xl font-black text-white">
+            {formatDiamonds(total)}
+          </p>
+          <p className="mt-1 text-xs font-bold text-cyan-100/45">
+            {team.creators.length} players
+          </p>
+        </div>
+
+        <div className="ml-1 shrink-0 rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-2 text-cyan-100">
+          <span
+            className={`block text-lg leading-none transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+          >
+            ▼
+          </span>
+        </div>
+      </button>
+
+      {open && <FullTeamDropdown team={team} />}
+    </div>
   );
 }
 
 export default function WorldCupPage() {
+  const sortedTeams = useMemo(() => {
+    return [...TEAMS].sort((a, b) => getTeamTotal(b) - getTeamTotal(a));
+  }, []);
+
   const totalPlayers = useMemo(
     () => TEAMS.reduce((sum, team) => sum + team.creators.length, 0),
     []
   );
 
   return (
-    <main
-      className="min-h-dvh overflow-x-hidden bg-[#060611] pb-[calc(8rem+env(safe-area-inset-bottom))] text-white"
-      style={{
-        WebkitOverflowScrolling: "touch",
-      }}
-    >
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[#060611]" />
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,#234bff33,transparent_35%),radial-gradient(circle_at_bottom_left,#ffb00022,transparent_35%),radial-gradient(circle_at_bottom_right,#ff004422,transparent_35%)]" />
+    <main className="min-h-dvh overflow-x-hidden bg-[#02111f] pb-16 text-white">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,#00d5ff55,transparent_35%),radial-gradient(circle_at_bottom,#0077ff44,transparent_42%)]" />
 
-      <section className="relative mx-auto max-w-6xl px-4 pb-6 pt-4 sm:px-6 sm:pt-6">
-        <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black shadow-2xl shadow-blue-500/20">
-          <div className="absolute inset-x-0 bottom-0 z-10 h-24 bg-gradient-to-t from-[#060611] via-[#060611]/35 to-transparent sm:h-28" />
-          <div className="absolute inset-x-0 top-0 z-10 h-16 bg-gradient-to-b from-black/30 to-transparent" />
+      <section className="mx-auto max-w-3xl px-3 pt-3">
+        <div className="overflow-hidden rounded-[1.4rem] border border-cyan-200/15 bg-[#05263d] shadow-2xl shadow-cyan-950/60">
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={HERO_IMAGE}
+              alt="Aqua World Cup"
+              className="h-44 w-full object-cover object-center"
+            />
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={HERO_IMAGE}
-            alt="Aqua's World Cup Campaign"
-            className="h-[290px] w-full object-cover object-center sm:h-[460px]"
-          />
-        </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#05263d] via-transparent to-black/20" />
+          </div>
 
-        <div className="relative z-20 -mt-6 text-center sm:-mt-8">
-          <h1 className="sr-only">Aqua World Cup Campaign</h1>
+          <div className="px-3 pb-4 pt-4">
+            <div className="mb-4 grid grid-cols-3 gap-3">
+              {sortedTeams.slice(1, 2).map((team) => (
+                <PodiumCard key={team.id} team={team} place={2} />
+              ))}
 
-          <div className="mt-5 flex flex-wrap justify-center gap-3">
-            <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 backdrop-blur-md">
-              <p className="text-2xl font-black">{TEAMS.length}</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/55">
-                Teams
-              </p>
+              {sortedTeams.slice(0, 1).map((team) => (
+                <PodiumCard key={team.id} team={team} place={1} />
+              ))}
+
+              {sortedTeams.slice(2, 3).map((team) => (
+                <PodiumCard key={team.id} team={team} place={3} />
+              ))}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 backdrop-blur-md">
-              <p className="text-2xl font-black">9</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/55">
-                Days
-              </p>
+            <div className="mb-3 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 px-4 py-3 text-center">
+  <p className="text-lg font-black uppercase tracking-[0.12em] text-cyan-100">
+    1 Diamond = 1 Point
+  </p>
+
+  <p className="mt-1 text-sm font-black uppercase tracking-[0.12em] text-cyan-100/70">
+    11th June – 19th June
+  </p>
+</div>
+
+            <div className="mb-3 grid grid-cols-3 gap-2">
+              <div className="rounded-xl bg-white/10 px-3 py-2 text-center">
+                <p className="text-xl font-black">{TEAMS.length}</p>
+                <p className="text-[10px] font-black uppercase text-cyan-100/50">
+                  Teams
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-white/10 px-3 py-2 text-center">
+                <p className="text-xl font-black">{totalPlayers}</p>
+                <p className="text-[10px] font-black uppercase text-cyan-100/50">
+                  Creators
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-yellow-300/20 px-3 py-2 text-center">
+                <p className="text-xl font-black">15K</p>
+                <p className="text-[10px] font-black uppercase text-yellow-100/70">
+                  Prize
+                </p>
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-yellow-300/40 bg-yellow-300/15 px-5 py-3 shadow-lg shadow-yellow-400/20 backdrop-blur-md">
-              <p className="text-2xl font-black">15K</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-yellow-100/80">
-                Prize
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 backdrop-blur-md">
-              <p className="text-2xl font-black">{totalPlayers}</p>
-              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/55">
-                Creators
-              </p>
+            <div className="overflow-hidden rounded-2xl border border-cyan-200/15">
+              {sortedTeams.map((team, index) => (
+                <TeamRow key={team.id} team={team} index={index} />
+              ))}
             </div>
           </div>
         </div>
-      </section>
-
-      <section className="relative mx-auto grid max-w-6xl grid-cols-1 gap-4 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:grid-cols-2 sm:px-6">
-        {TEAMS.map((team, index) => (
-          <TeamCard key={team.id} team={team} index={index} />
-        ))}
       </section>
     </main>
   );

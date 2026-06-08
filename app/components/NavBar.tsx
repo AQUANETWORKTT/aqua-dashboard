@@ -12,21 +12,21 @@ export default function NavBar({ user }: { user: string | null }) {
   if (!user) return null;
   if (hideOn.includes(pathname)) return null;
 
-  const mobileLinks = [
-    { href: "/banned-help", label: "", icon: "/nav-icons/ban-help.png" },
-    { href: `/dashboard/${user}`, label: "", icon: "/nav-icons/dashboard.png" },
-    { href: "/", label: "", icon: "/nav-icons/home.png" },
-    { href: "/leaderboard", label: "", icon: "/nav-icons/leaderboard.png" },
-    { href: "/merch", label: "", icon: "/nav-icons/merch.png" },
-  ];
+const mobileLinks = [
+  { href: "/banned-help", label: "", icon: "/nav-icons/ban-help.png" },
+  { href: `/dashboard/${user}`, label: "", icon: "/nav-icons/dashboard.png" },
+  { href: "/", label: "", icon: "/nav-icons/home.png" },
+  { href: "/leaderboard", label: "", icon: "/nav-icons/leaderboard.png" },
+  { href: "/world-cup", label: "", icon: "/nav-icons/merch.png" },
+];;
 
-  const desktopLinks = [
-    { href: "/", label: "Home" },
-    { href: `/dashboard/${user}`, label: "Dashboard" },
-    { href: "/leaderboard", label: "Leaderboard" },
-    { href: "/merch", label: "Merch" },
-    { href: "/banned-help", label: "Ban Help" },
-  ];
+const desktopLinks = [
+  { href: "/", label: "Home" },
+  { href: `/dashboard/${user}`, label: "Dashboard" },
+  { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/world-cup", label: "World Cup" },
+  { href: "/banned-help", label: "Ban Help" },
+];
 
   return (
     <>
