@@ -413,7 +413,7 @@ function FullTeamDropdown({ team }: { team: Team }) {
           {sortedCreators.map((creator, index) => (
             <div
               key={creator.username}
-              className="flex w-full items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+              className="flex w-full items-center gap-4 rounded-2xl border border-white/5 bg-white/5 px-4 py-3"
             >
               <CreatorAvatar
                 username={creator.username}
@@ -457,7 +457,7 @@ function PodiumCard({ team, place }: { team: Team; place: number }) {
     >
       <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${team.kit}`} />
 
-      <div className="p-3">
+      <div className="p-4">
         <div className="mb-2 flex justify-center">
           <CountryFlag country={team.country} />
         </div>
@@ -513,10 +513,10 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="grid w-full grid-cols-[66px_minmax(0,1fr)_78px_38px] items-center gap-2 px-3 py-4 text-left sm:grid-cols-[78px_minmax(0,1fr)_105px_42px] sm:gap-4 sm:px-4 sm:py-5"
+        className="grid min-h-[132px] w-full grid-cols-[78px_minmax(0,1fr)_82px_38px] items-center gap-3 px-4 py-5 text-left sm:min-h-[150px] sm:grid-cols-[95px_minmax(0,1fr)_120px_44px] sm:gap-5 sm:px-5 sm:py-6"
       >
-        <div className="flex shrink-0 flex-col items-center justify-center gap-1">
-          <div className="text-lg font-black leading-none text-white sm:text-xl">
+        <div className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-cyan-200/10 bg-cyan-300/5 py-3">
+          <div className="text-2xl font-black leading-none text-white sm:text-3xl">
             {index + 1}
           </div>
 
@@ -524,31 +524,31 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
         </div>
 
         <div className="min-w-0">
-          <h2 className="truncate text-lg font-black uppercase text-white sm:text-xl">
+          <h2 className="whitespace-normal break-words text-2xl font-black uppercase leading-tight text-white sm:text-3xl">
             Team {team.country}
           </h2>
 
-          <div className="mt-2 flex min-w-0 items-center">
-            <CreatorAvatar username={captain.username} size="small" captain />
+          <div className="mt-4 flex min-w-0 items-center">
+            <CreatorAvatar username={captain.username} size="medium" captain />
 
-            <div className="ml-2 flex min-w-0 items-center">
+            <div className="ml-3 flex min-w-0 items-center">
               {nextThree.map((creator, avatarIndex) => (
                 <div
                   key={creator.username}
-                  className={avatarIndex === 0 ? "" : "-ml-3"}
+                  className={avatarIndex === 0 ? "" : "-ml-2"}
                 >
-                  <CreatorAvatar username={creator.username} size="tiny" />
+                  <CreatorAvatar username={creator.username} size="small" />
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="z-10 min-w-0 shrink-0 text-right">
-          <p className="text-[10px] font-black text-cyan-100/45 sm:text-xs">
+        <div className="z-10 min-w-0 shrink-0 rounded-2xl bg-black/15 px-2 py-3 text-right sm:px-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-cyan-100/45 sm:text-xs">
             Points
           </p>
-          <p className="truncate text-2xl font-black leading-none text-white sm:text-3xl">
+          <p className="truncate text-3xl font-black leading-none text-white sm:text-4xl">
             {formatDiamonds(total)}
           </p>
           <p className="mt-1 text-[10px] font-bold text-cyan-100/45 sm:text-xs">
@@ -556,9 +556,9 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
           </p>
         </div>
 
-        <div className="shrink-0 rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-2 text-cyan-100">
+        <div className="shrink-0 rounded-full border border-cyan-200/20 bg-cyan-300/10 px-3 py-3 text-cyan-100">
           <span
-            className={`block text-lg leading-none transition-transform ${
+            className={`block text-xl leading-none transition-transform ${
               open ? "rotate-180" : ""
             }`}
           >
@@ -586,21 +586,21 @@ export default function WorldCupPage() {
     <main className="min-h-dvh overflow-x-hidden bg-[#02111f] pb-16 text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,#00d5ff55,transparent_35%),radial-gradient(circle_at_bottom,#0077ff44,transparent_42%)]" />
 
-      <section className="mx-auto max-w-3xl px-3 pt-3">
-        <div className="overflow-hidden rounded-[1.4rem] border border-cyan-200/15 bg-[#05263d] shadow-2xl shadow-cyan-950/60">
+      <section className="mx-auto max-w-3xl px-3 pt-4">
+        <div className="overflow-hidden rounded-[1.7rem] border border-cyan-200/15 bg-[#05263d] shadow-2xl shadow-cyan-950/60">
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={HERO_IMAGE}
               alt="Aqua World Cup"
-              className="h-44 w-full object-cover object-center"
+              className="h-52 w-full object-cover object-center sm:h-60"
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-[#05263d] via-transparent to-black/20" />
           </div>
 
           <div className="px-3 pb-5 pt-4 sm:px-4">
-            <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3">
+            <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-4">
               {sortedTeams.slice(1, 2).map((team) => (
                 <PodiumCard key={team.id} team={team} place={2} />
               ))}
@@ -614,7 +614,7 @@ export default function WorldCupPage() {
               ))}
             </div>
 
-            <div className="mb-3 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 px-4 py-3 text-center">
+            <div className="mb-4 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 px-4 py-5 text-center">
   <p className="text-lg font-black uppercase tracking-[0.12em] text-cyan-100">
     1 Diamond = 1 Point
   </p>
@@ -624,22 +624,22 @@ export default function WorldCupPage() {
   </p>
 </div>
 
-            <div className="mb-3 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-white/10 px-3 py-2 text-center">
+            <div className="mb-4 grid grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-white/10 px-3 py-4 text-center">
                 <p className="text-xl font-black">{TEAMS.length}</p>
                 <p className="text-[10px] font-black uppercase text-cyan-100/50">
                   Teams
                 </p>
               </div>
 
-              <div className="rounded-xl bg-white/10 px-3 py-2 text-center">
+              <div className="rounded-2xl bg-white/10 px-3 py-4 text-center">
                 <p className="text-xl font-black">{totalPlayers}</p>
                 <p className="text-[10px] font-black uppercase text-cyan-100/50">
                   Creators
                 </p>
               </div>
 
-              <div className="rounded-xl bg-yellow-300/20 px-3 py-2 text-center">
+              <div className="rounded-2xl bg-yellow-300/20 px-3 py-4 text-center">
                 <p className="text-xl font-black">15K</p>
                 <p className="text-[10px] font-black uppercase text-yellow-100/70">
                   Prize
