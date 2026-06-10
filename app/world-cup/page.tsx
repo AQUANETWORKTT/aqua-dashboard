@@ -506,64 +506,66 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
   const total = getTeamTotal(team);
   const sortedCreators = sortCreators(team.creators);
   const captain = sortedCreators[0];
-  const nextThree = sortedCreators.slice(1, 4);
+  const previewCreators = sortedCreators.slice(1, 5);
 
   return (
     <div className="overflow-hidden border-b border-cyan-200/10 bg-[#052f4a]/85 last:border-b-0">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="grid min-h-[132px] w-full grid-cols-[78px_minmax(0,1fr)_82px_38px] items-center gap-3 px-4 py-5 text-left sm:min-h-[150px] sm:grid-cols-[95px_minmax(0,1fr)_120px_44px] sm:gap-5 sm:px-5 sm:py-6"
+        className="w-full px-4 py-5 text-left sm:px-5 sm:py-6"
       >
-        <div className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-cyan-200/10 bg-cyan-300/5 py-3">
-          <div className="text-2xl font-black leading-none text-white sm:text-3xl">
-            {index + 1}
+        <div className="flex items-center gap-3">
+          <div className="flex w-[74px] shrink-0 items-center gap-2 rounded-2xl border border-cyan-200/10 bg-cyan-300/5 px-2 py-2">
+            <span className="w-6 text-center text-2xl font-black leading-none text-white">
+              {index + 1}
+            </span>
+
+            <CountryFlag country={team.country} size="small" />
           </div>
 
-          <CountryFlag country={team.country} size="small" />
-        </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-2xl font-black uppercase leading-tight text-white sm:text-3xl">
+              Team {team.country}
+            </h2>
 
-        <div className="min-w-0">
-          <h2 className="whitespace-normal break-words text-2xl font-black uppercase leading-tight text-white sm:text-3xl">
-            Team {team.country}
-          </h2>
+            <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-100/45">
+              {team.creators.length} players
+            </p>
+          </div>
 
-          <div className="mt-4 flex min-w-0 items-center">
-            <CreatorAvatar username={captain.username} size="medium" captain />
+          <div className="w-[84px] shrink-0 rounded-2xl bg-black/20 px-2 py-2 text-right sm:w-[112px] sm:px-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-cyan-100/45">
+              Points
+            </p>
+            <p className="truncate text-3xl font-black leading-none text-white sm:text-4xl">
+              {formatDiamonds(total)}
+            </p>
+          </div>
 
-            <div className="ml-3 flex min-w-0 items-center">
-              {nextThree.map((creator, avatarIndex) => (
-                <div
-                  key={creator.username}
-                  className={avatarIndex === 0 ? "" : "-ml-2"}
-                >
-                  <CreatorAvatar username={creator.username} size="small" />
-                </div>
-              ))}
-            </div>
+          <div className="shrink-0 rounded-full border border-cyan-200/20 bg-cyan-300/10 p-3 text-cyan-100">
+            <span
+              className={`block text-xl leading-none transition-transform ${
+                open ? "rotate-180" : ""
+              }`}
+            >
+              ▼
+            </span>
           </div>
         </div>
 
-        <div className="z-10 min-w-0 shrink-0 rounded-2xl bg-black/15 px-2 py-3 text-right sm:px-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-cyan-100/45 sm:text-xs">
-            Points
-          </p>
-          <p className="truncate text-3xl font-black leading-none text-white sm:text-4xl">
-            {formatDiamonds(total)}
-          </p>
-          <p className="mt-1 text-[10px] font-bold text-cyan-100/45 sm:text-xs">
-            {team.creators.length} players
-          </p>
-        </div>
+        <div className="mt-5 flex items-center gap-3">
+          <CreatorAvatar username={captain.username} size="medium" captain />
 
-        <div className="shrink-0 rounded-full border border-cyan-200/20 bg-cyan-300/10 px-3 py-3 text-cyan-100">
-          <span
-            className={`block text-xl leading-none transition-transform ${
-              open ? "rotate-180" : ""
-            }`}
-          >
-            ▼
-          </span>
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+            {previewCreators.map((creator) => (
+              <CreatorAvatar
+                key={creator.username}
+                username={creator.username}
+                size="small"
+              />
+            ))}
+          </div>
         </div>
       </button>
 
@@ -647,7 +649,7 @@ export default function WorldCupPage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-cyan-200/15 divide-y divide-cyan-200/10">
+            <div className="overflow-hidden rounded-2xl border border-cyan-200/15">
               {sortedTeams.map((team, index) => (
                 <TeamRow key={team.id} team={team} index={index} />
               ))}
