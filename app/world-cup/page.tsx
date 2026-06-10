@@ -26,7 +26,7 @@ const TEAMS: Team[] = [
     country: "Brazil",
     kit: "from-[#009739] via-[#FEDD00] to-[#012169]",
     accent: "border-[#FEDD00]",
-    glow: "shadow-yellow-400/30",
+    glow: "shadow-none",
     creators: [
       { username: "lucylou449", diamonds: 0 },
       { username: "sasha.firstclass.agency", diamonds: 0 },
@@ -41,7 +41,7 @@ const TEAMS: Team[] = [
     country: "Argentina",
     kit: "from-[#6CACE4] via-white to-[#6CACE4]",
     accent: "border-[#6CACE4]",
-    glow: "shadow-sky-400/30",
+    glow: "shadow-none",
     creators: [
       { username: "xomarky", diamonds: 0 },
       { username: "keeton663", diamonds: 0 },
@@ -57,7 +57,7 @@ const TEAMS: Team[] = [
     country: "France",
     kit: "from-[#002654] via-white to-[#ED2939]",
     accent: "border-[#ED2939]",
-    glow: "shadow-blue-500/30",
+    glow: "shadow-none",
     creators: [
       { username: "arabellama_y", diamonds: 0 },
       { username: "xojayyy", diamonds: 0 },
@@ -73,7 +73,7 @@ const TEAMS: Team[] = [
     country: "Spain",
     kit: "from-[#AA151B] via-[#F1BF00] to-[#AA151B]",
     accent: "border-[#F1BF00]",
-    glow: "shadow-red-500/30",
+    glow: "shadow-none",
     creators: [
       { username: "z.diness", diamonds: 0 },
       { username: "georgiabrookss20", diamonds: 0 },
@@ -89,7 +89,7 @@ const TEAMS: Team[] = [
     country: "Germany",
     kit: "from-black via-[#DD0000] to-[#FFCE00]",
     accent: "border-[#FFCE00]",
-    glow: "shadow-red-500/30",
+    glow: "shadow-none",
     creators: [
       { username: "corie.watkins", diamonds: 0 },
       { username: "avangalinefarr_x0", diamonds: 0 },
@@ -105,7 +105,7 @@ const TEAMS: Team[] = [
     country: "England",
     kit: "from-white via-[#C8102E] to-white",
     accent: "border-white",
-    glow: "shadow-red-400/30",
+    glow: "shadow-none",
     creators: [
       { username: "j.wliveacc", diamonds: 0 },
       { username: "elliex035", diamonds: 0 },
@@ -121,7 +121,7 @@ const TEAMS: Team[] = [
     country: "Portugal",
     kit: "from-[#006600] via-[#FF0000] to-[#FFCC00]",
     accent: "border-[#006600]",
-    glow: "shadow-green-500/30",
+    glow: "shadow-none",
     creators: [
       { username: "dylanjinks", diamonds: 0 },
       { username: "mollsjadex", diamonds: 0 },
@@ -137,7 +137,7 @@ const TEAMS: Team[] = [
     country: "Netherlands",
     kit: "from-[#AE1C28] via-white to-[#21468B]",
     accent: "border-[#21468B]",
-    glow: "shadow-blue-500/30",
+    glow: "shadow-none",
     creators: [
       { username: "harryjonesey", diamonds: 0 },
       { username: "damo_bafc", diamonds: 0 },
@@ -309,10 +309,20 @@ function CreatorAvatar({
   );
 }
 
-function CountryFlag({ country }: { country: string }) {
+function CountryFlag({
+  country,
+  size = "normal",
+}: {
+  country: string;
+  size?: "normal" | "small";
+}) {
+  const flagSize = size === "small" ? "h-10 w-10" : "h-12 w-12";
+  const stripeThin = size === "small" ? "h-2.5" : "h-3";
+  const stripeThick = size === "small" ? "h-5" : "h-6";
+
   if (country === "France") {
     return (
-      <div className="grid h-12 w-12 grid-cols-3 overflow-hidden rounded-full shadow-lg">
+      <div className={`grid ${flagSize} grid-cols-3 overflow-hidden rounded-full shadow-lg`}>
         <div className="bg-[#002654]" />
         <div className="bg-white" />
         <div className="bg-[#ED2939]" />
@@ -322,7 +332,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "Germany") {
     return (
-      <div className="grid h-12 w-12 grid-rows-3 overflow-hidden rounded-full shadow-lg">
+      <div className={`grid ${flagSize} grid-rows-3 overflow-hidden rounded-full shadow-lg`}>
         <div className="bg-black" />
         <div className="bg-[#DD0000]" />
         <div className="bg-[#FFCE00]" />
@@ -332,7 +342,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "Netherlands") {
     return (
-      <div className="grid h-12 w-12 grid-rows-3 overflow-hidden rounded-full shadow-lg">
+      <div className={`grid ${flagSize} grid-rows-3 overflow-hidden rounded-full shadow-lg`}>
         <div className="bg-[#AE1C28]" />
         <div className="bg-white" />
         <div className="bg-[#21468B]" />
@@ -342,17 +352,17 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "Spain") {
     return (
-      <div className="grid h-12 w-12 overflow-hidden rounded-full shadow-lg">
-        <div className="h-3 bg-[#AA151B]" />
-        <div className="h-6 bg-[#F1BF00]" />
-        <div className="h-3 bg-[#AA151B]" />
+      <div className={`grid ${flagSize} overflow-hidden rounded-full shadow-lg`}>
+        <div className={`${stripeThin} bg-[#AA151B]`} />
+        <div className={`${stripeThick} bg-[#F1BF00]`} />
+        <div className={`${stripeThin} bg-[#AA151B]`} />
       </div>
     );
   }
 
   if (country === "Argentina") {
     return (
-      <div className="grid h-12 w-12 grid-rows-3 overflow-hidden rounded-full shadow-lg">
+      <div className={`grid ${flagSize} grid-rows-3 overflow-hidden rounded-full shadow-lg`}>
         <div className="bg-[#6CACE4]" />
         <div className="relative bg-white">
           <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F6B40E]" />
@@ -364,7 +374,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "England") {
     return (
-      <div className="relative h-12 w-12 overflow-hidden rounded-full bg-white shadow-lg">
+      <div className={`relative ${flagSize} overflow-hidden rounded-full bg-white shadow-lg`}>
         <div className="absolute left-1/2 top-0 h-full w-2 -translate-x-1/2 bg-[#C8102E]" />
         <div className="absolute left-0 top-1/2 h-2 w-full -translate-y-1/2 bg-[#C8102E]" />
       </div>
@@ -373,7 +383,7 @@ function CountryFlag({ country }: { country: string }) {
 
   if (country === "Portugal") {
     return (
-      <div className="relative flex h-12 w-12 overflow-hidden rounded-full shadow-lg">
+      <div className={`relative flex ${flagSize} overflow-hidden rounded-full shadow-lg`}>
         <div className="w-[42%] bg-[#006600]" />
         <div className="flex-1 bg-[#FF0000]" />
         <div className="absolute left-[34%] top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-[#FFCC00]" />
@@ -382,7 +392,7 @@ function CountryFlag({ country }: { country: string }) {
   }
 
   return (
-    <div className="relative h-12 w-12 overflow-hidden rounded-full bg-[#009739] shadow-lg">
+    <div className={`relative ${flagSize} overflow-hidden rounded-full bg-[#009739] shadow-lg`}>
       <div className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[#FEDD00]" />
       <div className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#012169]" />
     </div>
@@ -443,7 +453,7 @@ function PodiumCard({ team, place }: { team: Team; place: number }) {
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border ${team.accent} bg-[#06324f]/95 text-center shadow-xl ${team.glow}`}
+      className={`relative overflow-hidden rounded-2xl border ${team.accent} bg-[#06324f]/95 text-center shadow-xl`}
     >
       <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${team.kit}`} />
 
@@ -460,23 +470,23 @@ function PodiumCard({ team, place }: { team: Team; place: number }) {
           {formatDiamonds(total)}
         </p>
 
-        <div className="mt-3 flex items-start justify-center gap-1">
+        <div className="mt-3 flex items-start justify-center gap-0">
           {second && (
             <div className="-mr-2 flex min-w-0 flex-col items-center opacity-95">
-              <CreatorAvatar username={second.username} size="small" />
+              <CreatorAvatar username={second.username} size="tiny" />
               
               
             </div>
           )}
 
           <div className="z-10 flex min-w-0 flex-col items-center">
-            <CreatorAvatar username={captain.username} size="medium" captain />
+            <CreatorAvatar username={captain.username} size="medium" />
             
           </div>
 
           {third && (
             <div className="-ml-2 flex min-w-0 flex-col items-center opacity-95">
-              <CreatorAvatar username={third.username} size="small" />
+              <CreatorAvatar username={third.username} size="tiny" />
               
             </div>
           )}
@@ -503,46 +513,50 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center gap-3 px-3 py-4 text-left"
+        className="grid w-full grid-cols-[66px_minmax(0,1fr)_78px_38px] items-center gap-2 px-3 py-4 text-left sm:grid-cols-[78px_minmax(0,1fr)_105px_42px] sm:gap-4 sm:px-4 sm:py-5"
       >
-        <div className="w-7 shrink-0 text-center text-xl font-black text-white">
-          {index + 1}
+        <div className="flex shrink-0 flex-col items-center justify-center gap-1">
+          <div className="text-lg font-black leading-none text-white sm:text-xl">
+            {index + 1}
+          </div>
+
+          <CountryFlag country={team.country} size="small" />
         </div>
 
-        <CountryFlag country={team.country} />
-
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl font-black uppercase text-white">
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-black uppercase text-white sm:text-xl">
             Team {team.country}
           </h2>
 
-          <div className="mt-2 flex items-center gap-3">
-            <CreatorAvatar username={captain.username} size="medium" captain />
+          <div className="mt-2 flex min-w-0 items-center">
+            <CreatorAvatar username={captain.username} size="small" captain />
 
-            <div className="flex items-center">
+            <div className="ml-2 flex min-w-0 items-center">
               {nextThree.map((creator, avatarIndex) => (
                 <div
                   key={creator.username}
                   className={avatarIndex === 0 ? "" : "-ml-3"}
                 >
-                  <CreatorAvatar username={creator.username} size="small" />
+                  <CreatorAvatar username={creator.username} size="tiny" />
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="shrink-0 text-right">
-          <p className="text-xs font-black text-cyan-100/45">Points</p>
-          <p className="text-2xl font-black text-white">
+        <div className="z-10 min-w-0 shrink-0 text-right">
+          <p className="text-[10px] font-black text-cyan-100/45 sm:text-xs">
+            Points
+          </p>
+          <p className="truncate text-2xl font-black leading-none text-white sm:text-3xl">
             {formatDiamonds(total)}
           </p>
-          <p className="mt-1 text-xs font-bold text-cyan-100/45">
+          <p className="mt-1 text-[10px] font-bold text-cyan-100/45 sm:text-xs">
             {team.creators.length} players
           </p>
         </div>
 
-        <div className="ml-1 shrink-0 rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-2 text-cyan-100">
+        <div className="shrink-0 rounded-full border border-cyan-200/20 bg-cyan-300/10 px-2 py-2 text-cyan-100">
           <span
             className={`block text-lg leading-none transition-transform ${
               open ? "rotate-180" : ""
@@ -585,8 +599,8 @@ export default function WorldCupPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#05263d] via-transparent to-black/20" />
           </div>
 
-          <div className="px-3 pb-4 pt-4">
-            <div className="mb-4 grid grid-cols-3 gap-3">
+          <div className="px-3 pb-5 pt-4 sm:px-4">
+            <div className="mb-5 grid grid-cols-3 gap-2 sm:gap-3">
               {sortedTeams.slice(1, 2).map((team) => (
                 <PodiumCard key={team.id} team={team} place={2} />
               ))}
@@ -633,7 +647,7 @@ export default function WorldCupPage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-cyan-200/15">
+            <div className="overflow-hidden rounded-2xl border border-cyan-200/15 divide-y divide-cyan-200/10">
               {sortedTeams.map((team, index) => (
                 <TeamRow key={team.id} team={team} index={index} />
               ))}
