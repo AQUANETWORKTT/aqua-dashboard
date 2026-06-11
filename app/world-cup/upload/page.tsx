@@ -42,32 +42,23 @@ export default function WorldCupUploadPage() {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
 
-    console.log("HEADERS:", Object.keys(json[0] || {}));
-    console.log("FIRST ROW:", json[0]);
+    const json = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+      header: 1,
+      defval: "",
+    });
 
     const parsed = json
+      .slice(1)
       .map((row) => ({
         score_date: uploadDate,
-        creator_username: cleanUsername(
-          row["Creator's username"] ??
-          row["Creator Username"] ??
-          row["creator_username"] ??
-          row["Username"]
-        ),
-        diamonds: toNumber(
-          row["Diamonds"] ??
-          row["diamonds"]
-        ),
+        creator_username: cleanUsername(row[2]),
+        diamonds: toNumber(row[7]),
       }))
       .filter((row) => row.creator_username);
 
     setRows(parsed);
-
-    setStatus(
-      `Loaded ${parsed.length} rows for ${uploadDate}`
-    );
+    setStatus(`Loaded ${parsed.length} rows for ${uploadDate}`);
   }
 
   async function uploadRows() {
@@ -77,37 +68,28 @@ export default function WorldCupUploadPage() {
     }
 
     if (rows.length === 0) {
-      setStatus(
-        "No rows loaded. Upload a file first and check column names."
-      );
+      setStatus("No rows loaded. Select a date, then upload the Excel file.");
       return;
     }
 
     setStatus("Uploading...");
 
-    try {
-      const res = await fetch("/api/world-cup/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ rows }),
-      });
+    const res = await fetch("/api/world-cup/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ rows }),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) {
-        setStatus(data.error || "Upload failed");
-        return;
-      }
-
-      setStatus(
-        `Uploaded ${data.count} World Cup scores for ${uploadDate}`
-      );
-    } catch (error) {
-      console.error(error);
-      setStatus("Upload failed");
+    if (!res.ok) {
+      setStatus(data.error || "Upload failed");
+      return;
     }
+
+    setStatus(`Uploaded ${data.count} World Cup scores for ${uploadDate}`);
   }
 
   return (
@@ -117,7 +99,6 @@ export default function WorldCupUploadPage() {
           <h1 className="text-3xl font-black uppercase tracking-wide text-cyan-100">
             World Cup Upload
           </h1>
-
           <p className="mt-2 text-sm font-bold text-cyan-100/70">
             Upload one daily export. Only creator username and diamonds are used.
           </p>
@@ -128,7 +109,6 @@ export default function WorldCupUploadPage() {
             <label className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-cyan-100/60">
               Upload Date
             </label>
-
             <input
               type="date"
               value={uploadDate}
@@ -145,7 +125,6 @@ export default function WorldCupUploadPage() {
             <label className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-cyan-100/60">
               Daily Export File
             </label>
-
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -223,11 +202,9 @@ export default function WorldCupUploadPage() {
                       <td className="px-4 py-3 text-sm font-bold text-white/80">
                         {row.score_date}
                       </td>
-
                       <td className="px-4 py-3 text-sm font-black text-white">
                         {row.creator_username}
                       </td>
-
                       <td className="px-4 py-3 text-right text-sm font-black text-cyan-100">
                         {row.diamonds.toLocaleString()}
                       </td>
