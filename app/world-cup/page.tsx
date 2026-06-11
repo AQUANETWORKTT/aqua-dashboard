@@ -107,8 +107,8 @@ const TEAMS: Team[] = [
     accent: "border-white",
     glow: "shadow-none",
     creators: [
-      { username: "j.wliveacc", diamonds: 0 },
       { username: "elliex035", diamonds: 0 },
+      { username: "j.wliveacc", diamonds: 0 },
       { username: "bd00772", diamonds: 0 },
       { username: "shaysullivan316", diamonds: 0 },
       { username: "adam_gym234", diamonds: 0 },

@@ -17,14 +17,32 @@ function cleanUsername(value: unknown) {
 }
 
 function toNumber(value: unknown) {
-  const num = Number(String(value || "").replace(/,/g, ""));
+  const num = Number(String(value || "").replace(/,/g, "").replace(/[^\d.-]/g, ""));
   return Number.isFinite(num) ? num : 0;
+}
+
+function findColumnIndex(headers: unknown[], possibleNames: string[]) {
+  const cleanHeaders = headers.map((h) =>
+    String(h || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+  );
+
+  for (const name of possibleNames) {
+    const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const index = cleanHeaders.findIndex((h) => h === cleanName || h.includes(cleanName));
+    if (index !== -1) return index;
+  }
+
+  return -1;
 }
 
 export default function WorldCupUploadPage() {
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [uploadDate, setUploadDate] = useState("");
   const [status, setStatus] = useState("");
+  const [debugRows, setDebugRows] = useState<unknown[][]>([]);
 
   const totalDiamonds = useMemo(
     () => rows.reduce((sum, row) => sum + row.diamonds, 0),
@@ -32,6 +50,8 @@ export default function WorldCupUploadPage() {
   );
 
   async function handleFile(file: File) {
+    setRows([]);
+    setDebugRows([]);
     setStatus("");
 
     if (!uploadDate) {
@@ -43,22 +63,67 @@ export default function WorldCupUploadPage() {
     const workbook = XLSX.read(buffer);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-    const json = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+    const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
       header: 1,
       defval: "",
     });
 
-    const parsed = json
-      .slice(1)
+    setDebugRows(rawRows.slice(0, 8));
+
+    const headerIndex = rawRows.findIndex((row) =>
+      row.some((cell) =>
+        String(cell || "")
+          .toLowerCase()
+          .includes("creator")
+      ) &&
+      row.some((cell) =>
+        String(cell || "")
+          .toLowerCase()
+          .includes("diamond")
+      )
+    );
+
+    if (headerIndex === -1) {
+      setStatus("Could not find the header row. Check the preview below.");
+      return;
+    }
+
+    const headers = rawRows[headerIndex];
+
+    const usernameIndex = findColumnIndex(headers, [
+      "Creator's username",
+      "Creator username",
+      "Username",
+      "Creator",
+    ]);
+
+    const diamondsIndex = findColumnIndex(headers, [
+      "Diamonds",
+      "Diamond",
+      "Diamonds earned",
+      "Total diamonds",
+    ]);
+
+    if (usernameIndex === -1 || diamondsIndex === -1) {
+      setStatus(
+        `Could not find columns. Username column: ${usernameIndex}, Diamonds column: ${diamondsIndex}. Check the preview below.`
+      );
+      return;
+    }
+
+    const parsed = rawRows
+      .slice(headerIndex + 1)
       .map((row) => ({
         score_date: uploadDate,
-        creator_username: cleanUsername(row[2]),
-        diamonds: toNumber(row[7]),
+        creator_username: cleanUsername(row[usernameIndex]),
+        diamonds: toNumber(row[diamondsIndex]),
       }))
       .filter((row) => row.creator_username);
 
     setRows(parsed);
-    setStatus(`Loaded ${parsed.length} rows for ${uploadDate}`);
+    setStatus(
+      `Loaded ${parsed.length} rows for ${uploadDate}. Username column ${usernameIndex + 1}, diamonds column ${diamondsIndex + 1}.`
+    );
   }
 
   async function uploadRows() {
@@ -74,22 +139,27 @@ export default function WorldCupUploadPage() {
 
     setStatus("Uploading...");
 
-    const res = await fetch("/api/world-cup/upload", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ rows }),
-    });
+    try {
+      const res = await fetch("/api/world-cup/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ rows }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      setStatus(data.error || "Upload failed");
-      return;
+      if (!res.ok) {
+        setStatus(data.error || "Upload failed");
+        return;
+      }
+
+      setStatus(`Uploaded ${data.count} World Cup scores for ${uploadDate}`);
+    } catch (error) {
+      console.error(error);
+      setStatus("Upload failed");
     }
-
-    setStatus(`Uploaded ${data.count} World Cup scores for ${uploadDate}`);
   }
 
   return (
@@ -99,6 +169,7 @@ export default function WorldCupUploadPage() {
           <h1 className="text-3xl font-black uppercase tracking-wide text-cyan-100">
             World Cup Upload
           </h1>
+
           <p className="mt-2 text-sm font-bold text-cyan-100/70">
             Upload one daily export. Only creator username and diamonds are used.
           </p>
@@ -109,6 +180,7 @@ export default function WorldCupUploadPage() {
             <label className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-cyan-100/60">
               Upload Date
             </label>
+
             <input
               type="date"
               value={uploadDate}
@@ -125,6 +197,7 @@ export default function WorldCupUploadPage() {
             <label className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-cyan-100/60">
               Daily Export File
             </label>
+
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -202,9 +275,11 @@ export default function WorldCupUploadPage() {
                       <td className="px-4 py-3 text-sm font-bold text-white/80">
                         {row.score_date}
                       </td>
+
                       <td className="px-4 py-3 text-sm font-black text-white">
                         {row.creator_username}
                       </td>
+
                       <td className="px-4 py-3 text-right text-sm font-black text-cyan-100">
                         {row.diamonds.toLocaleString()}
                       </td>
@@ -214,6 +289,37 @@ export default function WorldCupUploadPage() {
               </table>
             </div>
           </>
+        )}
+
+        {debugRows.length > 0 && rows.length === 0 && (
+          <div className="mt-5 overflow-hidden rounded-2xl border border-red-200/20 bg-red-500/10">
+            <div className="px-4 py-3 text-sm font-black uppercase text-red-100">
+              File Preview - First Rows
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-xs">
+                <tbody>
+                  {debugRows.map((row, rowIndex) => (
+                    <tr key={rowIndex} className="border-t border-red-200/10">
+                      <td className="px-3 py-2 font-black text-red-100">
+                        Row {rowIndex + 1}
+                      </td>
+
+                      {row.slice(0, 15).map((cell, cellIndex) => (
+                        <td
+                          key={cellIndex}
+                          className="min-w-[120px] px-3 py-2 text-white/80"
+                        >
+                          {String(cell || "")}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </div>
     </main>
