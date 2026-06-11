@@ -109,6 +109,7 @@ const TEAMS: Team[] = [
     creators: [
       { username: "j.wliveacc", diamonds: 0 },
       { username: "elliex035", diamonds: 0 },
+      { username: "bd00772", diamonds: 0 },
       { username: "shaysullivan316", diamonds: 0 },
       { username: "adam_gym234", diamonds: 0 },
       { username: "essexdollabi", diamonds: 0 },
@@ -565,13 +566,40 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
 }
 
 export default function WorldCupPage() {
-  const sortedTeams = useMemo(() => {
-    return [...TEAMS].sort((a, b) => getTeamTotal(b) - getTeamTotal(a));
+  const [scores, setScores] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    fetch("/api/world-cup/upload")
+      .then((r) => r.json())
+      .then((data) => setScores(data))
+      .catch(console.error);
   }, []);
 
+  const teamsWithScores = useMemo(() => {
+    return TEAMS.map((team) => ({
+      ...team,
+      creators: team.creators.map((creator) => ({
+        ...creator,
+        diamonds:
+          scores[
+            creator.username
+              .replace("@", "")
+              .trim()
+              .toLowerCase()
+          ] || 0,
+      })),
+    }));
+  }, [scores]);
+
+  const sortedTeams = useMemo(() => {
+    return [...teamsWithScores].sort(
+      (a, b) => getTeamTotal(b) - getTeamTotal(a)
+    );
+  }, [teamsWithScores]);
+
   const totalPlayers = useMemo(
-    () => TEAMS.reduce((sum, team) => sum + team.creators.length, 0),
-    []
+    () => teamsWithScores.reduce((sum, team) => sum + team.creators.length, 0),
+    [teamsWithScores]
   );
 
   return (
@@ -581,7 +609,6 @@ export default function WorldCupPage() {
       <section className="mx-auto max-w-3xl px-3 pt-4">
         <div className="overflow-hidden rounded-[1.7rem] border border-cyan-200/15 bg-[#05263d] shadow-2xl shadow-cyan-950/60">
           <div className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={HERO_IMAGE}
               alt="Aqua World Cup"
@@ -607,18 +634,18 @@ export default function WorldCupPage() {
             </div>
 
             <div className="mb-4 rounded-2xl border border-cyan-200/15 bg-cyan-300/10 px-4 py-5 text-center">
-  <p className="text-lg font-black uppercase tracking-[0.12em] text-cyan-100">
-    1 Diamond = 1 Point
-  </p>
+              <p className="text-lg font-black uppercase tracking-[0.12em] text-cyan-100">
+                1 Diamond = 1 Point
+              </p>
 
-  <p className="mt-1 text-sm font-black uppercase tracking-[0.12em] text-cyan-100/70">
-    11th June – 19th June
-  </p>
-</div>
+              <p className="mt-1 text-sm font-black uppercase tracking-[0.12em] text-cyan-100/70">
+                11th June – 19th June
+              </p>
+            </div>
 
             <div className="mb-4 grid grid-cols-3 gap-3">
               <div className="rounded-2xl bg-white/10 px-3 py-4 text-center">
-                <p className="text-xl font-black">{TEAMS.length}</p>
+                <p className="text-xl font-black">{teamsWithScores.length}</p>
                 <p className="text-[10px] font-black uppercase text-cyan-100/50">
                   Teams
                 </p>
