@@ -401,7 +401,10 @@ function CountryFlag({
 }
 
 function FullTeamDropdown({ team }: { team: Team }) {
-  const sortedCreators = sortCreators(team.creators);
+  const sortedCreators = [
+    team.creators[0],
+    ...sortCreators(team.creators.slice(1)),
+  ];
 
   return (
     <div className="px-3 pb-4">
@@ -447,10 +450,14 @@ function FullTeamDropdown({ team }: { team: Team }) {
 
 function PodiumCard({ team, place }: { team: Team; place: number }) {
   const total = getTeamTotal(team);
-  const sortedCreators = sortCreators(team.creators);
-  const captain = sortedCreators[0];
-  const second = sortedCreators[1];
-  const third = sortedCreators[2];
+  const captain = team.creators[0];
+
+  const sortedCreators = sortCreators(
+    team.creators.filter((c) => c.username !== captain.username)
+  );
+
+  const second = sortedCreators[0];
+  const third = sortedCreators[1];
 
   return (
     <div
@@ -505,9 +512,11 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
   const [open, setOpen] = useState(false);
 
   const total = getTeamTotal(team);
-  const sortedCreators = sortCreators(team.creators);
-  const captain = sortedCreators[0];
-  const previewCreators = sortedCreators.slice(1, 5);
+  const captain = team.creators[0];
+
+  const previewCreators = sortCreators(
+    team.creators.filter((c) => c.username !== captain.username)
+  ).slice(0, 4);
 
   return (
     <div className="overflow-hidden border-b border-cyan-200/10 bg-[#052f4a]/85 last:border-b-0">
