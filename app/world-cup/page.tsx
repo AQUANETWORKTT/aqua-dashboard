@@ -145,7 +145,7 @@ const TEAMS: Team[] = [
       { username: "kaidensc07", diamonds: 0 },
       { username: "_zeedz", diamonds: 0 },
       { username: "rubesamari4", diamonds: 0 },
-      { username: "y0ur_local_j", diamonds: 0 },
+      { username: "y0ur_l0cal_j", diamonds: 0 },
       { username: "callum.072", diamonds: 0 },
     ],
   },
