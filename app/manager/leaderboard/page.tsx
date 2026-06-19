@@ -39,7 +39,6 @@ const managerTargets: Record<string, number> = {
   james: 50,
   alfie: 50,
   dylan: 40,
-  mavis: 30,
   chris: 40,
 
   ellie: 35,
