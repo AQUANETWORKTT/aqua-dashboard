@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { Rnd } from "react-rnd";
 import { createClient } from "@supabase/supabase-js";
@@ -20,7 +21,23 @@ type Battle = {
 
 type Mode = "single" | "mass";
 
-type PosterElementKey = "avatar1" | "avatar2" | "username1" | "username2" | "date";
+type DirectoryPickerHandle = {
+  getDirectoryHandle: (
+    name: string,
+    options?: { create?: boolean }
+  ) => Promise<DirectoryPickerHandle>;
+  getFileHandle: (
+    name: string,
+    options?: { create?: boolean }
+  ) => Promise<{
+    createWritable: () => Promise<{
+      write: (data: Blob) => Promise<void>;
+      close: () => Promise<void>;
+    }>;
+  }>;
+};
+
+type PosterElementKey = "avatar1" | "avatar2" | "username1" | "username2" | "date" | "time";
 
 type PosterElement = {
   x: number;
@@ -40,6 +57,10 @@ type PosterElement = {
   letterSpacing?: number;
   fontWeight?: number;
   uppercase?: boolean;
+  gradientEnabled?: boolean;
+  gradientFrom?: string;
+  gradientTo?: string;
+  gradientDirection?: string;
 };
 
 type PosterTemplateJson = Record<PosterElementKey, PosterElement> & {
@@ -61,17 +82,20 @@ const ELEMENT_LABELS: Record<PosterElementKey, string> = {
   avatar2: "Avatar 2",
   username1: "Username 1",
   username2: "Username 2",
-  date: "Date / Time",
+  date: "Date",
+  time: "Time",
 };
 
 const EDIT_PREVIEW_VALUES = {
   username1: "USERNAME123456",
   username2: "USERNAME654321",
-  date: "Wednesday 27th June | 8:00PM",
+  date: "Wednesday 27th June",
+  time: "8:00PM",
 };
 
 const FONT_OPTIONS = [
   "Luckiest Guy",
+  "Norwester",
   "Anton",
   "Bangers",
   "Bebas Neue",
@@ -90,7 +114,7 @@ const FONT_OPTIONS = [
   "Times New Roman",
 ];
 
-const TEXT_ELEMENT_KEYS: PosterElementKey[] = ["username1", "username2", "date"];
+const TEXT_ELEMENT_KEYS: PosterElementKey[] = ["username1", "username2", "date", "time"];
 
 const DEFAULT_TEMPLATE_JSON: PosterTemplateJson = {
   backgroundUrl: "",
@@ -103,7 +127,7 @@ const DEFAULT_TEMPLATE_JSON: PosterTemplateJson = {
     height: 70,
     fontFamily: "Luckiest Guy",
     fontSize: 58,
-    color: "#38DDF8",
+    color: "#5CEEFF",
     strokeColor: "black",
     strokeWidth: 2,
     shadow: "2px 2px 0px black",
@@ -114,6 +138,10 @@ const DEFAULT_TEMPLATE_JSON: PosterTemplateJson = {
     letterSpacing: 1,
     fontWeight: 900,
     uppercase: true,
+    gradientEnabled: false,
+    gradientFrom: "#5CEEFF",
+    gradientTo: "#0044FF",
+    gradientDirection: "to bottom",
   },
   username2: {
     x: 585,
@@ -122,7 +150,7 @@ const DEFAULT_TEMPLATE_JSON: PosterTemplateJson = {
     height: 70,
     fontFamily: "Luckiest Guy",
     fontSize: 58,
-    color: "#38DDF8",
+    color: "#5CEEFF",
     strokeColor: "black",
     strokeWidth: 2,
     shadow: "2px 2px 0px black",
@@ -133,15 +161,19 @@ const DEFAULT_TEMPLATE_JSON: PosterTemplateJson = {
     letterSpacing: 1,
     fontWeight: 900,
     uppercase: true,
+    gradientEnabled: false,
+    gradientFrom: "#5CEEFF",
+    gradientTo: "#0044FF",
+    gradientDirection: "to bottom",
   },
   date: {
     x: 155,
     y: 1337,
-    width: 770,
+    width: 560,
     height: 70,
     fontFamily: "Luckiest Guy",
     fontSize: 62,
-    color: "#38DDF8",
+    color: "#5CEEFF",
     strokeColor: "black",
     strokeWidth: 2,
     shadow: "3px 3px 0px black",
@@ -152,6 +184,33 @@ const DEFAULT_TEMPLATE_JSON: PosterTemplateJson = {
     letterSpacing: 1,
     fontWeight: 900,
     uppercase: true,
+    gradientEnabled: false,
+    gradientFrom: "#5CEEFF",
+    gradientTo: "#0044FF",
+    gradientDirection: "to bottom",
+  },
+  time: {
+    x: 715,
+    y: 1337,
+    width: 210,
+    height: 70,
+    fontFamily: "Luckiest Guy",
+    fontSize: 62,
+    color: "#5CEEFF",
+    strokeColor: "black",
+    strokeWidth: 2,
+    shadow: "3px 3px 0px black",
+    shadowColor: "#000000",
+    shadowX: 3,
+    shadowY: 3,
+    shadowBlur: 0,
+    letterSpacing: 1,
+    fontWeight: 900,
+    uppercase: true,
+    gradientEnabled: false,
+    gradientFrom: "#5CEEFF",
+    gradientTo: "#0044FF",
+    gradientDirection: "to bottom",
   },
 };
 
@@ -173,6 +232,8 @@ function createLocalTemplate(): PosterTemplateRow {
 
 function normalizeTemplateJson(input: Partial<PosterTemplateJson> | null | undefined): PosterTemplateJson {
   const incoming = input || {};
+  const hasSeparateTimeElement = Object.prototype.hasOwnProperty.call(incoming, "time");
+
   return {
     ...structuredClone(DEFAULT_TEMPLATE_JSON),
     ...incoming,
@@ -180,7 +241,12 @@ function normalizeTemplateJson(input: Partial<PosterTemplateJson> | null | undef
     avatar2: { ...DEFAULT_TEMPLATE_JSON.avatar2, ...(incoming.avatar2 || {}) },
     username1: { ...DEFAULT_TEMPLATE_JSON.username1, ...(incoming.username1 || {}) },
     username2: { ...DEFAULT_TEMPLATE_JSON.username2, ...(incoming.username2 || {}) },
-    date: { ...DEFAULT_TEMPLATE_JSON.date, ...(incoming.date || {}) },
+    date: {
+      ...DEFAULT_TEMPLATE_JSON.date,
+      ...(incoming.date || {}),
+      ...(!hasSeparateTimeElement ? { width: DEFAULT_TEMPLATE_JSON.date.width } : {}),
+    },
+    time: { ...DEFAULT_TEMPLATE_JSON.time, ...(incoming.time || {}) },
     backgroundUrl:
       Object.prototype.hasOwnProperty.call(incoming, "backgroundUrl")
         ? incoming.backgroundUrl
@@ -189,19 +255,31 @@ function normalizeTemplateJson(input: Partial<PosterTemplateJson> | null | undef
 }
 
 function getPosterSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  try {
+    const url =
+      process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  if (!url || !anonKey) return null;
+    const anonKey =
+      process.env.NEXT_PUBLIC_SUBMISSIONS_SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  return createClient(url, anonKey);
+    if (!url || !anonKey) {
+      alert(`URL=${url ? "YES" : "NO"} | KEY=${anonKey ? "YES" : "NO"}`);
+      return null;
+    }
+
+    return createClient(url, anonKey);
+  } catch {
+    return null;
+  }
 }
 
 const BRAND = {
-  name: "Aqua Vata Generator",
+  name: "Aqua Battle Generator",
   manager: "AQUA",
-  posterBackground: "/posters/aqua-vata/background.png",
-  zipName: "Aqua-Vata-Posters.zip",
+  posterBackground: "/posters/aqua-battle/background.png",
+  zipName: "Aqua-Battle-Posters.zip",
 };
 
 const DEFAULT_YEAR = 2026;
@@ -362,7 +440,7 @@ function TextInput({
 }) {
   return (
     <label className="block">
-      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">
+      <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">
         {label}
       </p>
       <input
@@ -374,7 +452,7 @@ function TextInput({
           e.stopPropagation();
           if (e.key === "Enter") e.preventDefault();
         }}
-        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
+        className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
       />
     </label>
   );
@@ -395,15 +473,15 @@ function DayMonthDateSelect({
 
   return (
     <div>
-      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">
+      <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">
         Date
       </p>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <select
           value={day}
           onChange={(e) => onDayChange(e.target.value)}
-          className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
+          className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
         >
           <option value="">Day</option>
           {Array.from({ length: daysInMonth }, (_, index) => {
@@ -419,7 +497,7 @@ function DayMonthDateSelect({
         <select
           value={month}
           onChange={(e) => onMonthChange(e.target.value)}
-          className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
+          className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
         >
           <option value="">Month</option>
           {MONTHS.map((monthOption) => (
@@ -446,13 +524,13 @@ function TimeSelect({
 
   return (
     <label className="block">
-      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">
+      <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">
         {label}
       </p>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
+        className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
       >
         <option value="">Select time</option>
         {options.map((time) => (
@@ -465,9 +543,10 @@ function TimeSelect({
   );
 }
 
-export default function AquaVataGeneratorPage() {
+export default function AquaBattleGeneratorPage() {
   const stableId = useId().replaceAll(":", "");
   const posterRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const textResizeStartRef = useRef<Partial<Record<PosterElementKey, { height: number; fontSize: number }>>>({});
 
   const [activeMode, setActiveMode] = useState<Mode>("single");
 
@@ -747,14 +826,14 @@ export default function AquaVataGeneratorPage() {
     const localId = `local-${makeId()}`;
     const nextTemplate: PosterTemplateRow = {
       id: localId,
-      name: "New Aqua Template",
+      name: "New Template",
       background_url: null,
       template_json: nextJson,
     };
 
     setTemplates((prev) => [...prev, nextTemplate]);
     setSelectedTemplateId(localId);
-    setTemplateName("New Aqua Template");
+    setTemplateName("New Template");
     setUndoStack([]);
     updateWholeTemplateJson(nextJson);
     setSelectedElement("avatar1");
@@ -1429,7 +1508,7 @@ export default function AquaVataGeneratorPage() {
       setSaving(true);
 
       const picker = window as typeof window & {
-        showDirectoryPicker?: () => Promise<any>;
+        showDirectoryPicker?: () => Promise<DirectoryPickerHandle>;
       };
 
       if (!picker.showDirectoryPicker) {
@@ -1545,11 +1624,6 @@ export default function AquaVataGeneratorPage() {
     battle: Battle;
     scale?: number;
   }) {
-    const combinedDateTime =
-      battle.date && battle.time
-        ? `${battle.date} | ${battle.time}`
-        : battle.date || battle.time;
-
     const activeTemplate = normalizeTemplateJson(templateJson);
     const backgroundUrl = activeTemplate.backgroundUrl ?? BRAND.posterBackground;
 
@@ -1561,7 +1635,10 @@ export default function AquaVataGeneratorPage() {
       : battle.name2.toUpperCase();
     const displayDate = editMode
       ? EDIT_PREVIEW_VALUES.date
-      : combinedDateTime.toUpperCase();
+      : battle.date.toUpperCase();
+    const displayTime = editMode
+      ? EDIT_PREVIEW_VALUES.time
+      : battle.time.toUpperCase();
 
     function autoFontSize(value: string, element: PosterElement, fallback: number) {
       if (editMode) return element.fontSize || fallback;
@@ -1619,14 +1696,35 @@ export default function AquaVataGeneratorPage() {
             setSelectedElement(key);
             updateTemplateElement(key, { x: Math.round(data.x), y: Math.round(data.y) });
           }}
+          onResizeStart={() => {
+            setSelectedElement(key);
+            addUndoSnapshot(templateJson);
+          }}
+          onResize={(_, __, ref, ___, position) => {
+            setSelectedElement(key);
+            updateTemplateElement(
+              key,
+              {
+                x: Math.round(position.x),
+                y: Math.round(position.y),
+                width: Math.round(ref.offsetWidth),
+                height: Math.round(ref.offsetHeight),
+              },
+              false
+            );
+          }}
           onResizeStop={(_, __, ref, ___, position) => {
             setSelectedElement(key);
-            updateTemplateElement(key, {
-              x: Math.round(position.x),
-              y: Math.round(position.y),
-              width: Math.round(ref.offsetWidth),
-              height: Math.round(ref.offsetHeight),
-            });
+            updateTemplateElement(
+              key,
+              {
+                x: Math.round(position.x),
+                y: Math.round(position.y),
+                width: Math.round(ref.offsetWidth),
+                height: Math.round(ref.offsetHeight),
+              },
+              false
+            );
           }}
           className={`rounded-full ${isSelected ? "ring-[10px] ring-cyan-300" : "ring-[6px] ring-cyan-300/45"}`}
         >
@@ -1635,92 +1733,179 @@ export default function AquaVataGeneratorPage() {
       );
     }
 
-    function renderText(
-      key: "username1" | "username2" | "date",
-      value: string,
-      fallbackSize: number
-    ) {
-      if (!value) return null;
+function renderText(
+  key: "username1" | "username2" | "date" | "time",
+  value: string,
+  fallbackSize: number
+) {
+  if (!value) return null;
 
-      const element = activeTemplate[key];
-      const isSelected = editMode && selectedElement === key;
-      const fontSize = key === "date" ? element.fontSize || fallbackSize : autoFontSize(value, element, fallbackSize);
+  const element = activeTemplate[key];
+  const isSelected = editMode && selectedElement === key;
+  const fontSize =
+    key === "date" || key === "time"
+      ? element.fontSize || fallbackSize
+      : autoFontSize(value, element, fallbackSize);
 
-      const content = (
-        <div
-          className="w-full h-full flex items-center justify-center"
-          style={{
-            color: element.color || "#38DDF8",
-            fontFamily: `'${element.fontFamily || "Luckiest Guy"}', sans-serif`,
-            WebkitTextStroke: `${element.strokeWidth ?? 2}px ${element.strokeColor || "black"}`,
-            textShadow: `${element.shadowX ?? 2}px ${element.shadowY ?? 2}px ${element.shadowBlur ?? 0}px ${element.shadowColor || "#000000"}`,
-            letterSpacing: `${element.letterSpacing ?? 1}px`,
-            fontSize,
-            fontWeight: element.fontWeight || 900,
-            textTransform: element.uppercase === false ? "none" : "uppercase",
-          }}
-        >
-          <span className="leading-none text-center whitespace-nowrap">
-            {value}
-          </span>
-        </div>
-      );
+ const content = (
+  <div
+    className="w-full h-full flex items-center justify-center"
+    style={{
+      fontFamily: `'${element.fontFamily || "Luckiest Guy"}', sans-serif`,
+      WebkitTextStroke: `${element.strokeWidth ?? 2}px ${
+        element.strokeColor || "black"
+      }`,
+      textShadow: `${element.shadowX ?? 2}px ${
+        element.shadowY ?? 2
+      }px ${element.shadowBlur ?? 0}px ${
+        element.shadowColor || "#000000"
+      }`,
+      letterSpacing: `${element.letterSpacing ?? 1}px`,
+      fontSize,
+      fontWeight: element.fontWeight || 900,
+      textTransform:
+        element.uppercase === false ? "none" : "uppercase",
+    }}
+  >
+    <span
+      className="leading-none text-center whitespace-nowrap"
+      style={{
+        background: element.gradientEnabled
+          ? `linear-gradient(
+              ${element.gradientDirection || "to bottom"},
+              ${element.gradientFrom || "#5CEEFF"},
+              ${element.gradientTo || "#0044FF"}
+            )`
+          : undefined,
 
-      if (!editMode) {
-        return (
-          <div
-            className="absolute"
-            style={{
-              left: element.x,
-              top: element.y,
-              width: element.width,
-              height: element.height,
-            }}
-          >
-            {content}
-          </div>
-        );
-      }
+        WebkitBackgroundClip: element.gradientEnabled
+          ? "text"
+          : undefined,
 
-      return (
-        <Rnd
-          key={key}
-          scale={scale}
-          bounds="parent"
-          position={{ x: element.x, y: element.y }}
-          size={{ width: element.width, height: element.height }}
-          onMouseDown={() => setSelectedElement(key)}
-          onDragStop={(_, data) => {
-            setSelectedElement(key);
-            updateTemplateElement(key, { x: Math.round(data.x), y: Math.round(data.y) });
-          }}
-          onResizeStop={(_, __, ref, ___, position) => {
-            setSelectedElement(key);
+        backgroundClip: element.gradientEnabled
+          ? "text"
+          : undefined,
 
-            const newWidth = Math.round(ref.offsetWidth);
-            const newHeight = Math.round(ref.offsetHeight);
-            const oldHeight = element.height || newHeight;
-            const currentFontSize = element.fontSize || fallbackSize;
-            const scaleFactor = oldHeight > 0 ? newHeight / oldHeight : 1;
-            const newFontSize = Math.max(10, Math.round(currentFontSize * scaleFactor));
+        WebkitTextFillColor: element.gradientEnabled
+          ? "transparent"
+          : (element.color || "#5CEEFF"),
 
-            updateTemplateElement(key, {
-              x: Math.round(position.x),
-              y: Math.round(position.y),
-              width: newWidth,
-              height: newHeight,
-              fontSize: newFontSize,
-            });
-          }}
-          className={`${isSelected ? "ring-[8px] ring-cyan-300" : "ring-[5px] ring-cyan-300/45"} bg-black/10`}
-        >
-          {content}
-        </Rnd>
-      );
-    }
+        color: element.gradientEnabled
+          ? "transparent"
+          : (element.color || "#5CEEFF"),
+      }}
+    >
+      {value}
+    </span>
+  </div>
+);
 
+  if (!editMode) {
     return (
-      <div className="w-[324px] h-[576px] overflow-hidden mx-auto bg-black rounded-lg">
+      <div
+        className="absolute"
+        style={{
+          left: element.x,
+          top: element.y,
+          width: element.width,
+          height: element.height,
+        }}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Rnd
+      key={key}
+      scale={scale}
+      bounds="parent"
+      position={{ x: element.x, y: element.y }}
+      size={{ width: element.width, height: element.height }}
+      onMouseDown={() => setSelectedElement(key)}
+      onDragStop={(_, data) => {
+        setSelectedElement(key);
+        updateTemplateElement(key, {
+          x: Math.round(data.x),
+          y: Math.round(data.y),
+        });
+      }}
+      onResizeStart={() => {
+        setSelectedElement(key);
+        addUndoSnapshot(templateJson);
+        textResizeStartRef.current[key] = {
+          height: element.height || 1,
+          fontSize: element.fontSize || fallbackSize,
+        };
+      }}
+      onResize={(_, __, ref, ___, position) => {
+        setSelectedElement(key);
+
+        const newWidth = Math.round(ref.offsetWidth);
+        const newHeight = Math.round(ref.offsetHeight);
+        const resizeStart = textResizeStartRef.current[key] || {
+          height: element.height || newHeight || 1,
+          fontSize: element.fontSize || fallbackSize,
+        };
+        const scaleFactor = resizeStart.height > 0 ? newHeight / resizeStart.height : 1;
+        const newFontSize = Math.max(10, Math.round(resizeStart.fontSize * scaleFactor));
+
+        updateTemplateElement(
+          key,
+          {
+            x: Math.round(position.x),
+            y: Math.round(position.y),
+            width: newWidth,
+            height: newHeight,
+            fontSize: newFontSize,
+          },
+          false
+        );
+      }}
+      onResizeStop={(_, __, ref, ___, position) => {
+        setSelectedElement(key);
+
+        const newWidth = Math.round(ref.offsetWidth);
+        const newHeight = Math.round(ref.offsetHeight);
+        const resizeStart = textResizeStartRef.current[key] || {
+          height: element.height || newHeight || 1,
+          fontSize: element.fontSize || fallbackSize,
+        };
+        const scaleFactor = resizeStart.height > 0 ? newHeight / resizeStart.height : 1;
+        const newFontSize = Math.max(10, Math.round(resizeStart.fontSize * scaleFactor));
+
+        updateTemplateElement(
+          key,
+          {
+            x: Math.round(position.x),
+            y: Math.round(position.y),
+            width: newWidth,
+            height: newHeight,
+            fontSize: newFontSize,
+          },
+          false
+        );
+        delete textResizeStartRef.current[key];
+      }}
+      className={`${
+        isSelected
+          ? "ring-[8px] ring-cyan-300"
+          : "ring-[5px] ring-cyan-300/45"
+      } bg-black/10`}
+    >
+      {content}
+    </Rnd>
+  );
+}
+    return (
+      <div
+        className="overflow-hidden mx-auto bg-black rounded-lg"
+        style={{
+          width: POSTER_WIDTH * scale,
+          height: POSTER_HEIGHT * scale,
+        }}
+      >
         <div
           style={{
             transform: `scale(${scale})`,
@@ -1751,8 +1936,40 @@ export default function AquaVataGeneratorPage() {
             {renderText("username1", displayName1, 58)}
             {renderText("username2", displayName2, 58)}
             {renderText("date", displayDate, 62)}
+            {renderText("time", displayTime, 62)}
           </div>
         </div>
+      </div>
+    );
+  }
+
+  function TemplateSelectorPanel({ compact = false }: { compact?: boolean }) {
+    return (
+      <div className={compact ? "space-y-3" : "bg-black/35 border border-cyan-300/20 rounded-xl p-5 space-y-4"}>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-cyan-300 font-black uppercase tracking-widest text-sm">
+            Template Selector
+          </p>
+          <button
+            type="button"
+            onClick={() => setEditMode(true)}
+            className="bg-cyan-300 hover:bg-cyan-200 transition text-black font-black px-3 py-2 rounded-lg uppercase tracking-widest text-xs leading-tight min-h-[40px]"
+          >
+            Poster Template
+          </button>
+        </div>
+
+        <select
+          value={selectedTemplateId}
+          onChange={(e) => handleTemplateSelect(e.target.value)}
+          className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
+        >
+          {templates.map((template) => (
+            <option key={template.id} value={template.id}>
+              {template.name}
+            </option>
+          ))}
+        </select>
       </div>
     );
   }
@@ -1765,32 +1982,100 @@ export default function AquaVataGeneratorPage() {
 
     return (
       <div
-        className="bg-black/35 border border-cyan-300/25 rounded-xl p-5 space-y-5"
+        className="bg-black/35 border border-cyan-300/25 rounded-xl p-6 lg:p-8 space-y-7 overflow-x-auto"
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <div className="flex flex-col xl:flex-row gap-4 xl:items-end xl:justify-between">
-          <div className="space-y-2 flex-1">
-            <h2 className="text-cyan-300 font-black uppercase tracking-widest">
+        <div className="flex flex-col gap-5 2xl:flex-row 2xl:items-start 2xl:justify-between">
+          <div>
+            <h2 className="text-cyan-300 text-2xl font-black uppercase tracking-[0.18em]">
               Poster Template
             </h2>
+            <p className="text-white/45 text-sm mt-2">
+              Edit the active template, save it, then return to the generator.
+            </p>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-3">
-              <label className="block">
-                <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">
-                  Select Template
-                </p>
-                <select
-                  value={selectedTemplateId}
-                  onChange={(e) => handleTemplateSelect(e.target.value)}
-                  className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
-                >
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+          <div className="flex flex-wrap gap-3 2xl:justify-end">
+            <button
+              type="button"
+              onClick={() => setEditMode(false)}
+              className="bg-cyan-300 hover:bg-cyan-200 text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest transition text-xs leading-none min-h-[44px] whitespace-nowrap"
+            >
+              Back
+            </button>
+
+            <button
+              type="button"
+              onClick={createNewTemplate}
+              className="bg-black/40 hover:border-cyan-300 text-white border border-white/20 font-black px-4 py-3 rounded-lg uppercase tracking-widest transition text-xs leading-none min-h-[44px] whitespace-nowrap"
+            >
+              New
+            </button>
+
+            <button
+              type="button"
+              onClick={undoLastTemplateChange}
+              disabled={undoStack.length === 0}
+              className="bg-purple-400 hover:bg-purple-300 disabled:opacity-40 disabled:cursor-not-allowed text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest transition text-xs leading-none min-h-[44px] whitespace-nowrap"
+            >
+              Undo
+            </button>
+
+            <button
+              type="button"
+              onClick={redoLastTemplateChange}
+              disabled={redoStack.length === 0}
+              className="bg-purple-300 hover:bg-purple-200 disabled:opacity-40 disabled:cursor-not-allowed text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest transition text-xs leading-none min-h-[44px] whitespace-nowrap"
+            >
+              Redo
+            </button>
+
+            <button
+              type="button"
+              onClick={duplicateCurrentTemplate}
+              className="bg-black/40 hover:border-cyan-300 text-white border border-white/20 font-black px-4 py-3 rounded-lg uppercase tracking-widest transition text-xs leading-none min-h-[44px] whitespace-nowrap"
+            >
+              Duplicate
+            </button>
+
+            <button
+              type="button"
+              onClick={saveCurrentTemplate}
+              className="bg-cyan-300 hover:bg-cyan-200 text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest transition text-xs leading-none min-h-[44px] whitespace-nowrap"
+            >
+              Save
+            </button>
+
+            <button
+              type="button"
+              onClick={deleteCurrentTemplate}
+              className="bg-red-500/90 hover:bg-red-400 text-white font-black px-4 py-3 rounded-lg uppercase tracking-widest transition text-xs leading-none min-h-[44px] whitespace-nowrap"
+            >
+              Delete
+            </button>
+
+            <button
+              type="button"
+              onClick={resetTemplateToDefault}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-black px-4 py-3 rounded-lg uppercase tracking-widest transition text-xs leading-none min-h-[44px] whitespace-nowrap"
+            >
+              Reset
+            </button>
+
+            <button
+              type="button"
+              onClick={loadPosterTemplates}
+              className="bg-black/40 hover:border-cyan-300 text-white border border-white/20 font-black px-4 py-3 rounded-lg uppercase tracking-widest transition text-xs leading-none min-h-[44px] whitespace-nowrap"
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 2xl:grid-cols-[320px_minmax(0,1fr)] gap-8 items-start">
+          <aside className="space-y-4">
+            <div className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-4">
+              {TemplateSelectorPanel({ compact: true })}
 
               <TextInput
                 label="Template Name"
@@ -1803,135 +2088,51 @@ export default function AquaVataGeneratorPage() {
                 onBlur={() => setEditingTemplateName(false)}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-9 gap-2">
-            <button
-              type="button"
-              onClick={() => setEditMode((prev) => !prev)}
-              className={`px-4 py-3 rounded-lg font-black uppercase tracking-widest transition ${
-                editMode
-                  ? "bg-cyan-300 text-black"
-                  : "bg-black/40 text-white border border-white/20 hover:border-cyan-300"
-              }`}
-            >
-              {editMode ? "Exit Edit" : "Edit"}
-            </button>
+            <div className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-3">
+              <p className="text-white/55 text-xs font-black uppercase tracking-widest">
+                Background
+              </p>
 
-            <button
-              type="button"
-              onClick={createNewTemplate}
-              className="bg-black/40 hover:border-cyan-300 text-white border border-white/20 font-black px-4 py-3 rounded-lg uppercase tracking-widest transition"
-            >
-              New
-            </button>
+              <div className="aspect-[9/16] max-h-[300px] rounded-lg overflow-hidden border border-white/15 bg-black mx-auto">
+                {backgroundUrl ? (
+                  <img
+                    src={backgroundUrl}
+                    alt=""
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/30 text-xs">
+                    No background
+                  </div>
+                )}
+              </div>
 
-            <button
-              type="button"
-              onClick={undoLastTemplateChange}
-              disabled={undoStack.length === 0}
-              className="bg-purple-400 hover:bg-purple-300 disabled:opacity-40 disabled:cursor-not-allowed text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest transition"
-            >
-              ↶ Undo
-            </button>
+              <label
+                htmlFor={backgroundInputId}
+                className="block text-center cursor-pointer bg-cyan-300 hover:bg-cyan-200 transition text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest text-xs"
+              >
+                Import Background
+              </label>
 
-            <button
-              type="button"
-              onClick={redoLastTemplateChange}
-              disabled={redoStack.length === 0}
-              className="bg-purple-300 hover:bg-purple-200 disabled:opacity-40 disabled:cursor-not-allowed text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest transition"
-            >
-              ↷ Redo
-            </button>
+              <input
+                id={backgroundInputId}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleBackgroundUpload}
+              />
 
-            <button
-              type="button"
-              onClick={duplicateCurrentTemplate}
-              className="bg-black/40 hover:border-cyan-300 text-white border border-white/20 font-black px-4 py-3 rounded-lg uppercase tracking-widest transition"
-            >
-              Duplicate
-            </button>
-
-            <button
-              type="button"
-              onClick={saveCurrentTemplate}
-              className="bg-cyan-300 hover:bg-cyan-200 text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest transition"
-            >
-              Save
-            </button>
-
-            <button
-              type="button"
-              onClick={deleteCurrentTemplate}
-              className="bg-red-500/90 hover:bg-red-400 text-white font-black px-4 py-3 rounded-lg uppercase tracking-widest transition"
-            >
-              Delete
-            </button>
-
-            <button
-              type="button"
-              onClick={resetTemplateToDefault}
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-black px-4 py-3 rounded-lg uppercase tracking-widest transition"
-            >
-              Reset
-            </button>
-
-            <button
-              type="button"
-              onClick={loadPosterTemplates}
-              className="bg-black/40 hover:border-cyan-300 text-white border border-white/20 font-black px-4 py-3 rounded-lg uppercase tracking-widest transition"
-            >
-              Reload
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-4">
-          <div className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-3">
-            <p className="text-white/55 text-xs font-black uppercase tracking-widest">
-              Background
-            </p>
-
-            <div className="aspect-[9/16] max-h-[320px] rounded-lg overflow-hidden border border-white/15 bg-black mx-auto">
-              {backgroundUrl ? (
-                <img
-                  src={backgroundUrl}
-                  alt=""
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white/30 text-xs">
-                  No background
-                </div>
-              )}
+              <p className="text-white/35 text-xs">
+                Press Save after upload to attach it to this template.
+              </p>
             </div>
 
-            <label
-              htmlFor={backgroundInputId}
-              className="block text-center cursor-pointer bg-cyan-300 hover:bg-cyan-200 transition text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest text-xs"
-            >
-              Import Background
-            </label>
-
-            <input
-              id={backgroundInputId}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleBackgroundUpload}
-            />
-
-            <p className="text-white/35 text-xs">
-              Upload PNG/JPG. Press Save after upload to attach it to this template.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-[220px_1fr] gap-4">
-            <div className="space-y-2">
+            <div className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-3">
               <p className="text-white/55 text-xs font-black uppercase tracking-widest">
                 Select Element
               </p>
-              <div className="grid grid-cols-2 xl:grid-cols-1 gap-2">
+              <div className="grid grid-cols-2 2xl:grid-cols-1 gap-2">
                 {(Object.keys(ELEMENT_LABELS) as PosterElementKey[]).map((key) => (
                   <button
                     key={key}
@@ -1948,204 +2149,217 @@ export default function AquaVataGeneratorPage() {
                 ))}
               </div>
             </div>
+          </aside>
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
+          <main className="min-w-0 bg-black/30 border border-white/10 rounded-lg p-4">
+            <div className="text-xs text-cyan-200 font-black mb-3 uppercase tracking-widest">
+              Live Template Preview
+            </div>
+            {PosterPreview({ battle: blankPreviewBattle, scale: 0.36 })}
+          </main>
+
+          <aside className="space-y-4 2xl:col-start-2">
+            <div className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-4">
+              <p className="text-cyan-300 text-xs font-black uppercase tracking-widest">
+                {ELEMENT_LABELS[selectedElement]} Position
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label>
-                  <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">X</p>
+                  <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">X</p>
                   <input
                     type="number"
                     value={element.x}
                     onChange={(e) => updateTemplateElement(selectedElement, { x: Number(e.target.value) })}
-                    className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
+                    className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
                   />
                 </label>
 
                 <label>
-                  <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Y</p>
+                  <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Y</p>
                   <input
                     type="number"
                     value={element.y}
                     onChange={(e) => updateTemplateElement(selectedElement, { y: Number(e.target.value) })}
-                    className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
+                    className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
                   />
                 </label>
 
                 <label>
-                  <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Width</p>
+                  <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Width</p>
                   <input
                     type="number"
                     value={element.width}
                     onChange={(e) => updateTemplateElement(selectedElement, { width: Number(e.target.value) })}
-                    className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
+                    className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
                   />
                 </label>
 
                 <label>
-                  <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Height</p>
+                  <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Height</p>
                   <input
                     type="number"
                     value={element.height}
                     onChange={(e) => updateTemplateElement(selectedElement, { height: Number(e.target.value) })}
-                    className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
+                    className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
                   />
                 </label>
               </div>
-
-              {isTextElement && (
-                <div className="bg-black/25 border border-white/10 rounded-lg p-4 space-y-4">
-                  <p className="text-cyan-300 text-xs font-black uppercase tracking-widest">
-                    Text Styling
-                  </p>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Font</p>
-                      <select
-                        value={element.fontFamily || "Luckiest Guy"}
-                        onChange={(e) => updateTemplateElement(selectedElement, { fontFamily: e.target.value })}
-                        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
-                      >
-                        {FONT_OPTIONS.map((font) => (
-                          <option key={font} value={font}>
-                            {font}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Font Size</p>
-                      <input
-                        type="number"
-                        value={element.fontSize || 58}
-                        onChange={(e) => updateTemplateElement(selectedElement, { fontSize: Number(e.target.value) })}
-                        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
-                      />
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Font Colour</p>
-                      <input
-                        type="color"
-                        value={element.color || "#38DDF8"}
-                        onChange={(e) => updateTemplateElement(selectedElement, { color: e.target.value })}
-                        className="w-full h-[46px] bg-black/45 border border-white/15 text-white p-1 rounded-lg outline-none focus:border-cyan-300"
-                      />
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Outline Colour</p>
-                      <input
-                        type="color"
-                        value={element.strokeColor || "#000000"}
-                        onChange={(e) => updateTemplateElement(selectedElement, { strokeColor: e.target.value })}
-                        className="w-full h-[46px] bg-black/45 border border-white/15 text-white p-1 rounded-lg outline-none focus:border-cyan-300"
-                      />
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Outline PX</p>
-                      <input
-                        type="number"
-                        min={0}
-                        value={element.strokeWidth ?? 2}
-                        onChange={(e) => updateTemplateElement(selectedElement, { strokeWidth: Number(e.target.value) })}
-                        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
-                      />
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Weight</p>
-                      <select
-                        value={element.fontWeight || 900}
-                        onChange={(e) => updateTemplateElement(selectedElement, { fontWeight: Number(e.target.value) })}
-                        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
-                      >
-                        <option value={400}>Regular</option>
-                        <option value={600}>Semi Bold</option>
-                        <option value={700}>Bold</option>
-                        <option value={800}>Extra Bold</option>
-                        <option value={900}>Black</option>
-                      </select>
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Letter Space</p>
-                      <input
-                        type="number"
-                        value={element.letterSpacing ?? 1}
-                        onChange={(e) => updateTemplateElement(selectedElement, { letterSpacing: Number(e.target.value) })}
-                        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
-                      />
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Shadow Colour</p>
-                      <input
-                        type="color"
-                        value={element.shadowColor || "#000000"}
-                        onChange={(e) => updateTemplateElement(selectedElement, { shadowColor: e.target.value })}
-                        className="w-full h-[46px] bg-black/45 border border-white/15 text-white p-1 rounded-lg outline-none focus:border-cyan-300"
-                      />
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Shadow X</p>
-                      <input
-                        type="number"
-                        value={element.shadowX ?? 2}
-                        onChange={(e) => updateTemplateElement(selectedElement, { shadowX: Number(e.target.value) })}
-                        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
-                      />
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Shadow Y</p>
-                      <input
-                        type="number"
-                        value={element.shadowY ?? 2}
-                        onChange={(e) => updateTemplateElement(selectedElement, { shadowY: Number(e.target.value) })}
-                        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
-                      />
-                    </label>
-
-                    <label>
-                      <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">Shadow Blur</p>
-                      <input
-                        type="number"
-                        min={0}
-                        value={element.shadowBlur ?? 0}
-                        onChange={(e) => updateTemplateElement(selectedElement, { shadowBlur: Number(e.target.value) })}
-                        className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-cyan-300"
-                      />
-                    </label>
-
-                    <label className="flex items-end gap-2 pb-3">
-                      <input
-                        type="checkbox"
-                        checked={element.uppercase !== false}
-                        onChange={(e) => updateTemplateElement(selectedElement, { uppercase: e.target.checked })}
-                        className="w-5 h-5 accent-cyan-300"
-                      />
-                      <span className="text-white/70 text-xs font-black uppercase tracking-widest">
-                        Uppercase
-                      </span>
-                    </label>
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
-        </div>
 
-        <div className="space-y-1">
-          <p className="text-cyan-300 text-xs font-black">
-            {templateStatus}
-          </p>
-          <p className="text-white/45 text-xs">
-            In edit mode: click an item, drag it, resize from the corners, or use arrow keys. Hold Shift for 10px movement. Text boxes resize the font when you drag the corners.
-          </p>
+            {isTextElement && (
+              <div className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-4">
+                <p className="text-cyan-300 text-xs font-black uppercase tracking-widest">
+                  Text Styling
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="sm:col-span-2">
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Font</p>
+                    <select
+                      value={element.fontFamily || "Luckiest Guy"}
+                      onChange={(e) => updateTemplateElement(selectedElement, { fontFamily: e.target.value })}
+                      className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
+                    >
+                      {FONT_OPTIONS.map((font) => (
+                        <option key={font} value={font}>
+                          {font}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Font Size</p>
+                    <input
+                      type="number"
+                      value={element.fontSize || 58}
+                      onChange={(e) => updateTemplateElement(selectedElement, { fontSize: Number(e.target.value) })}
+                      className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
+                    />
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Weight</p>
+                    <select
+                      value={element.fontWeight || 900}
+                      onChange={(e) => updateTemplateElement(selectedElement, { fontWeight: Number(e.target.value) })}
+                      className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
+                    >
+                      <option value={400}>Regular</option>
+                      <option value={600}>Semi Bold</option>
+                      <option value={700}>Bold</option>
+                      <option value={800}>Extra Bold</option>
+                      <option value={900}>Black</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Font Colour</p>
+                    <input
+                      type="color"
+                      value={element.color || "#5CEEFF"}
+                      onChange={(e) => updateTemplateElement(selectedElement, { color: e.target.value })}
+                      className="w-full h-[46px] bg-black/45 border border-white/15 text-white p-1 rounded-lg outline-none focus:border-cyan-300"
+                    />
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Outline Colour</p>
+                    <input
+                      type="color"
+                      value={element.strokeColor || "#000000"}
+                      onChange={(e) => updateTemplateElement(selectedElement, { strokeColor: e.target.value })}
+                      className="w-full h-[46px] bg-black/45 border border-white/15 text-white p-1 rounded-lg outline-none focus:border-cyan-300"
+                    />
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Outline PX</p>
+                    <input
+                      type="number"
+                      min={0}
+                      value={element.strokeWidth ?? 2}
+                      onChange={(e) => updateTemplateElement(selectedElement, { strokeWidth: Number(e.target.value) })}
+                      className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
+                    />
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Letter Space</p>
+                    <input
+                      type="number"
+                      value={element.letterSpacing ?? 1}
+                      onChange={(e) => updateTemplateElement(selectedElement, { letterSpacing: Number(e.target.value) })}
+                      className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
+                    />
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Shadow Colour</p>
+                    <input
+                      type="color"
+                      value={element.shadowColor || "#000000"}
+                      onChange={(e) => updateTemplateElement(selectedElement, { shadowColor: e.target.value })}
+                      className="w-full h-[46px] bg-black/45 border border-white/15 text-white p-1 rounded-lg outline-none focus:border-cyan-300"
+                    />
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Shadow X</p>
+                    <input
+                      type="number"
+                      value={element.shadowX ?? 2}
+                      onChange={(e) => updateTemplateElement(selectedElement, { shadowX: Number(e.target.value) })}
+                      className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
+                    />
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Shadow Y</p>
+                    <input
+                      type="number"
+                      value={element.shadowY ?? 2}
+                      onChange={(e) => updateTemplateElement(selectedElement, { shadowY: Number(e.target.value) })}
+                      className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
+                    />
+                  </label>
+
+                  <label>
+                    <p className="text-white/55 text-[10px] font-black uppercase tracking-widest mb-2 leading-tight">Shadow Blur</p>
+                    <input
+                      type="number"
+                      min={0}
+                      value={element.shadowBlur ?? 0}
+                      onChange={(e) => updateTemplateElement(selectedElement, { shadowBlur: Number(e.target.value) })}
+                      className="w-full bg-black/45 border border-white/15 text-white p-3.5 rounded-lg outline-none focus:border-cyan-300"
+                    />
+                  </label>
+
+                  <label className="sm:col-span-2 flex items-center gap-2 pt-2">
+                    <input
+                      type="checkbox"
+                      checked={element.uppercase !== false}
+                      onChange={(e) => updateTemplateElement(selectedElement, { uppercase: e.target.checked })}
+                      className="w-5 h-5 accent-cyan-300"
+                    />
+                    <span className="text-white/70 text-xs font-black uppercase tracking-widest">
+                      Uppercase
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-2">
+              <p className="text-cyan-300 text-xs font-black">
+                {templateStatus}
+              </p>
+              <p className="text-white/45 text-xs">
+                Click an item, drag it, resize from the corners, or use arrow keys. Hold Shift for 10px movement.
+              </p>
+            </div>
+          </aside>
         </div>
       </div>
     );
@@ -2242,7 +2456,7 @@ export default function AquaVataGeneratorPage() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {DropPhotoBox({
             battle: selectedBattle,
             field: "image1",
@@ -2325,23 +2539,16 @@ export default function AquaVataGeneratorPage() {
     <div className="min-h-screen bg-[#080806] text-white p-8">
       <div className="max-w-[1700px] mx-auto space-y-6">
 	<div className="flex gap-3 mb-4">
-  <a
-    href="/"
+  <Link href="/"
     className="bg-cyan-300 text-black font-black px-4 py-3 rounded-lg uppercase tracking-widest hover:bg-cyan-200 transition"
   >
     Home
-  </a>
-
-  <a
-    href="/events"
-    className="bg-black/40 border border-white/20 text-white font-black px-4 py-3 rounded-lg uppercase tracking-widest hover:border-cyan-300 transition"
-  >
-    Events
-  </a>
+  </Link>
 </div>
-
-        {TemplateControls()}
-
+        {editMode ? (
+          TemplateControls()
+        ) : (
+          <>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <h1 className="text-cyan-300 text-3xl font-black tracking-[0.18em] uppercase">
@@ -2353,7 +2560,7 @@ export default function AquaVataGeneratorPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
               type="button"
               onClick={() => setActiveMode("single")}
@@ -2379,7 +2586,6 @@ export default function AquaVataGeneratorPage() {
             </button>
           </div>
         </div>
-
         {activeMode === "single" && (
           <div className="grid grid-cols-1 xl:grid-cols-[460px_1fr] gap-8 items-start">
             <section className="space-y-6">
@@ -2387,6 +2593,9 @@ export default function AquaVataGeneratorPage() {
                 <h2 className="text-cyan-300 font-black uppercase tracking-widest">
                   Single Poster
                 </h2>
+
+
+                {TemplateSelectorPanel({ compact: true })}
 
                 <TextInput
                   label="Username 1"
@@ -2440,7 +2649,7 @@ export default function AquaVataGeneratorPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <DropPhotoBox
                     battle={singleBattle}
                     field="image1"
@@ -2498,7 +2707,6 @@ export default function AquaVataGeneratorPage() {
             {PosterGrid({ previewBattle: singleBattle })}
           </div>
         )}
-
         {activeMode === "mass" && (
           <div className="grid grid-cols-1 xl:grid-cols-[460px_1fr] gap-8 items-start">
             <section className="space-y-6">
@@ -2506,6 +2714,9 @@ export default function AquaVataGeneratorPage() {
                 <h2 className="text-cyan-300 font-black uppercase tracking-widest">
                   Mass Poster Generator
                 </h2>
+
+
+                {TemplateSelectorPanel({ compact: true })}
 
                 <DayMonthDateSelect
                   day={massDay}
@@ -2589,7 +2800,10 @@ export default function AquaVataGeneratorPage() {
             </section>
           </div>
         )}
+          </>
+        )}
       </div>
     </div>
   );
 }
+
