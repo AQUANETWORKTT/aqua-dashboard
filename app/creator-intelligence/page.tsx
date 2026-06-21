@@ -529,6 +529,26 @@ function getDailyPoint(row: CreatorStat): CreatorDailyPoint {
     healthScore: getHealthBreakdown([row], [row.stat_date]).healthScore,
   };
 }
+function getLastSevenPoints(creator: CreatorSummary) {
+  return creator.dailyPoints.slice(-7);
+}
+
+function getLastSevenDiamonds(creator: CreatorSummary) {
+  return getLastSevenPoints(creator).reduce((sum, point) => sum + point.diamonds, 0);
+}
+
+function getLastSevenHours(creator: CreatorSummary) {
+  return getLastSevenPoints(creator).reduce((sum, point) => sum + point.liveHours, 0);
+}
+
+function getLastSevenMatches(creator: CreatorSummary) {
+  return getLastSevenPoints(creator).reduce((sum, point) => sum + point.matches, 0);
+}
+
+function getLastSevenDph(creator: CreatorSummary) {
+  const hours = getLastSevenHours(creator);
+  return hours > 0 ? getLastSevenDiamonds(creator) / hours : 0;
+}
 
 function getHealthStatus(score: number, diamonds = 0): HealthStatus {
   if (score >= 85) return "Elite";
@@ -1883,13 +1903,13 @@ function downloadManagerReport(
     month: "long",
     year: "numeric",
   });
-  const totalDiamonds = managerSummary.creators.reduce((sum, creator) => sum + creator.diamonds, 0);
-  const totalHours = managerSummary.creators.reduce((sum, creator) => sum + creator.healthWindowHours, 0);
-  const totalBattles = managerSummary.creators.reduce((sum, creator) => sum + creator.healthWindowMatches, 0);
-  const averageDph =
-    totalHours > 0
-      ? managerSummary.creators.reduce((sum, creator) => sum + creator.diamonds, 0) / totalHours
-      : 0;
+  const lastSevenDiamonds = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenDiamonds(creator), 0);
+  const lastSevenHours = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenHours(creator), 0);
+  const lastSevenBattles = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenMatches(creator), 0);
+  const monthDiamonds = managerSummary.creators.reduce((sum, creator) => sum + creator.diamonds, 0);
+  const monthHours = managerSummary.creators.reduce((sum, creator) => sum + creator.liveHours, 0);
+  const monthBattles = managerSummary.creators.reduce((sum, creator) => sum + creator.matches, 0);
+  const averageDph = lastSevenHours > 0 ? lastSevenDiamonds / lastSevenHours : 0;
   const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
   const html = `<!doctype html>
 <html>
@@ -1927,6 +1947,10 @@ function downloadManagerReport(
     .quality { background: #fee2e2; color: #b91c1c; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     .panel { border: 1px solid #dbeafe; border-radius: 18px; padding: 18px; background: #f8fbff; }
+    .creator-action-row td { padding: 0 10px 16px; background: white !important; border-top: 0; }
+    .creator-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .creator-action-box { border: 1px solid #dbeafe; background: #f8fbff; border-radius: 14px; padding: 12px 14px; line-height: 1.45; }
+    .creator-action-title { color: #075985; font-size: 11px; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; }
     ul { margin: 10px 0 0; padding-left: 20px; }
     li { margin: 7px 0; }
     @media print {
@@ -1958,10 +1982,13 @@ function downloadManagerReport(
     <div class="card"><div class="label">30-Day Movement</div><div class="value ${trendChange >= 0 ? "good" : "bad"}">${trendChange >= 0 ? "+" : ""}${formatNumber(trendChange)}</div></div>
     <div class="card"><div class="label">Improving</div><div class="value good">${formatNumber(improvingCreators.length)}</div></div>
     <div class="card"><div class="label">New Creators</div><div class="value">${formatNumber(managerSummary.newCreators)}</div></div>
-    <div class="card"><div class="label">Weekly Diamonds</div><div class="value">${formatNumber(totalDiamonds)}</div></div>
-    <div class="card"><div class="label">Weekly Hours</div><div class="value">${formatHours(totalHours)}h</div></div>
-    <div class="card"><div class="label">Weekly Battles</div><div class="value">${formatNumber(totalBattles)}</div></div>
-    <div class="card"><div class="label">Average DPH</div><div class="value">${formatNumber(averageDph)}</div></div>
+    <div class="card"><div class="label">Last 7 Diamonds</div><div class="value">${formatNumber(lastSevenDiamonds)}</div></div>
+    <div class="card"><div class="label">Last 7 Hours</div><div class="value">${formatHours(lastSevenHours)}h</div></div>
+    <div class="card"><div class="label">Last 7 Battles</div><div class="value">${formatNumber(lastSevenBattles)}</div></div>
+    <div class="card"><div class="label">Last 7 DPH</div><div class="value">${formatNumber(averageDph)}</div></div>
+    <div class="card"><div class="label">Month Diamonds</div><div class="value">${formatNumber(monthDiamonds)}</div></div>
+    <div class="card"><div class="label">Month Hours</div><div class="value">${formatHours(monthHours)}h</div></div>
+    <div class="card"><div class="label">Month Battles</div><div class="value">${formatNumber(monthBattles)}</div></div>
   </section>
 
   <h2>30-Day Manager Health Trend</h2>
@@ -2058,12 +2085,13 @@ function downloadManagerReport(
       <th>Score</th>
       <th>Score Contribution</th>
       <th>Live Days</th>
-      <th>Hours</th>
-      <th>Battles</th>
-      <th>DPH</th>
-      <th>Diamonds</th>
-      <th>Weekly Target</th>
-      <th>Manager Focus</th>
+      <th>Last 7 Hours</th>
+      <th>Last 7 Battles</th>
+      <th>Last 7 DPH</th>
+      <th>Last 7 Diamonds</th>
+      <th>Month Hours</th>
+      <th>Month Battles</th>
+      <th>Month Diamonds</th>
     </tr>
     ${managerSummary.creators
       .map((creator) => {
@@ -2073,6 +2101,10 @@ function downloadManagerReport(
             ? "New creator"
             : `${formatNumber(creator.healthScore / creatorsForStats.length)} avg pts`;
         const focus = buildManagerFocusDetail(creator).slice(0, 2).join(" ");
+        const creatorLastSevenHours = getLastSevenHours(creator);
+        const creatorLastSevenMatches = getLastSevenMatches(creator);
+        const creatorLastSevenDiamonds = getLastSevenDiamonds(creator);
+        const creatorLastSevenDph = getLastSevenDph(creator);
 
         return `<tr>
           <td><strong>${escapeHtml(creator.username)}</strong><br><span class="muted">${escapeHtml(creator.tierStatus)}</span></td>
@@ -2080,12 +2112,21 @@ function downloadManagerReport(
           <td>${formatNumber(creator.healthScore)}/100</td>
           <td>${contribution}</td>
           <td>${formatNumber(creator.oneHourDays)}/${formatNumber(creator.healthWindowDays)}</td>
-          <td>${formatHours(creator.healthWindowHours)}h</td>
-          <td>${formatNumber(creator.healthWindowMatches)}</td>
-          <td>${formatNumber(creator.dph)}</td>
+          <td>${formatHours(creatorLastSevenHours)}h</td>
+          <td>${formatNumber(creatorLastSevenMatches)}</td>
+          <td>${formatNumber(creatorLastSevenDph)}</td>
+          <td>${formatNumber(creatorLastSevenDiamonds)}</td>
+          <td>${formatHours(creator.liveHours)}h</td>
+          <td>${formatNumber(creator.matches)}</td>
           <td>${formatNumber(creator.diamonds)}</td>
-          <td>${escapeHtml(getWeeklyTargetText(creator))}</td>
-          <td>${escapeHtml(focus || "Keep monitoring weekly performance.")}</td>
+        </tr>
+        <tr class="creator-action-row">
+          <td colspan="12">
+            <div class="creator-action-grid">
+              <div class="creator-action-box"><div class="creator-action-title">Weekly Target</div>${escapeHtml(getWeeklyTargetText(creator))}</div>
+              <div class="creator-action-box"><div class="creator-action-title">Manager Focus</div>${escapeHtml(focus || "Keep monitoring weekly performance.")}</div>
+            </div>
+          </td>
         </tr>`;
       })
       .join("")}
@@ -3896,10 +3937,10 @@ export default function CreatorIntelligencePage() {
                     value={`${selectedCreator.healthScore}/100`}
                   />
                   <MetricCard label="Status" value={selectedCreator.healthStatus} />
-                  <MetricCard label="Diamonds" value={formatNumber(selectedCreator.diamonds)} />
-                  <MetricCard label="Hours" value={formatHours(selectedCreator.healthWindowHours)} />
-                  <MetricCard label="Battles" value={formatNumber(selectedCreator.healthWindowMatches)} />
-                  <MetricCard label="DPH" value={formatNumber(selectedCreator.dph)} />
+                  <MetricCard label="Last 7 diamonds" value={formatNumber(getLastSevenDiamonds(selectedCreator))} />
+                  <MetricCard label="Last 7 hours" value={formatHours(getLastSevenHours(selectedCreator))} />
+                  <MetricCard label="Last 7 battles" value={formatNumber(getLastSevenMatches(selectedCreator))} />
+                  <MetricCard label="Last 7 DPH" value={formatNumber(getLastSevenDph(selectedCreator))} />
                 </div>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <button
