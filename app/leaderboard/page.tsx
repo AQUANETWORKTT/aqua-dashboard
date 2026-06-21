@@ -221,6 +221,12 @@ export default function LeaderboardPage() {
                         </span>
                       )}
 
+                      {usernameKey === "j.wliveacc" && (
+                        <span className="badge blue animatedBadge">
+                          World Cup Campaign Winner - Team England
+                        </span>
+                      )}
+
                       {usernameKey === "callum.072" && (
                         <span className="badge cyan animatedBadge">
                           May Aqua Hours Winner

@@ -1251,53 +1251,33 @@ export default function AquaBattleGeneratorPage() {
   }
 
   async function parseSingleBattleRow(row: string) {
-  const parts = row.split(/\t+/);
+    const selectedDate =
+      singleBattle.date || massDate || formatDateFromParts(singleDay, singleMonth);
 
-  const selectedDate =
-    singleBattle.date || massDate || formatDateFromParts(singleDay, singleMonth);
-
-  const name1Raw =
-    getTikTokUsername(parts[3] || "") ||
-    String(parts[0] || "").replace("@", "").trim().toLowerCase();
-
-  const name2Raw = getTikTokUsername(parts[5] || "");
-
-  const time = formatTime(parts[6] || parts[4] || "");
-  const manager = formatDate(parts[1] || BRAND.manager);
-
-  const image1 = await fetchTikTokAvatar(name1Raw);
-  const image2 = await fetchTikTokAvatar(name2Raw);
-
-  return {
-    id: makeId(),
-    date: selectedDate,
-    manager,
-    name1: formatName(name1Raw),
-    name2: formatName(name2Raw),
-    time,
-    image1,
-    image2,
-  };
-}
+    return parseAquaBattleRow(row, selectedDate);
+  }
 
   async function parseMassBattleRow(row: string, selectedDate: string) {
-    const parts = row.split(/\t+/);
+    return parseAquaBattleRow(row, selectedDate);
+  }
 
+  async function parseAquaBattleRow(row: string, fallbackDate = "") {
+    const parts = row.split("\t").map((part) => part.trim());
+
+    const rowDate = formatDate(parts[0] || fallbackDate);
     const name1Raw =
-      getTikTokUsername(parts[3] || "") ||
-      String(parts[0] || "").replace("@", "").trim().toLowerCase();
-
-    const name2Raw = getTikTokUsername(parts[5] || "");
-
-    const time = formatTime(parts[6] || parts[4] || "");
-    const manager = formatDate(parts[1] || BRAND.manager);
+      getTikTokUsername(parts[4] || "") ||
+      String(parts[1] || "").replace("@", "").trim().toLowerCase();
+    const name2Raw = getTikTokUsername(parts[6] || "");
+    const manager = formatDate(parts[2] || BRAND.manager);
+    const time = formatTime(parts[7] || parts[5] || "");
 
     const image1 = await fetchTikTokAvatar(name1Raw);
     const image2 = await fetchTikTokAvatar(name2Raw);
 
     return {
       id: makeId(),
-      date: selectedDate,
+      date: rowDate,
       manager,
       name1: formatName(name1Raw),
       name2: formatName(name2Raw),
@@ -1326,17 +1306,19 @@ export default function AquaBattleGeneratorPage() {
   }
 
   async function readRows() {
-    if (!massDate) {
-      alert("Please select a date for the mass posters first.");
+    const rows = paste
+      .split("\n")
+      .map((row) => row.trim())
+      .filter((row) => row.length > 0 && row.includes("tiktok.com/@"));
+
+    const rowsIncludeDates = rows.some((row) => Boolean(row.split("\t")[0]?.trim()));
+
+    if (!massDate && !rowsIncludeDates) {
+      alert("Please select a date or paste rows that include a date in the first column.");
       return;
     }
 
     setLoading(true);
-
-    const rows = paste
-      .split("\n")
-      .map((row) => row.trim())
-      .filter((row) => row.length > 0);
 
     const parsed: Battle[] = [];
 
@@ -2787,8 +2769,8 @@ function renderText(
                 </p>
 
                 <p className="text-white/50 text-xs mt-2">
-                  Format: creator username, manager, creator link, opponent
-                  link, second time. Select the date above first.
+                  Format: date, creator username, manager, size, creator link,
+                  creator time, opponent link, opponent time, campaign, done flag.
                 </p>
               </div>
 
