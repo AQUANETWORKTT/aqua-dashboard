@@ -181,6 +181,9 @@ export default function LeaderboardPage() {
                           <span className="badge green animatedBadge">
                             Aqua Trials Winner
                           </span>
+                          <span className="badge pink animatedBadge">
+                            Box Battle Winner
+                          </span>
                         </>
                       )}
 
@@ -196,8 +199,25 @@ export default function LeaderboardPage() {
                       )}
 
                       {usernameKey === "elliex035" && (
-                        <span className="badge pink animatedBadge">
-                          Beat The Boss Champion
+                        <>
+                          <span className="badge pink animatedBadge">
+                            Beat The Boss Champion
+                          </span>
+                          <span className="badge blue animatedBadge">
+                            World Cup Campaign Winner - Team England
+                          </span>
+                        </>
+                      )}
+
+                      {usernameKey === "libbyamberxoxo" && (
+                        <span className="badge blue animatedBadge">
+                          World Cup Campaign Winner - Team England
+                        </span>
+                      )}
+
+                      {usernameKey === "adam_gym234" && (
+                        <span className="badge blue animatedBadge">
+                          World Cup Campaign Winner - Team England
                         </span>
                       )}
 
