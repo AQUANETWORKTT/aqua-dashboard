@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 type CreatorStat = {
@@ -2114,6 +2114,8 @@ export default function CreatorIntelligencePage() {
   const [tierStatus, setTierStatus] = useState("All Tiers");
   const [healthStatus, setHealthStatus] = useState("All Health");
   const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search);
+  const normalizedSearch = useMemo(() => deferredSearch.trim().toLowerCase(), [deferredSearch]);
   const [rows, setRows] = useState<CreatorStat[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCreatorKey, setSelectedCreatorKey] = useState("");
@@ -2258,7 +2260,7 @@ export default function CreatorIntelligencePage() {
       ]
         .join(" ")
         .toLowerCase();
-      const searchMatch = !search.trim() || haystack.includes(search.toLowerCase());
+      const searchMatch = !normalizedSearch || haystack.includes(normalizedSearch);
 
       return (
         managerMatch &&
@@ -2273,7 +2275,7 @@ export default function CreatorIntelligencePage() {
     graduationStatus,
     healthStatus,
     activeManager,
-    search,
+    normalizedSearch,
     tierStatus,
   ]);
 
@@ -2300,7 +2302,7 @@ export default function CreatorIntelligencePage() {
       ]
         .join(" ")
         .toLowerCase();
-      const searchMatch = !search.trim() || haystack.includes(search.toLowerCase());
+      const searchMatch = !normalizedSearch || haystack.includes(normalizedSearch);
 
       return graduationMatch && tierMatch && healthMatch && searchMatch;
     });
@@ -2335,7 +2337,7 @@ export default function CreatorIntelligencePage() {
         };
       })
       .sort((a, b) => a.averageScore - b.averageScore);
-  }, [aquaSummaries, graduationStatus, healthStatus, search, tierStatus]);
+  }, [aquaSummaries, graduationStatus, healthStatus, normalizedSearch, tierStatus]);
 
   const managerGrowthSummaries = useMemo(
     () =>
