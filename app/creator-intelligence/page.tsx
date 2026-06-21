@@ -1898,6 +1898,13 @@ function downloadManagerReport(
       : 0;
   const trendChange =
     managerTrend.length > 1 ? managerTrend[managerTrend.length - 1].score - managerTrend[0].score : 0;
+  const movementChanges = movementItems
+    .map((item) => item.change)
+    .filter((change): change is number => change !== null);
+  const sevenDayMovement =
+    movementChanges.length > 0
+      ? movementChanges.reduce((sum, change) => sum + change, 0) / movementChanges.length
+      : 0;
   const reportDate = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
@@ -1909,6 +1916,12 @@ function downloadManagerReport(
   const monthDiamonds = managerSummary.creators.reduce((sum, creator) => sum + creator.diamonds, 0);
   const monthHours = managerSummary.creators.reduce((sum, creator) => sum + creator.liveHours, 0);
   const monthBattles = managerSummary.creators.reduce((sum, creator) => sum + creator.matches, 0);
+  const latestCreatorDate = managerSummary.creators
+    .map((creator) => creator.latestDate)
+    .sort((a, b) => b.localeCompare(a))[0];
+  const monthLabel = latestCreatorDate
+    ? new Date(`${latestCreatorDate.slice(0, 7)}-01T00:00:00`).toLocaleDateString("en-GB", { month: "long" })
+    : "Month";
   const averageDph = lastSevenHours > 0 ? lastSevenDiamonds / lastSevenHours : 0;
   const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
   const html = `<!doctype html>
@@ -1924,9 +1937,15 @@ function downloadManagerReport(
     h2 { margin-top: 34px; color: #075985; font-size: 22px; }
     .muted { color: #64748b; }
     .hero { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
-    .score { border: 1px solid #bae6fd; background: #e0f2fe; color: #075985; border-radius: 18px; padding: 18px 22px; text-align: right; min-width: 190px; }
+    .score-row { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 12px; min-width: 420px; }
+    .score { border: 1px solid #bae6fd; background: #e0f2fe; color: #075985; border-radius: 18px; padding: 18px 22px; text-align: right; }
     .score strong { display: block; font-size: 42px; line-height: 1; }
     .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 28px; }
+    .summary-section { margin-top: 28px; border: 1px solid #dbeafe; border-radius: 18px; padding: 18px; background: #fbfdff; }
+    .summary-title { margin: 0 0 12px; color: #075985; font-size: 13px; font-weight: 900; text-transform: uppercase; }
+    .summary-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+    .summary-columns .summary-section { margin-top: 0; }
+    .section-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .card { border: 1px solid #dbeafe; background: #f8fbff; border-radius: 16px; padding: 16px; }
     .label { color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase; }
     .value { margin-top: 8px; color: #0f172a; font-size: 24px; font-weight: 900; }
@@ -1968,29 +1987,49 @@ function downloadManagerReport(
       <h1>${escapeHtml(managerSummary.manager)}</h1>
       <p class="muted">${reportDate} &bull; Aqua Creator Intelligence</p>
     </div>
-    <div class="score">
-      <span class="label">7-Day Team Health</span>
-      <strong>${formatNumber(managerSummary.averageScore)}</strong>
-      <span>/100 average</span>
+    <div class="score-row">
+      <div class="score">
+        <span class="label">7-Day Team Health</span>
+        <strong>${formatNumber(managerSummary.averageScore)}</strong>
+        <span>/100 average</span>
+      </div>
+      <div class="score">
+        <span class="label">30-Day Team Health</span>
+        <strong>${formatNumber(thirtyDayAverage)}</strong>
+        <span>/100 average</span>
+      </div>
     </div>
   </section>
 
-  <section class="grid">
-    <div class="card"><div class="label">Creators</div><div class="value">${formatNumber(managerSummary.totalCreators)}</div></div>
-    <div class="card"><div class="label">Scored Creators</div><div class="value">${formatNumber(managerSummary.matureCreators)}</div></div>
-    <div class="card"><div class="label">30-Day Team Health</div><div class="value">${formatNumber(thirtyDayAverage)}/100</div></div>
-    <div class="card"><div class="label">30-Day Movement</div><div class="value ${trendChange >= 0 ? "good" : "bad"}">${trendChange >= 0 ? "+" : ""}${formatNumber(trendChange)}</div></div>
-    <div class="card"><div class="label">Improving</div><div class="value good">${formatNumber(improvingCreators.length)}</div></div>
-    <div class="card"><div class="label">New Creators</div><div class="value">${formatNumber(managerSummary.newCreators)}</div></div>
-    <div class="card"><div class="label">Last 7 Diamonds</div><div class="value">${formatNumber(lastSevenDiamonds)}</div></div>
-    <div class="card"><div class="label">Last 7 Hours</div><div class="value">${formatHours(lastSevenHours)}h</div></div>
-    <div class="card"><div class="label">Last 7 Battles</div><div class="value">${formatNumber(lastSevenBattles)}</div></div>
-    <div class="card"><div class="label">Last 7 DPH</div><div class="value">${formatNumber(averageDph)}</div></div>
-    <div class="card"><div class="label">Month Diamonds</div><div class="value">${formatNumber(monthDiamonds)}</div></div>
-    <div class="card"><div class="label">Month Hours</div><div class="value">${formatHours(monthHours)}h</div></div>
-    <div class="card"><div class="label">Month Battles</div><div class="value">${formatNumber(monthBattles)}</div></div>
+  <section class="summary-section">
+    <h2 class="summary-title">Team Snapshot</h2>
+    <div class="section-cards">
+      <div class="card"><div class="label">Creators</div><div class="value">${formatNumber(managerSummary.totalCreators)}</div></div>
+      <div class="card"><div class="label">New Creators</div><div class="value">${formatNumber(managerSummary.newCreators)}</div></div>
+      <div class="card"><div class="label">7-Day Movement</div><div class="value ${sevenDayMovement >= 0 ? "good" : "bad"}">${sevenDayMovement >= 0 ? "+" : ""}${formatNumber(sevenDayMovement)}</div></div>
+      <div class="card"><div class="label">30-Day Movement</div><div class="value ${trendChange >= 0 ? "good" : "bad"}">${trendChange >= 0 ? "+" : ""}${formatNumber(trendChange)}</div></div>
+    </div>
   </section>
 
+  <section class="summary-columns">
+    <div class="summary-section">
+      <h2 class="summary-title">Last 7 Days</h2>
+      <div class="section-cards">
+        <div class="card"><div class="label">Diamonds</div><div class="value">${formatNumber(lastSevenDiamonds)}</div></div>
+        <div class="card"><div class="label">Hours</div><div class="value">${formatHours(lastSevenHours)}h</div></div>
+        <div class="card"><div class="label">Battles</div><div class="value">${formatNumber(lastSevenBattles)}</div></div>
+        <div class="card"><div class="label">DPH</div><div class="value">${formatNumber(averageDph)}</div></div>
+      </div>
+    </div>
+    <div class="summary-section">
+      <h2 class="summary-title">${monthLabel} Month To Date</h2>
+      <div class="section-cards">
+        <div class="card"><div class="label">${monthLabel} Diamonds</div><div class="value">${formatNumber(monthDiamonds)}</div></div>
+        <div class="card"><div class="label">${monthLabel} Hours</div><div class="value">${formatHours(monthHours)}h</div></div>
+        <div class="card"><div class="label">${monthLabel} Battles</div><div class="value">${formatNumber(monthBattles)}</div></div>
+      </div>
+    </div>
+  </section>
   <h2>30-Day Manager Health Trend</h2>
   <section class="panel">
     <p class="muted">Daily average team health for this manager over the latest 30 uploaded days.</p>
@@ -2089,9 +2128,9 @@ function downloadManagerReport(
       <th>Last 7 Battles</th>
       <th>Last 7 DPH</th>
       <th>Last 7 Diamonds</th>
-      <th>Month Hours</th>
-      <th>Month Battles</th>
-      <th>Month Diamonds</th>
+      <th>${monthLabel} Hours</th>
+      <th>${monthLabel} Battles</th>
+      <th>${monthLabel} Diamonds</th>
     </tr>
     ${managerSummary.creators
       .map((creator) => {
