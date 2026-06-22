@@ -240,7 +240,7 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const adminCode = req.headers.get("x-battles-admin-code");
-    const expectedCode = process.env.BATTLES_ADMIN_CODE || "FALCON44";
+    const expectedCode = process.env.BATTLES_ADMIN_CODE || "FALCON";
 
     if (adminCode !== expectedCode) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

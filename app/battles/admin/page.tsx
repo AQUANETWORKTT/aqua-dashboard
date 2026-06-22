@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const ADMIN_CODE = "FALCON";
+const ADMIN_CODE_STORAGE_KEY = "battles_admin_code";
 
 type Battle = {
   id: string;
@@ -83,6 +84,7 @@ export default function BattlesAdminPage() {
     }
 
     localStorage.setItem("battles_admin_access", "true");
+    localStorage.setItem(ADMIN_CODE_STORAGE_KEY, code.trim());
     setHasAccess(true);
     setMessage("");
     loadBattles();
@@ -101,7 +103,8 @@ export default function BattlesAdminPage() {
     const res = await fetch(`/api/battles?id=${encodeURIComponent(battle.id)}`, {
       method: "DELETE",
       headers: {
-        "x-battles-admin-code": ADMIN_CODE,
+        "x-battles-admin-code":
+          localStorage.getItem(ADMIN_CODE_STORAGE_KEY) || ADMIN_CODE,
       },
     });
 
