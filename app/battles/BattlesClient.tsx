@@ -2,6 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { submissionsSupabase } from "@/lib/submissions-supabase";
+import {
+  BattlePoster,
+  normalizePosterTemplate,
+  type PosterTemplateJson,
+} from "./BattlePoster";
 
 type Battle = {
   id: string;
@@ -35,6 +41,116 @@ function displayTime(time: string) {
   );
 }
 
+function buildDateOptions() {
+  return Array.from({ length: 31 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() + index);
+    const value = date.toISOString().slice(0, 10);
+    const label = date.toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+
+    return { value, label };
+  });
+}
+
+function buildTimeOptions() {
+  const options: { value: string; label: string }[] = [];
+
+  for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
+    const hour = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    const value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(
+      2,
+      "0"
+    )}`;
+    const label = new Date(2000, 0, 1, hour, minute).toLocaleTimeString(
+      "en-GB",
+      {
+        hour: "numeric",
+        minute: "2-digit",
+      }
+    );
+
+    options.push({ value, label });
+  }
+
+  return options;
+}
+
+function buildScoreOptions() {
+  return Array.from({ length: 20 }, (_, index) => {
+    const value = (index + 1) * 5000;
+    return {
+      value: `${value}`,
+      label: `${value / 1000}k`,
+    };
+  });
+}
+
+function formatName(raw: string) {
+  return raw.replace("@", "").trim().toUpperCase();
+}
+
+function getOrdinal(day: number) {
+  if (day > 3 && day < 21) return `${day}TH`;
+
+  switch (day % 10) {
+    case 1:
+      return `${day}ST`;
+    case 2:
+      return `${day}ND`;
+    case 3:
+      return `${day}RD`;
+    default:
+      return `${day}TH`;
+  }
+}
+
+function formatPosterDate(raw: string) {
+  if (!raw) return "";
+
+  const date = new Date(`${raw}T12:00:00`);
+  const weekday = date.toLocaleDateString("en-GB", { weekday: "long" });
+  const monthName = date.toLocaleDateString("en-GB", { month: "long" });
+
+  return `${weekday} ${getOrdinal(date.getDate())} ${monthName}`.toUpperCase();
+}
+
+function formatPosterTime(raw: string) {
+  if (!raw) return "";
+
+  let value = raw.trim().toLowerCase();
+  value = value.replace(/\./g, "");
+  value = value.replace(/\s+/g, " ");
+
+  const match = value.match(/^(\d{1,2})(?::(\d{2}))?(?::\d{2})?\s*(am|pm)?$/);
+
+  if (!match) return raw.toUpperCase();
+
+  let hour = Number(match[1]);
+  const minute = match[2] || "00";
+  let period = match[3];
+
+  if (!period) period = "pm";
+  if (hour > 12) hour -= 12;
+  if (hour === 0) hour = 12;
+
+  return `${hour}:${minute}${period.toUpperCase()}`;
+}
+
+function cleanFileName(value: string) {
+  return value
+    .replaceAll(" ", "-")
+    .replaceAll("/", "-")
+    .replaceAll(":", "-")
+    .replaceAll("—", "-")
+    .replaceAll(",", "")
+    .replaceAll("@", "");
+}
+
 export default function BattlesClient({ user }: { user: string | null }) {
   const [battles, setBattles] = useState<Battle[]>([]);
   const [date, setDate] = useState("");
@@ -42,10 +158,16 @@ export default function BattlesClient({ user }: { user: string | null }) {
   const [estimatedScore, setEstimatedScore] = useState("");
   const [status, setStatus] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [templateJson, setTemplateJson] = useState<PosterTemplateJson>(() =>
+    normalizePosterTemplate(null)
+  );
   const posterRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const availableBattles = battles.filter((battle) => battle.status === "available");
   const acceptedBattles = battles.filter((battle) => battle.status === "accepted");
+  const dateOptions = buildDateOptions();
+  const timeOptions = buildTimeOptions();
+  const scoreOptions = buildScoreOptions();
 
   async function loadBattles() {
     const res = await fetch("/api/battles", { cache: "no-store" });
@@ -61,7 +183,29 @@ export default function BattlesClient({ user }: { user: string | null }) {
 
   useEffect(() => {
     loadBattles();
+    loadPosterTemplate();
   }, []);
+
+  async function loadPosterTemplate() {
+    const { data } = await submissionsSupabase
+      .from("poster_templates_aqua")
+      .select("background_url,template_json")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (data?.template_json) {
+      setTemplateJson(
+        normalizePosterTemplate({
+          ...(data.template_json as Partial<PosterTemplateJson>),
+          backgroundUrl:
+            (data.template_json as Partial<PosterTemplateJson>).backgroundUrl ||
+            data.background_url ||
+            undefined,
+        })
+      );
+    }
+  }
 
   async function requestBattle(e: React.FormEvent) {
     e.preventDefault();
@@ -130,23 +274,113 @@ export default function BattlesClient({ user }: { user: string | null }) {
     setBusyId(battle.id);
 
     try {
-      const { toPng } = await import("html-to-image");
-      const dataUrl = await toPng(node, {
+      await document.fonts.ready;
+
+      const images = Array.from(node.querySelectorAll("img"));
+      const originalImageSrcs: Array<{ image: HTMLImageElement; src: string }> =
+        [];
+
+      for (const image of images) {
+        originalImageSrcs.push({ image, src: image.src });
+
+        if (
+          image.src.includes("/api/tiktok-avatar-image") ||
+          image.src.includes("tikcdn") ||
+          image.src.includes("tiktok")
+        ) {
+          image.src = await imageToDataUrl(image.src);
+        }
+      }
+
+      await waitForPosterImages(node);
+
+      const { toBlob } = await import("html-to-image");
+      const blob = await toBlob(node, {
         cacheBust: true,
         pixelRatio: 2,
-        backgroundColor: "#020617",
+        backgroundColor: "#000000",
       });
 
+      for (const item of originalImageSrcs) {
+        item.image.src = item.src;
+      }
+
+      if (!blob) {
+        setStatus("Poster download failed. Try again in a moment.");
+        setBusyId(null);
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = `aqua-battle-${battle.requester_username}-vs-${battle.accepter_username}.png`;
+      link.href = url;
+      link.download = cleanFileName(
+        `${formatName(battle.requester_username)} VS ${formatName(
+          battle.accepter_username || ""
+        )} - ${formatPosterDate(battle.battle_date)} - ${formatPosterTime(
+          battle.battle_time
+        )}.png`
+      );
       link.click();
+      URL.revokeObjectURL(url);
       setStatus("Poster downloaded.");
     } catch {
       setStatus("Poster download failed. Try again in a moment.");
     }
 
     setBusyId(null);
+  }
+
+  async function imageToDataUrl(src: string) {
+    if (!src || src.startsWith("data:")) return src;
+
+    try {
+      const res = await fetch(src, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+
+      if (!res.ok) return src;
+
+      const blob = await res.blob();
+
+      return await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+
+        reader.onloadend = () => {
+          resolve(String(reader.result || src));
+        };
+
+        reader.onerror = () => {
+          resolve(src);
+        };
+
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return src;
+    }
+  }
+
+  async function waitForPosterImages(node: HTMLElement) {
+    const images = Array.from(node.querySelectorAll("img"));
+
+    await Promise.all(
+      images.map((image) => {
+        if (image.complete && image.naturalWidth > 0) return Promise.resolve();
+
+        return new Promise<void>((resolve) => {
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+        });
+      })
+    );
+
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
   }
 
   if (!user) {
@@ -176,30 +410,48 @@ export default function BattlesClient({ user }: { user: string | null }) {
         <form onSubmit={requestBattle} className="battleForm">
           <label className="dateControl">
             <span>Day</span>
-            <input
-              type="date"
+            <select
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-            />
+            >
+              <option value="">Choose day</option>
+              {dateOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="timeControl">
             <span>Time</span>
-            <input
-              type="time"
+            <select
               value={time}
               onChange={(e) => setTime(e.target.value)}
               required
-            />
+            >
+              <option value="">Choose time</option>
+              {timeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="scoreControl">
             <span>Score</span>
-            <input
+            <select
               value={estimatedScore}
               onChange={(e) => setEstimatedScore(e.target.value)}
-              placeholder="e.g. 50k diamonds"
               required
-            />
+            >
+              <option value="">Choose score</option>
+              {scoreOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
           <button type="submit">Request</button>
         </form>
@@ -248,56 +500,54 @@ export default function BattlesClient({ user }: { user: string | null }) {
           {acceptedBattles.length ? (
             acceptedBattles.map((battle) => (
               <article key={battle.id} className="acceptedCard">
-                <div
-                  className="poster"
-                  ref={(el) => {
-                    posterRefs.current[battle.id] = el;
-                  }}
-                >
-                  <div className="posterTop">AQUA BATTLE</div>
-                  <div className="posterFaces">
-                    <PosterAvatar
-                      username={battle.requester_username}
-                      avatar={battle.requester_avatar}
-                    />
-                    <div className="versus">VS</div>
-                    <PosterAvatar
-                      username={battle.accepter_username || ""}
-                      avatar={battle.accepter_avatar}
-                    />
-                  </div>
-                  <div className="posterNames">
-                    @{battle.requester_username} vs @{battle.accepter_username}
-                  </div>
-                  <div className="posterTime">
-                    {displayDate(battle.battle_date)} - {displayTime(battle.battle_time)}
+                <div className="hiddenPoster">
+                  <BattlePoster
+                    battleId={battle.id}
+                    template={templateJson}
+                    name1={formatName(battle.requester_username)}
+                    name2={formatName(battle.accepter_username || "")}
+                    image1={battle.requester_avatar || "/creators/default.jpg"}
+                    image2={battle.accepter_avatar || "/creators/default.jpg"}
+                    date={formatPosterDate(battle.battle_date)}
+                    time={formatPosterTime(battle.battle_time)}
+                    posterRef={(el) => {
+                      posterRefs.current[battle.id] = el;
+                    }}
+                  />
+                </div>
+
+                <div className="matchupVisual">
+                  <img
+                    src={battle.requester_avatar || "/creators/default.jpg"}
+                    alt=""
+                    className="matchAvatar matchAvatarLeft"
+                  />
+                  <img
+                    src={battle.accepter_avatar || "/creators/default.jpg"}
+                    alt=""
+                    className="matchAvatar matchAvatarRight"
+                  />
+
+                  <div className="matchCenter">
+                    <div className="matchNames">
+                      <span>@{battle.requester_username}</span>
+                      <strong>VS</strong>
+                      <span>@{battle.accepter_username}</span>
+                    </div>
+                    <div className="matchTime">
+                      <strong>{displayDate(battle.battle_date)}</strong>
+                      <span>{displayTime(battle.battle_time)}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="acceptedInfo">
-                  <div className="acceptedCreators">
-                    <CreatorBlock
-                      username={battle.requester_username}
-                      avatar={battle.requester_avatar}
-                    />
-                    <span>VS</span>
-                    <CreatorBlock
-                      username={battle.accepter_username || ""}
-                      avatar={battle.accepter_avatar}
-                    />
-                  </div>
-                  <div className="battleMeta wide">
-                    <strong>{displayDate(battle.battle_date)}</strong>
-                    <span>{displayTime(battle.battle_time)}</span>
-                    <span>{battle.estimated_score}</span>
-                  </div>
-                  <button
-                    onClick={() => downloadPoster(battle)}
-                    disabled={busyId === battle.id}
-                  >
-                    {busyId === battle.id ? "Preparing..." : "Get Poster"}
-                  </button>
-                </div>
+                <button
+                  className="posterButton"
+                  onClick={() => downloadPoster(battle)}
+                  disabled={busyId === battle.id}
+                >
+                  {busyId === battle.id ? "Preparing..." : "Get Poster"}
+                </button>
               </article>
             ))
           ) : (
@@ -466,7 +716,8 @@ export default function BattlesClient({ user }: { user: string | null }) {
           box-shadow: inset 0 0 18px rgba(45, 224, 255, 0.05);
         }
 
-        input {
+        input,
+        select {
           width: 100%;
           min-width: 0;
           color: white;
@@ -480,7 +731,18 @@ export default function BattlesClient({ user }: { user: string | null }) {
           outline: none;
         }
 
-        input:focus {
+        select {
+          appearance: none;
+          background:
+            linear-gradient(45deg, transparent 50%, #7cf6ff 50%) right 14px
+              center / 7px 7px no-repeat,
+            linear-gradient(135deg, #7cf6ff 50%, transparent 50%) right 9px
+              center / 7px 7px no-repeat,
+            rgba(0, 0, 0, 0.28);
+        }
+
+        input:focus,
+        select:focus {
           border-color: rgba(124, 246, 255, 0.72);
           box-shadow: 0 0 18px rgba(45, 224, 255, 0.24);
         }
@@ -553,79 +815,152 @@ export default function BattlesClient({ user }: { user: string | null }) {
         }
 
         .acceptedCard {
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
+          min-height: 230px;
           display: grid;
-          grid-template-columns: 210px 1fr;
-          gap: 14px;
-          align-items: center;
-          padding: 14px;
+          gap: 12px;
+          place-items: center;
+          padding: 18px;
+          background:
+            linear-gradient(120deg, rgba(45, 224, 255, 0.12), transparent 38%),
+            linear-gradient(240deg, rgba(124, 246, 255, 0.12), transparent 38%),
+            rgba(8, 18, 35, 0.94);
         }
 
-        .acceptedCreators {
+        .hiddenPoster {
+          position: fixed;
+          left: -99999px;
+          top: 0;
+          width: 1080px;
+          height: 1920px;
+          pointer-events: none;
+          opacity: 0;
+          z-index: -1;
+        }
+
+        .matchupVisual {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          min-height: 194px;
+          border: 1px solid rgba(124, 246, 255, 0.24);
+          border-radius: 18px;
+          overflow: hidden;
+          display: grid;
+          place-items: center;
+          background:
+            linear-gradient(90deg, rgba(45, 224, 255, 0.09), rgba(255, 255, 255, 0.025), rgba(45, 224, 255, 0.09)),
+            rgba(0, 0, 0, 0.2);
+        }
+
+        .matchupVisual::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(115deg, rgba(0, 0, 0, 0.72) 0%, transparent 42%),
+            linear-gradient(245deg, rgba(0, 0, 0, 0.72) 0%, transparent 42%);
+          z-index: 1;
+          pointer-events: none;
+        }
+
+        .matchAvatar {
+          position: absolute;
+          top: -10%;
+          width: 50%;
+          height: 120%;
+          object-fit: cover;
+          opacity: 0.58;
+          filter: blur(1.5px) saturate(1.15);
+          transform: skewX(-10deg) scale(1.04);
+          pointer-events: none;
+        }
+
+        .matchAvatarLeft {
+          left: -8%;
+          clip-path: polygon(0 0, 86% 0, 66% 100%, 0 100%);
+        }
+
+        .matchAvatarRight {
+          right: -6%;
+          clip-path: polygon(34% 0, 100% 0, 100% 100%, 16% 100%);
+          transform: skewX(10deg) scale(1.02);
+          object-position: center;
+        }
+
+        .matchCenter {
+          position: relative;
+          z-index: 2;
+          pointer-events: none;
+          width: min(100%, 620px);
+          display: grid;
+          justify-items: center;
+          gap: 14px;
+          text-align: center;
+        }
+
+        .matchNames {
           display: flex;
           align-items: center;
-          gap: 14px;
-        }
-
-        .acceptedCreators > span {
-          color: #2de0ff;
-          font-size: 18px;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 10px;
           font-weight: 900;
         }
 
-        .poster {
-          width: 210px;
-          aspect-ratio: 9 / 16;
-          position: relative;
+        .matchNames span {
+          max-width: min(32vw, 220px);
           overflow: hidden;
-          border-radius: 14px;
-          background:
-            linear-gradient(rgba(0, 6, 18, 0.14), rgba(0, 6, 18, 0.42)),
-            url("/posters/aqua-battle/background.png") center / cover,
-            linear-gradient(180deg, #023047, #020617);
-          border: 1px solid rgba(45, 224, 255, 0.35);
-          display: grid;
-          grid-template-rows: auto 1fr auto auto;
-          padding: 18px 12px;
-        }
-
-        .posterTop {
-          text-align: center;
-          font-size: 18px;
-          font-weight: 900;
-          color: white;
-          text-shadow: 0 0 12px rgba(45, 224, 255, 0.85);
-        }
-
-        .posterFaces {
-          display: grid;
-          grid-template-columns: 1fr auto 1fr;
-          gap: 8px;
-          align-items: center;
-        }
-
-        .versus {
-          color: #2de0ff;
-          font-size: 22px;
-          font-weight: 900;
-          text-shadow: 0 0 12px rgba(45, 224, 255, 0.95);
-        }
-
-        .posterNames,
-        .posterTime {
-          text-align: center;
-          font-weight: 900;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-family: var(--display-font);
+          font-size: clamp(18px, 4vw, 28px);
+          letter-spacing: 0.02em;
           text-transform: uppercase;
-          text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+          color: white;
+          -webkit-text-stroke: 0.5px rgba(45, 224, 255, 0.32);
+          text-shadow:
+            0 3px 0 rgba(0, 0, 0, 0.82),
+            0 0 14px rgba(45, 224, 255, 0.32);
         }
 
-        .posterNames {
-          font-size: 12px;
-        }
-
-        .posterTime {
-          margin-top: 8px;
+        .matchNames strong {
           color: #7cf6ff;
+          font-family: var(--display-font);
+          font-size: 42px;
+          line-height: 0.8;
+          text-shadow:
+            0 3px 0 rgba(0, 0, 0, 0.7),
+            0 0 18px rgba(45, 224, 255, 0.9);
+        }
+
+        .matchTime {
+          display: flex;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .matchTime strong,
+        .matchTime span {
+          border-radius: 999px;
+          padding: 7px 10px;
+          color: #eaffff;
+          background: rgba(0, 0, 0, 0.44);
+          border: 1px solid rgba(124, 246, 255, 0.22);
           font-size: 13px;
+          font-weight: 900;
+        }
+
+        .posterButton {
+          min-width: 142px;
+          padding: 10px 14px;
+          font-size: 15px;
+          position: relative;
+          z-index: 10;
+          pointer-events: auto;
         }
 
         @media (max-width: 820px) {
@@ -649,15 +984,7 @@ export default function BattlesClient({ user }: { user: string | null }) {
           }
 
           .acceptedCard {
-            justify-items: center;
-          }
-
-          .acceptedInfo {
-            width: 100%;
-          }
-
-          .acceptedCreators {
-            justify-content: space-between;
+            min-height: 260px;
           }
         }
       `}</style>
@@ -698,50 +1025,6 @@ function CreatorBlock({
           overflow: hidden;
           text-overflow: ellipsis;
           color: white;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function PosterAvatar({
-  username,
-  avatar,
-}: {
-  username: string;
-  avatar: string | null;
-}) {
-  return (
-    <div className="posterAvatar">
-      <img src={avatar || "/creators/default.jpg"} alt={username} />
-      <span>@{username}</span>
-      <style jsx>{`
-        .posterAvatar {
-          min-width: 0;
-          display: grid;
-          gap: 6px;
-          justify-items: center;
-        }
-
-        img {
-          width: 72px;
-          height: 72px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid rgba(124, 246, 255, 0.95);
-          box-shadow: 0 0 18px rgba(45, 224, 255, 0.55);
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        span {
-          max-width: 78px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-size: 9px;
-          font-weight: 900;
-          color: white;
-          text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
         }
       `}</style>
     </div>

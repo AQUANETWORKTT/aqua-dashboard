@@ -111,20 +111,6 @@ export default function UploadPage() {
 
       if (insertError) throw new Error(insertError.message);
 
-      await fetch("/api/manager-upload-notify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          manager: cleanUsername,
-          imageCount: files.length,
-          points,
-          possibleDuplicate,
-          duplicateFileNames,
-        }),
-      });
-
       setFiles([]);
 
       setMessage(

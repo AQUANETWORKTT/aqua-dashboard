@@ -75,7 +75,7 @@ async function fetchTikTokAvatar(username: string) {
 
 async function sendTelegramMessage(text: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const chatId = process.env.BATTLE_TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
 
   if (!token || !chatId) return;
 
@@ -159,10 +159,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      await sendTelegramMessage(
-        `New battle request: @${username} wants a battle on ${date} at ${time}. Estimated score: ${estimatedScore}.`
-      );
-
       return NextResponse.json({ battle: data });
     }
 
@@ -218,7 +214,15 @@ export async function POST(req: Request) {
       }
 
       await sendTelegramMessage(
-        `Battle accepted: @${existing.requester_username} vs @${username} on ${existing.battle_date} at ${existing.battle_time}. Estimated score: ${existing.estimated_score}.`
+        [
+          "CONFIRMED BATTLE",
+          "",
+          `Creator 1: @${existing.requester_username}`,
+          `Creator 2: @${username}`,
+          `Date: ${existing.battle_date}`,
+          `Time: ${existing.battle_time}`,
+          `Estimated score: ${existing.estimated_score}`,
+        ].join("\n")
       );
 
       return NextResponse.json({ battle: data });
