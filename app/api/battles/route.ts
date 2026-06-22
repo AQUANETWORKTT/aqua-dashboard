@@ -30,8 +30,84 @@ function battleAt(date: string, time: string) {
   return `${date}T${time}:00`;
 }
 
+function getOrdinal(day: number) {
+  if (day > 3 && day < 21) return `${day}th`;
+
+  switch (day % 10) {
+    case 1:
+      return `${day}st`;
+    case 2:
+      return `${day}nd`;
+    case 3:
+      return `${day}rd`;
+    default:
+      return `${day}th`;
+  }
+}
+
+function formatTelegramDate(dateValue: string) {
+  const date = new Date(`${dateValue}T12:00:00`);
+
+  if (Number.isNaN(date.getTime())) return dateValue;
+
+  const month = date.toLocaleDateString("en-GB", { month: "long" });
+  return `${getOrdinal(date.getDate())} of ${month}`;
+}
+
+function formatTelegramTime(timeValue: string) {
+  const [hourRaw = "0", minuteRaw = "0"] = String(timeValue || "00:00").split(":");
+  const date = new Date(2000, 0, 1, Number(hourRaw), Number(minuteRaw));
+
+  if (Number.isNaN(date.getTime())) return timeValue;
+
+  return date
+    .toLocaleTimeString("en-GB", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+    .replace("am", "a.m.")
+    .replace("pm", "p.m.")
+    .replace("AM", "a.m.")
+    .replace("PM", "p.m.");
+}
+
+function formatTelegramScore(scoreValue: unknown) {
+  const score = Number(String(scoreValue || "").replace(/,/g, ""));
+
+  if (!Number.isFinite(score) || score <= 0) return String(scoreValue || "");
+  if (score % 1000 === 0) return `${score / 1000}K`;
+
+  return `${Number((score / 1000).toFixed(1))}K`;
+}
+
 function avatarProxyUrl(avatar: string) {
   return `/api/tiktok-avatar-image?url=${encodeURIComponent(avatar)}`;
+}
+
+async function getCreatorManager(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  username: string
+) {
+  const clean = cleanUsername(username);
+
+  const { data: login } = await supabase
+    .from("creator_logins")
+    .select("manager")
+    .eq("username", clean)
+    .maybeSingle();
+
+  if (login?.manager) return String(login.manager);
+
+  const { data: stats } = await supabase
+    .from("creator_monthly_stats")
+    .select("manager")
+    .eq("username", clean)
+    .order("stats_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return stats?.manager ? String(stats.manager) : "Unknown";
 }
 
 async function fetchTikTokAvatar(username: string) {
@@ -213,15 +289,25 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      const requesterManager = await getCreatorManager(
+        supabase,
+        existing.requester_username
+      );
+      const accepterManager = await getCreatorManager(supabase, username);
+
       await sendTelegramMessage(
         [
           "CONFIRMED BATTLE",
           "",
           `Creator 1: @${existing.requester_username}`,
+          `Manager: ${requesterManager}`,
+          "",
           `Creator 2: @${username}`,
-          `Date: ${existing.battle_date}`,
-          `Time: ${existing.battle_time}`,
-          `Estimated score: ${existing.estimated_score}`,
+          `Manager: ${accepterManager}`,
+          "",
+          `Date: ${formatTelegramDate(existing.battle_date)}`,
+          `Time: ${formatTelegramTime(existing.battle_time)}`,
+          `Estimated score: ${formatTelegramScore(existing.estimated_score)}`,
         ].join("\n")
       );
 

@@ -81,8 +81,9 @@ function buildTimeOptions() {
 }
 
 function buildScoreOptions() {
-  return Array.from({ length: 20 }, (_, index) => {
-    const value = (index + 1) * 5000;
+  const values = [1000, 3000, ...Array.from({ length: 20 }, (_, index) => (index + 1) * 5000)];
+
+  return values.map((value) => {
     return {
       value: `${value}`,
       label: `${value / 1000}k`,
