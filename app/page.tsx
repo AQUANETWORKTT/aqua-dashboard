@@ -1,15 +1,27 @@
 import Link from "next/link";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
-const DEFAULT_SELECTED_MONTH = "2026-05";
-
 export default async function HomePage() {
-  const { data } = await submissionsSupabase
+  const { data: latestUpload } = await submissionsSupabase
     .from("creator_monthly_stats")
-    .select("username")
-    .eq("month_key", DEFAULT_SELECTED_MONTH);
+    .select("stats_date")
+    .not("stats_date", "is", null)
+    .order("stats_date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  const totalCreators = data?.length ?? 0;
+  const latestStatsDate = latestUpload?.stats_date;
+
+  const { count } = latestStatsDate
+    ? await submissionsSupabase
+        .from("creator_monthly_stats")
+        .select("creator_id", { count: "exact", head: true })
+        .eq("stats_date", latestStatsDate)
+    : await submissionsSupabase
+        .from("creator_monthly_stats")
+        .select("creator_id", { count: "exact", head: true });
+
+  const totalCreators = count ?? 0;
 
   return (
     <main className="home-wrapper">

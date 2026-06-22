@@ -89,11 +89,22 @@ export default function LeaderboardPage() {
     async function loadCreators() {
       setLoading(true);
 
-      const { data } = await submissionsSupabase
+      const { data: latestUpload } = await submissionsSupabase
+        .from("creator_monthly_stats")
+        .select("stats_date")
+        .not("stats_date", "is", null)
+        .order("stats_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const query = submissionsSupabase
         .from("creator_monthly_stats")
         .select("*")
-        .eq("month_key", currentMonthKey())
         .order("diamonds", { ascending: false });
+
+      const { data } = latestUpload?.stats_date
+        ? await query.eq("stats_date", latestUpload.stats_date)
+        : await query.eq("month_key", currentMonthKey());
 
       setCreators((data || []) as CreatorMonthlyStat[]);
       setLoading(false);

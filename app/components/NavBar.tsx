@@ -13,18 +13,18 @@ export default function NavBar({ user }: { user: string | null }) {
   if (hideOn.includes(pathname)) return null;
 
 const mobileLinks = [
-  { href: "/banned-help", label: "", icon: "/nav-icons/ban-help.png" },
-  { href: `/dashboard/${user}`, label: "", icon: "/nav-icons/dashboard.png" },
-  { href: "/", label: "", icon: "/nav-icons/home.png" },
-  { href: "/leaderboard", label: "", icon: "/nav-icons/leaderboard.png" },
-  { href: "/world-cup", label: "", icon: "/nav-icons/merch.png" },
-];;
+  { href: "/banned-help", title: "Ban Help", icon: "/nav-icons/ban-help.png", tone: "danger" },
+  { href: `/dashboard/${user}`, title: "Dashboard", icon: "/nav-icons/dashboard.png" },
+  { href: "/", title: "Home", icon: "/nav-icons/home.png" },
+  { href: "/leaderboard", title: "Leaderboard", icon: "/nav-icons/leaderboard.png" },
+  { href: "/battles", title: "Battles", icon: "/nav-icons/battle.png" },
+];
 
 const desktopLinks = [
   { href: "/", label: "Home" },
   { href: `/dashboard/${user}`, label: "Dashboard" },
   { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/world-cup", label: "World Cup" },
+  { href: "/battles", label: "Battles" },
   { href: "/banned-help", label: "Ban Help" },
 ];
 
@@ -66,18 +66,19 @@ const desktopLinks = [
       <nav className="aqua-mobile-bottom">
         {mobileLinks.map((link) => {
           const active = pathname === link.href;
-          const ban = link.label === "Ban Help";
+          const ban = link.tone === "danger";
 
           return (
             <Link
               key={link.href}
               href={link.href}
+              aria-label={link.title}
+              title={link.title}
               className={`aqua-mobile-tab ${active ? "active" : ""} ${
                 ban ? "ban" : ""
               }`}
             >
-              <img src={link.icon} alt="" className="aqua-mobile-icon" />
-              <span>{link.label}</span>
+              <img src={link.icon} alt="" aria-hidden="true" className="aqua-mobile-icon" />
             </Link>
           );
         })}
@@ -210,7 +211,7 @@ const desktopLinks = [
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 5px;
+            gap: 0;
             text-decoration: none;
             color: rgba(255, 255, 255, 0.82);
             position: relative;
@@ -222,22 +223,14 @@ const desktopLinks = [
           }
 
           .aqua-mobile-icon {
-            width: 34px;
-            height: 34px;
+            width: clamp(34px, 10vw, 44px);
+            height: clamp(34px, 10vw, 44px);
             object-fit: contain;
             filter: drop-shadow(0 0 7px rgba(45, 224, 255, 0.75));
           }
 
           .aqua-mobile-tab.ban .aqua-mobile-icon {
             filter: drop-shadow(0 0 8px rgba(255, 77, 77, 0.8));
-          }
-
-          .aqua-mobile-tab span {
-            font-size: 10px;
-            line-height: 1;
-            font-weight: 800;
-            white-space: nowrap;
-            text-align: center;
           }
 
           .aqua-mobile-tab.active {
