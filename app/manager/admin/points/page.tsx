@@ -9,6 +9,7 @@ type ManagerRow = {
   recruitPoints: number;
   submissionPoints: number;
   pointAdjustments: number;
+  targetPoints: number;
 };
 
 type ManagerPointsDbRow = {
@@ -18,20 +19,43 @@ type ManagerPointsDbRow = {
   additional_points: number | null;
 };
 
+type ManagerTargetDbRow = {
+  name: string;
+  target_points: number | null;
+};
+
+const defaultTargets: Record<string, number> = {
+  james: 50,
+  alfie: 50,
+  dylan: 40,
+  mavis: 15,
+  chris: 40,
+  ellie: 35,
+  teddie: 30,
+  millie: 30,
+  vitali: 50,
+  harry: 35,
+  joechloe: 30,
+};
+
+function getDefaultTarget(name: string) {
+  return defaultTargets[name] ?? 35;
+}
+
 const defaultManagers: ManagerRow[] = [
-  { name: "james", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
-  { name: "alfie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
-  { name: "dylan", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
-  { name: "mavis", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
-  { name: "chris", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "james", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 50 },
+  { name: "alfie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 50 },
+  { name: "dylan", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 40 },
+  { name: "mavis", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 15 },
+  { name: "chris", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 40 },
 
-  { name: "ellie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "ellie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 35 },
 
-  { name: "teddie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
-  { name: "millie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
-  { name: "vitali", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
-  { name: "harry", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
-  { name: "joechloe", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0 },
+  { name: "teddie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 30 },
+  { name: "millie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 30 },
+  { name: "vitali", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 50 },
+  { name: "harry", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 35 },
+  { name: "joechloe", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 30 },
 ];
 
 const POINTS_PER_RECRUIT = 3;
@@ -58,19 +82,7 @@ export default function ManagerPointsPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const hasAccess = localStorage.getItem("manager_admin_access");
-
-    if (hasAccess !== "true") {
-      router.push("/manager/admin");
-      return;
-    }
-
-    setCheckedAccess(true);
-    loadPoints();
-  }, [router]);
-
-  const loadPoints = async () => {
+  async function loadPoints() {
     setLoading(true);
     setMessage("");
 
@@ -86,8 +98,16 @@ export default function ManagerPointsPage() {
     }
 
     const dbRows = (data || []) as ManagerPointsDbRow[];
+    const { data: targetData } = await submissionsSupabase
+      .from("manager_targets")
+      .select("name,target_points");
+    const targetRows = (targetData || []) as ManagerTargetDbRow[];
 
     const mergedRows = defaultManagers.map((manager) => {
+      const targetPoints =
+        targetRows.find((row) => row.name === manager.name)?.target_points ??
+        getDefaultTarget(manager.name);
+
       if (manager.name === "joechloe") {
         const joe = dbRows.find((row) => row.name === "joe");
         const chloe = dbRows.find((row) => row.name === "chloe");
@@ -100,6 +120,7 @@ export default function ManagerPointsPage() {
             (joe?.submission_points ?? 0) + (chloe?.submission_points ?? 0),
           pointAdjustments:
             (joe?.additional_points ?? 0) + (chloe?.additional_points ?? 0),
+          targetPoints,
         };
       }
 
@@ -110,16 +131,31 @@ export default function ManagerPointsPage() {
         recruitPoints: existing?.recruit_points ?? 0,
         submissionPoints: existing?.submission_points ?? 0,
         pointAdjustments: existing?.additional_points ?? 0,
+        targetPoints,
       };
     });
 
     setRows(mergedRows);
     setLoading(false);
-  };
+  }
+
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      const hasAccess = localStorage.getItem("manager_admin_access");
+
+      if (hasAccess !== "true") {
+        router.push("/manager/admin");
+        return;
+      }
+
+      setCheckedAccess(true);
+      loadPoints();
+    });
+  }, [router]);
 
   const updateRow = (
     name: string,
-    field: "recruitPoints" | "submissionPoints" | "pointAdjustments",
+    field: "recruitPoints" | "submissionPoints" | "pointAdjustments" | "targetPoints",
     value: string
   ) => {
     const rawNumber = Number(value) || 0;
@@ -172,9 +208,24 @@ export default function ManagerPointsPage() {
       return;
     }
 
+    const targetPayload = rows.map((row) => ({
+      name: row.name,
+      target_points: row.targetPoints,
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error: targetError } = await submissionsSupabase
+      .from("manager_targets")
+      .upsert(targetPayload, { onConflict: "name" });
+
+    if (targetError) {
+      setMessage(targetError.message);
+      return;
+    }
+
     setMessage("Points saved.");
     await loadPoints();
-  };
+  }
 
   const resetAllPoints = async () => {
     const confirmReset = window.confirm(
@@ -325,6 +376,19 @@ export default function ManagerPointsPage() {
                   marginTop: "12px",
                 }}
               >
+                <label className="manager-label">
+                  Points Target
+                  <input
+                    type="number"
+                    min="0"
+                    value={row.targetPoints}
+                    onChange={(e) =>
+                      updateRow(row.name, "targetPoints", e.target.value)
+                    }
+                    className="manager-input"
+                  />
+                </label>
+
                 <label className="manager-label">
                   Recruit Points — 1 recruit = 3 points
                   <input

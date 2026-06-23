@@ -19,6 +19,11 @@ type ManagerPointsDbRow = {
   additional_points: number | null;
 };
 
+type ManagerTargetDbRow = {
+  name: string;
+  target_points: number | null;
+};
+
 const defaultManagers: ManagerRow[] = [
   { name: "james", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
   { name: "alfie", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
@@ -68,6 +73,10 @@ function roundToNearest5(value: number) {
 
 function getTarget(name: string) {
   return managerTargets[name] ?? 35;
+}
+
+function getConfiguredTarget(name: string, targetRows: ManagerTargetDbRow[]) {
+  return targetRows.find((row) => row.name === name)?.target_points ?? getTarget(name);
 }
 
 function getBonusPoints(target: number) {
@@ -174,15 +183,16 @@ function SingleManagerImage({ name }: { name: string }) {
 
 export default function ManagerLeaderboardPage() {
   const [rows, setRows] = useState<ManagerRow[]>(defaultManagers);
+  const [targets, setTargets] = useState<ManagerTargetDbRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadPoints();
-  }, []);
-
-  const loadPoints = async () => {
+  async function loadPoints() {
     const { data } = await submissionsSupabase.from("manager_points").select("*");
     const dbRows = (data || []) as ManagerPointsDbRow[];
+    const { data: targetData } = await submissionsSupabase
+      .from("manager_targets")
+      .select("name,target_points");
+    setTargets((targetData || []) as ManagerTargetDbRow[]);
 
     const merged = defaultManagers.map((manager) => {
       if (manager.name === "joechloe") {
@@ -211,7 +221,11 @@ export default function ManagerLeaderboardPage() {
 
     setRows(merged);
     setLoading(false);
-  };
+  }
+
+  useEffect(() => {
+    void Promise.resolve().then(loadPoints);
+  }, []);
 
   const sortedRows = useMemo(() => {
     return [...rows].sort((a, b) => getCurrentPoints(b) - getCurrentPoints(a));
@@ -658,7 +672,7 @@ export default function ManagerLeaderboardPage() {
           <div className="manager-list">
             {sortedRows.map((row, index) => {
               const points = getCurrentPoints(row);
-              const target = getTarget(row.name);
+              const target = getConfiguredTarget(row.name, targets);
               const bonusTarget = getBonusPoints(target);
               const doubleBonusTarget = getDoubleBonusPoints(target);
               const status = getBonusStatus(points, target);
