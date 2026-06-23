@@ -1762,10 +1762,13 @@ function renderText(
     key === "username1" || key === "username2"
       ? Math.max(element.strokeWidth ?? 2, 3)
       : element.strokeWidth ?? 2;
+  const isUsernameText = key === "username1" || key === "username2";
 
  const content = (
   <div
-    className="w-full h-full flex items-center justify-center overflow-hidden"
+    className={`w-full h-full flex items-center justify-center ${
+      isUsernameText ? "overflow-hidden" : ""
+    }`}
     style={{
       fontFamily: `'${element.fontFamily || "Luckiest Guy"}', sans-serif`,
       WebkitTextStroke: `${strokeWidth}px ${
@@ -1784,7 +1787,9 @@ function renderText(
     }}
   >
     <span
-      className="leading-none text-center whitespace-nowrap block max-w-full overflow-hidden"
+      className={`leading-none text-center whitespace-nowrap ${
+        isUsernameText ? "block max-w-full overflow-hidden" : ""
+      }`}
       style={{
         background: element.gradientEnabled
           ? `linear-gradient(
