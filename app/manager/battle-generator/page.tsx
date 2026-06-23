@@ -1622,9 +1622,39 @@ export default function AquaBattleGeneratorPage() {
       ? EDIT_PREVIEW_VALUES.time
       : battle.time.toUpperCase();
 
-    function autoFontSize(value: string, element: PosterElement, fallback: number) {
+    function autoFontSize(
+      value: string,
+      element: PosterElement,
+      fallback: number,
+      key: "username1" | "username2" | "date" | "time"
+    ) {
       if (editMode) return element.fontSize || fallback;
-      return Math.max(26, Math.min(element.fontSize || fallback, fallback - value.length * 0.9));
+
+      const maxFontSize = element.fontSize || fallback;
+
+      if (key !== "username1" && key !== "username2") return maxFontSize;
+
+      const text = value.trim();
+      if (!text) return maxFontSize;
+
+      const strokeWidth = Math.max(element.strokeWidth ?? 2, 3);
+      const letterSpacing = element.letterSpacing ?? 1;
+      const availableWidth = Math.max(40, element.width - strokeWidth * 8);
+      const availableHeight = Math.max(18, element.height - strokeWidth * 4);
+      const family = String(element.fontFamily || "").toLowerCase();
+      const wideFontFactor =
+        family.includes("luckiest") || family.includes("bangers")
+          ? 0.74
+          : family.includes("impact") || family.includes("anton")
+            ? 0.64
+            : 0.58;
+      const letterSpacingWidth = Math.max(0, text.length - 1) * letterSpacing;
+      const widthFit = Math.floor(
+        (availableWidth - letterSpacingWidth) / Math.max(1, text.length * wideFontFactor)
+      );
+      const heightFit = Math.floor(availableHeight * 0.92);
+
+      return Math.max(18, Math.min(maxFontSize, widthFit, heightFit));
     }
 
     function renderAvatar(
@@ -1727,14 +1757,18 @@ function renderText(
   const fontSize =
     key === "date" || key === "time"
       ? element.fontSize || fallbackSize
-      : autoFontSize(value, element, fallbackSize);
+      : autoFontSize(value, element, fallbackSize, key);
+  const strokeWidth =
+    key === "username1" || key === "username2"
+      ? Math.max(element.strokeWidth ?? 2, 3)
+      : element.strokeWidth ?? 2;
 
  const content = (
   <div
-    className="w-full h-full flex items-center justify-center"
+    className="w-full h-full flex items-center justify-center overflow-hidden"
     style={{
       fontFamily: `'${element.fontFamily || "Luckiest Guy"}', sans-serif`,
-      WebkitTextStroke: `${element.strokeWidth ?? 2}px ${
+      WebkitTextStroke: `${strokeWidth}px ${
         element.strokeColor || "black"
       }`,
       textShadow: `${element.shadowX ?? 2}px ${
@@ -1750,7 +1784,7 @@ function renderText(
     }}
   >
     <span
-      className="leading-none text-center whitespace-nowrap"
+      className="leading-none text-center whitespace-nowrap block max-w-full overflow-hidden"
       style={{
         background: element.gradientEnabled
           ? `linear-gradient(
