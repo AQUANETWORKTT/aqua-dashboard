@@ -2845,6 +2845,21 @@ export default function CreatorIntelligencePage() {
     );
   }
 
+  function copyNotImprovingCreatorsText() {
+    copyWhatsAppText(
+      "Aqua Creators Not Improving",
+      notImprovingCreators.length
+        ? notImprovingCreators.map((item) =>
+            [
+              `${item.creator.username}`,
+              `Health score: ${formatNumber(item.previousScore ?? 0)} to ${formatNumber(item.creator.healthScore)}`,
+              `Last 7 days drop: ${formatNumber(Math.abs(item.change ?? 0))} points`,
+            ].join("\n")
+          )
+        : ["No non-improving creators found for the current filters."]
+    );
+  }
+
   function toggleChartMetric(metric: ChartMetricKey) {
     setSelectedChartMetrics((current) => {
       if (current.includes(metric)) {
@@ -3562,7 +3577,16 @@ export default function CreatorIntelligencePage() {
             </div>
 
             <div>
-              <h3 className="mb-3 text-lg font-black uppercase text-red-700">Not Improving</h3>
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-lg font-black uppercase text-red-700">Not Improving</h3>
+                <button
+                  type="button"
+                  onClick={copyNotImprovingCreatorsText}
+                  className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-black uppercase tracking-wide text-red-700 hover:bg-red-100"
+                >
+                  Copy WhatsApp Text
+                </button>
+              </div>
               <div className="max-h-[520px] space-y-2 overflow-y-auto pr-2">
                 {notImprovingCreators.map((item) => (
                   <button
