@@ -243,6 +243,12 @@ export default function LeaderboardPage() {
                           May Aqua Hours Winner
                         </span>
                       )}
+
+                      {usernameKey === "corie.watkins" && (
+                        <span className="badge sunset animatedBadge">
+                          Sunset Showdown Champion
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -507,6 +513,19 @@ export default function LeaderboardPage() {
           background: rgba(255, 134, 196, 0.12);
           border-color: rgba(255, 134, 196, 0.35);
           box-shadow: 0 0 14px rgba(255, 134, 196, 0.18);
+        }
+
+        .sunset {
+          color: #fff7ed;
+          background: linear-gradient(
+            135deg,
+            rgba(239, 68, 68, 0.26),
+            rgba(249, 115, 22, 0.24)
+          );
+          border-color: rgba(251, 146, 60, 0.62);
+          box-shadow:
+            0 0 14px rgba(239, 68, 68, 0.32),
+            0 0 22px rgba(249, 115, 22, 0.24);
         }
 
         .metrics {
