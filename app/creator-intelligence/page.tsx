@@ -255,6 +255,26 @@ function formatPercent(value: number) {
   return `${value.toFixed(1)}%`;
 }
 
+function getRoundedPercentages(counts: number[]) {
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  if (!total) return counts.map(() => 0);
+
+  const raw = counts.map((count) => (count / total) * 100);
+  const roundedDown = raw.map(Math.floor);
+  let remainder = 100 - roundedDown.reduce((sum, value) => sum + value, 0);
+  const order = raw
+    .map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+    .sort((a, b) => b.remainder - a.remainder);
+
+  for (const item of order) {
+    if (remainder <= 0) break;
+    roundedDown[item.index] += 1;
+    remainder -= 1;
+  }
+
+  return roundedDown;
+}
+
 function getChangePercent(current: number, previous: number) {
   if (!previous) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
@@ -1889,9 +1909,11 @@ function downloadManagerReport(
   const belowAgencyAverageCreators = [...creatorsForStats]
     .filter((creator) => creator.healthScore < agencyAverageScore)
     .sort((a, b) => a.healthScore - b.healthScore);
-  const improvingCreators = movementItems.filter((item) => item.change !== null && item.change > 0);
-  const decliningCreators = movementItems.filter((item) => item.change !== null && item.change < 0);
-  const stableCreators = movementItems.filter((item) => item.change !== null && item.change === 0);
+  const improvingCreators = movementItems.filter((item) => item.change !== null && item.change > 10);
+  const decliningCreators = movementItems.filter((item) => item.change !== null && item.change < -10);
+  const stableCreators = movementItems.filter(
+    (item) => item.change !== null && item.change >= -10 && item.change <= 10
+  );
   const thirtyDayAverage =
     managerTrend.length > 0
       ? managerTrend.reduce((sum, point) => sum + point.score, 0) / managerTrend.length
@@ -2619,7 +2641,7 @@ export default function CreatorIntelligencePage() {
   const improvingCreators = useMemo(
     () =>
       weeklyHealthComparison
-        .filter((item) => item.change !== null && item.change > 0)
+        .filter((item) => item.change !== null && item.change > 10)
         .sort((a, b) => (b.change ?? 0) - (a.change ?? 0)),
     [weeklyHealthComparison]
   );
@@ -2627,7 +2649,7 @@ export default function CreatorIntelligencePage() {
   const notImprovingCreators = useMemo(
     () =>
       weeklyHealthComparison
-        .filter((item) => item.change !== null && item.change < -15)
+        .filter((item) => item.change !== null && item.change < -10)
         .sort((a, b) => (a.change ?? 0) - (b.change ?? 0)),
     [weeklyHealthComparison]
   );
@@ -2635,9 +2657,40 @@ export default function CreatorIntelligencePage() {
   const stableCreators = useMemo(
     () =>
       weeklyHealthComparison
-        .filter((item) => item.change !== null && item.change <= 0 && item.change >= -15)
+        .filter((item) => item.change !== null && item.change >= -10 && item.change <= 10)
         .sort((a, b) => (a.change ?? 0) - (b.change ?? 0)),
     [weeklyHealthComparison]
+  );
+
+  const managerMovementSummaries = useMemo(
+    () =>
+      managerHealthSummaries.map((managerSummary) => {
+        const movementItems = weeklyHealthComparison.filter(
+          (item) => item.creator.managerLabel === managerSummary.manager && item.change !== null
+        );
+        const improving = movementItems.filter((item) => (item.change ?? 0) > 10).length;
+        const declining = movementItems.filter((item) => (item.change ?? 0) < -10).length;
+        const stable = movementItems.filter(
+          (item) => (item.change ?? 0) >= -10 && (item.change ?? 0) <= 10
+        ).length;
+        const [improvingPercent, decliningPercent, stablePercent] = getRoundedPercentages([
+          improving,
+          declining,
+          stable,
+        ]);
+
+        return {
+          manager: managerSummary.manager,
+          totalCreators: movementItems.length,
+          improving,
+          declining,
+          stable,
+          improvingPercent,
+          decliningPercent,
+          stablePercent,
+        };
+      }),
+    [managerHealthSummaries, weeklyHealthComparison]
   );
 
   const latestGraduationUploadDay = useMemo(() => {
@@ -2863,7 +2916,7 @@ export default function CreatorIntelligencePage() {
 
   function copyNotImprovingCreatorsText() {
     copyWhatsAppText(
-      "Aqua Creators Not Improving",
+      "Aqua Creators Declining",
       notImprovingCreators.length
         ? notImprovingCreators.map((item) =>
             [
@@ -2873,7 +2926,24 @@ export default function CreatorIntelligencePage() {
               `Last 7 days drop: ${formatNumber(Math.abs(item.change ?? 0))} points`,
             ].join("\n")
           )
-        : ["No non-improving creators found for the current filters."]
+        : ["No declining creators found for the current filters."]
+    );
+  }
+
+  function copyManagerMovementText() {
+    copyWhatsAppText(
+      "Aqua Manager Creator Movement",
+      managerMovementSummaries.length
+        ? managerMovementSummaries.map((item) =>
+            [
+              `${getPlainManagerName(item.manager)}`,
+              `Total creators: ${formatNumber(item.totalCreators)}`,
+              `${item.improvingPercent}% of creators are improving`,
+              `${item.decliningPercent}% of creators are declining`,
+              `${item.stablePercent}% of creators are stable`,
+            ].join("\n")
+          )
+        : ["No manager movement data found for the current filters."]
     );
   }
 
@@ -3082,7 +3152,7 @@ export default function CreatorIntelligencePage() {
             </span>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-3">
             {managerGrowthSummaries.map((item, index) => (
               <div
                 key={`manager-growth-${item.managerSummary.manager}`}
@@ -3156,7 +3226,7 @@ export default function CreatorIntelligencePage() {
             </span>
           </div>
 
-          <div className="grid gap-3 xl:grid-cols-2">
+          <div className="grid gap-3">
             {managerHealthSummaries.map((managerSummary) => {
               const scoreWidth = Math.min(Math.max(managerSummary.averageScore, 0), 100);
 
@@ -3306,6 +3376,67 @@ export default function CreatorIntelligencePage() {
               No manager health data found for these filters.
             </p>
           ) : null}
+        </section>
+
+        <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-3xl font-black uppercase text-sky-900">Manager Creator Movement</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Creator movement split by manager. Stable is within 10 health score points either way.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={copyManagerMovementText}
+              className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black uppercase tracking-wide text-sky-700 hover:bg-sky-100"
+            >
+              Copy WhatsApp Text
+            </button>
+          </div>
+
+          <div className="grid gap-3">
+            {managerMovementSummaries.map((item) => (
+              <div
+                key={`manager-movement-${item.manager}`}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-950">{item.manager}</h3>
+                    <p className="mt-1 text-xs font-bold text-slate-500">
+                      {formatNumber(item.totalCreators)} creators with weekly movement data
+                    </p>
+                  </div>
+                  <div className="grid gap-2 text-center sm:grid-cols-3 lg:min-w-[520px]">
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                      <p className="text-2xl font-black text-emerald-700">{item.improvingPercent}%</p>
+                      <p className="mt-1 text-[10px] font-black uppercase text-emerald-700">
+                        Improving ({formatNumber(item.improving)})
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-red-100 bg-red-50 p-3">
+                      <p className="text-2xl font-black text-red-700">{item.decliningPercent}%</p>
+                      <p className="mt-1 text-[10px] font-black uppercase text-red-700">
+                        Declining ({formatNumber(item.declining)})
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-3">
+                      <p className="text-2xl font-black text-slate-700">{item.stablePercent}%</p>
+                      <p className="mt-1 text-[10px] font-black uppercase text-slate-600">
+                        Stable ({formatNumber(item.stable)})
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {!managerMovementSummaries.length ? (
+              <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                No manager movement data found for these filters.
+              </p>
+            ) : null}
+          </div>
         </section>
 
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -3523,7 +3654,7 @@ export default function CreatorIntelligencePage() {
                 {formatNumber(stableCreators.length)} stable
               </span>
               <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-black text-red-700">
-                {formatNumber(notImprovingCreators.length)} not improving
+                {formatNumber(notImprovingCreators.length)} declining
               </span>
             </div>
           </div>
@@ -3610,7 +3741,7 @@ export default function CreatorIntelligencePage() {
 
             <div>
               <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="text-lg font-black uppercase text-red-700">Not Improving</h3>
+                <h3 className="text-lg font-black uppercase text-red-700">Declining</h3>
                 <button
                   type="button"
                   onClick={copyNotImprovingCreatorsText}
@@ -3646,7 +3777,7 @@ export default function CreatorIntelligencePage() {
                 ))}
                 {!notImprovingCreators.length ? (
                   <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                    No non-improving creators found for these filters.
+                    No declining creators found for these filters.
                   </p>
                 ) : null}
               </div>
