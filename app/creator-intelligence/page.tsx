@@ -2845,6 +2845,22 @@ export default function CreatorIntelligencePage() {
     );
   }
 
+  function copyImprovingCreatorsText() {
+    copyWhatsAppText(
+      "Aqua Creators Improving",
+      improvingCreators.length
+        ? improvingCreators.map((item) =>
+            [
+              `${item.creator.username}`,
+              `Manager: ${getPlainManagerName(item.creator.managerLabel)}`,
+              `Health score: ${formatNumber(item.previousScore ?? 0)} to ${formatNumber(item.creator.healthScore)}`,
+              `Last 7 days increase: ${formatNumber(item.change ?? 0)} points`,
+            ].join("\n")
+          )
+        : ["No improving creators found for the current filters."]
+    );
+  }
+
   function copyNotImprovingCreatorsText() {
     copyWhatsAppText(
       "Aqua Creators Not Improving",
@@ -2852,6 +2868,7 @@ export default function CreatorIntelligencePage() {
         ? notImprovingCreators.map((item) =>
             [
               `${item.creator.username}`,
+              `Manager: ${getPlainManagerName(item.creator.managerLabel)}`,
               `Health score: ${formatNumber(item.previousScore ?? 0)} to ${formatNumber(item.creator.healthScore)}`,
               `Last 7 days drop: ${formatNumber(Math.abs(item.change ?? 0))} points`,
             ].join("\n")
@@ -3513,7 +3530,16 @@ export default function CreatorIntelligencePage() {
 
           <div className="grid gap-5 xl:grid-cols-3">
             <div>
-              <h3 className="mb-3 text-lg font-black uppercase text-emerald-700">Improving</h3>
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-lg font-black uppercase text-emerald-700">Improving</h3>
+                <button
+                  type="button"
+                  onClick={copyImprovingCreatorsText}
+                  className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black uppercase tracking-wide text-emerald-700 hover:bg-emerald-100"
+                >
+                  Copy WhatsApp Text
+                </button>
+              </div>
               <div className="max-h-[520px] space-y-2 overflow-y-auto pr-2">
                 {improvingCreators.map((item) => (
                   <button
@@ -3526,6 +3552,9 @@ export default function CreatorIntelligencePage() {
                       <div>
                         <p className="font-black text-slate-950">{item.creator.username}</p>
                         <p className="mt-1 text-xs text-slate-500">{getCreatorMetaLine(item.creator)}</p>
+                        <p className="mt-1 text-xs font-bold text-slate-600">
+                          Manager: {getPlainManagerName(item.creator.managerLabel)}
+                        </p>
                       </div>
                       <span className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-black text-emerald-700">
                         +{formatNumber(item.change ?? 0)}
@@ -3558,6 +3587,9 @@ export default function CreatorIntelligencePage() {
                       <div>
                         <p className="font-black text-slate-950">{item.creator.username}</p>
                         <p className="mt-1 text-xs text-slate-500">{getCreatorMetaLine(item.creator)}</p>
+                        <p className="mt-1 text-xs font-bold text-slate-600">
+                          Manager: {getPlainManagerName(item.creator.managerLabel)}
+                        </p>
                       </div>
                       <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-black text-slate-700">
                         {formatNumber(item.change ?? 0)}
@@ -3599,6 +3631,9 @@ export default function CreatorIntelligencePage() {
                       <div>
                         <p className="font-black text-slate-950">{item.creator.username}</p>
                         <p className="mt-1 text-xs text-slate-500">{getCreatorMetaLine(item.creator)}</p>
+                        <p className="mt-1 text-xs font-bold text-slate-600">
+                          Manager: {getPlainManagerName(item.creator.managerLabel)}
+                        </p>
                       </div>
                       <span className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-black text-red-700">
                         {formatNumber(item.change ?? 0)}
