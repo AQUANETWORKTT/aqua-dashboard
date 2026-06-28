@@ -32,6 +32,14 @@ type CreatorStat = {
 };
 
 type HealthStatus = "Elite" | "Healthy" | "Needs Attention" | "Low Performance" | "Low Quality";
+type GraduationTrackerStatus = "gold" | "green" | "amber" | "red";
+
+type HealthBreakdown = {
+  liveDays: number;
+  liveHours: number;
+  matches: number;
+  dph: number;
+};
 
 type CreatorDailyPoint = {
   date: string;
@@ -59,8 +67,13 @@ type CreatorSummary = {
   daysSinceJoining: number;
   dph: number;
   isNewCreator: boolean;
+  healthBreakdown: HealthBreakdown;
   healthScore: number;
   healthStatus: HealthStatus;
+  monthlyHealthScore: number;
+  monthlyHealthStatus: HealthStatus;
+  monthlyHealthBreakdown: HealthBreakdown;
+  creatorTags: string[];
   dailyPoints: CreatorDailyPoint[];
   graduationStatus: string;
   tierStatus: string;
@@ -71,6 +84,23 @@ type WeeklyComparison = {
   previousScore: number | null;
   change: number | null;
 };
+
+type GraduationTrackerRow = {
+  username: string;
+  manager: string;
+  daysSinceJoining: number;
+  diamonds: number;
+  remainingDiamonds: number;
+  remainingDays: number;
+  avgNeededPerDay: number;
+  progressPercent: number;
+  pacePercent: number;
+  status: GraduationTrackerStatus;
+  statusLabel: string;
+};
+
+const GRADUATION_TARGET = 100000;
+const MINIMUM_TRACKER_DIAMONDS = 10000;
 
 const managerSearchMap: Record<string, string[]> = {
   james: ["james"],
@@ -199,6 +229,23 @@ function getManagerLabel(value: string) {
   return clean ? `Team ${titleCase(clean)}` : "Unassigned";
 }
 
+function getAgencyFromGroup(groupValue: string, fallback: string) {
+  const clean = groupValue.toLowerCase();
+
+  if (clean.includes("aqua")) return "Aqua";
+  if (clean.includes("respawn")) return "Respawn";
+  if (clean.includes("paradise")) return "Paradise";
+  if (clean.includes("strive")) return "Strive";
+
+  return fallback || "First Class";
+}
+
+function isAquaRow(row: CreatorStat) {
+  const groupValue = getText(row, ["team", "group_name", "Group"], "");
+  const agencyValue = getAgencyFromGroup(groupValue, getText(row, ["agency"], ""));
+  return agencyValue === "Aqua";
+}
+
 function isManagerMatch(managerField: string, managerUsername: string) {
   const field = managerField.toLowerCase();
   const keys = managerSearchMap[managerUsername] || [managerUsername];
@@ -223,13 +270,13 @@ function getDailyPoint(row: CreatorStat) {
     matches,
     newFollowers,
     dph: liveHours > 0 ? diamonds / liveHours : 0,
-    healthScore: getHealthScore([row], [row.stat_date]),
+    healthScore: getHealthBreakdown([row], [row.stat_date]).healthScore,
   };
 }
 
-function getHealthScore(creatorRows: CreatorStat[], windowDates: string[]) {
+function getHealthBreakdown(creatorRows: CreatorStat[], windowDates: string[], period: "weekly" | "monthly" = "weekly") {
   const rowsByDate = new Map(creatorRows.map((row) => [row.stat_date, row]));
-  const currentDates = windowDates.slice(-7);
+  const currentDates = period === "monthly" ? windowDates : windowDates.slice(-7);
   let liveAppearDays = 0;
   let liveDays = 0;
   let totalHours = 0;
@@ -250,14 +297,48 @@ function getHealthScore(creatorRows: CreatorStat[], windowDates: string[]) {
   }
 
   const dph = totalHours > 0 ? totalDiamonds / totalHours : 0;
-  const liveDaysScore = capScore(liveAppearDays * 3 + liveDays * 2, 35);
+  const liveDaysScore =
+    period === "monthly"
+      ? capScore((liveAppearDays / 28) * 21 + (liveDays / 28) * 14, 35)
+      : capScore(liveAppearDays * 3 + liveDays * 2, 35);
   const liveHoursScore =
-    totalHours >= 20 ? 30 : totalHours >= 15 ? 22 : totalHours >= 10 ? 15 : totalHours >= 5 ? 8 : 0;
-  const matchesScore = capScore(Math.floor(totalMatches / 7), 10);
+    period === "monthly"
+      ? totalHours >= 80
+        ? 30
+        : totalHours >= 60
+          ? 22
+          : totalHours >= 40
+            ? 15
+            : totalHours >= 20
+              ? 8
+              : 0
+      : totalHours >= 20
+        ? 30
+        : totalHours >= 15
+          ? 22
+          : totalHours >= 10
+            ? 15
+            : totalHours >= 5
+              ? 8
+              : 0;
+  const matchesScore = capScore(Math.floor(totalMatches / (period === "monthly" ? 28 : 7)), 10);
   const dphScore =
     dph >= 2500 ? 25 : dph >= 2000 ? 20 : dph >= 1500 ? 15 : dph >= 1000 ? 10 : dph >= 500 ? 5 : dph >= 100 ? 1 : 0;
 
-  return Math.round(liveDaysScore + liveHoursScore + matchesScore + dphScore);
+  return {
+    healthWindowDays: Math.max(currentDates.length, 1),
+    liveAppearDays,
+    oneHourDays: liveDays,
+    healthWindowHours: totalHours,
+    healthWindowMatches: totalMatches,
+    healthBreakdown: {
+      liveDays: liveDaysScore,
+      liveHours: liveHoursScore,
+      matches: matchesScore,
+      dph: dphScore,
+    },
+    healthScore: Math.round(liveDaysScore + liveHoursScore + matchesScore + dphScore),
+  };
 }
 
 function getHealthStatus(score: number, diamonds = 0): HealthStatus {
@@ -268,12 +349,93 @@ function getHealthStatus(score: number, diamonds = 0): HealthStatus {
   return "Low Quality";
 }
 
+function getCreatorTags(creator: {
+  isNewCreator: boolean;
+  oneHourDays: number;
+  healthWindowDays: number;
+  healthWindowHours: number;
+  healthWindowMatches: number;
+  dph: number;
+  diamonds: number;
+  tierStatus: string;
+  healthScore: number;
+}) {
+  const tags: string[] = [];
+
+  if (creator.isNewCreator) tags.push("New Creator");
+  if (creator.oneHourDays < creator.healthWindowDays) tags.push("Missed Live Days");
+  if (creator.healthWindowHours < 10) tags.push("Low Hours");
+  if (creator.healthWindowMatches < 28) tags.push("Low Battles");
+  if (creator.dph < 1000) tags.push("Low DPH (diamonds per hour)");
+  if (creator.healthScore >= 85) tags.push("Rising Star");
+  if (/maintained|ranked up|tier/i.test(creator.tierStatus)) tags.push("Tier Performer");
+  if (creator.healthScore < 40) tags.push("Needs Intervention");
+
+  return tags;
+}
+
+function buildProfileInsights(creator: CreatorSummary, range: "week" | "month") {
+  const insights: string[] = [];
+  const points = range === "week" ? creator.dailyPoints.slice(-7) : creator.dailyPoints;
+  const liveDays = points.filter((point) => point.liveHours >= 1).length;
+  const diamonds = points.reduce((sum, point) => sum + point.diamonds, 0);
+  const hours = points.reduce((sum, point) => sum + point.liveHours, 0);
+  const battles = points.reduce((sum, point) => sum + point.matches, 0);
+  const dph = hours > 0 ? diamonds / hours : 0;
+
+  if (liveDays < (range === "week" ? 5 : 20)) insights.push(`Live consistency needs work: ${formatNumber(liveDays)} valid live days.`);
+  if (hours < (range === "week" ? 20 : 80)) insights.push(`Live hours are below target at ${formatHours(hours)}.`);
+  if (battles < (range === "week" ? 28 : 112)) insights.push(`Battle volume is low at ${formatNumber(battles)} battles.`);
+  if (dph < 1000) insights.push(`DPH is low at ${formatNumber(dph)} diamonds per hour.`);
+  if (!insights.length) insights.push("Performance is currently in a solid place. Keep protecting consistency.");
+
+  return insights;
+}
+
 function statusClasses(status: HealthStatus) {
   if (status === "Elite") return "border-purple-200 bg-purple-50 text-purple-700";
   if (status === "Healthy") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (status === "Needs Attention") return "border-orange-200 bg-orange-50 text-orange-700";
   if (status === "Low Performance") return "border-sky-200 bg-sky-50 text-sky-700";
   return "border-red-200 bg-red-50 text-red-700";
+}
+
+function graduationStatusClasses(status: GraduationTrackerStatus) {
+  if (status === "gold") return "border-yellow-200 bg-yellow-50 text-yellow-800";
+  if (status === "green") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "amber") return "border-orange-200 bg-orange-50 text-orange-700";
+  return "border-red-200 bg-red-50 text-red-700";
+}
+
+function graduationProgressClasses(status: GraduationTrackerStatus) {
+  if (status === "gold") return "bg-yellow-500";
+  if (status === "green") return "bg-emerald-500";
+  if (status === "amber") return "bg-orange-500";
+  return "bg-red-500";
+}
+
+function cleanGraduationStatus(status: string) {
+  return status
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function isGraduationEligibleStatus(status: string) {
+  const cleanStatus = cleanGraduationStatus(status);
+
+  if (!cleanStatus) return false;
+  if (cleanStatus.includes("non new")) return false;
+  if (cleanStatus.includes("quit")) return false;
+  if (cleanStatus === "graduated") return false;
+  if (cleanStatus.includes("graduated") && !cleanStatus.includes("not graduated")) return false;
+
+  return (
+    cleanStatus.includes("not graduated") ||
+    cleanStatus.includes("non graduated") ||
+    cleanStatus.includes("not reached")
+  );
 }
 
 function getRoundedPercentages(counts: number[]) {
@@ -310,11 +472,13 @@ function getMonthBounds() {
     start,
     end,
     previousStart,
+    lastDay: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
   };
 }
 
-function buildCreatorSummaries(rows: CreatorStat[]) {
+function buildCreatorSummaries(rows: CreatorStat[], rollingRows: CreatorStat[] = rows) {
   const byCreator = new Map<string, CreatorStat[]>();
+  const rollingByCreator = new Map<string, CreatorStat[]>();
   const windowDates = Array.from(new Set(rows.map((row) => row.stat_date)))
     .sort((a, b) => a.localeCompare(b))
     .slice(-7);
@@ -325,9 +489,18 @@ function buildCreatorSummaries(rows: CreatorStat[]) {
     byCreator.get(username)?.push(row);
   }
 
+  for (const row of rollingRows) {
+    const username = getUsername(row).toLowerCase();
+    if (!rollingByCreator.has(username)) rollingByCreator.set(username, []);
+    rollingByCreator.get(username)?.push(row);
+  }
+
   return Array.from(byCreator.entries())
     .map(([key, creatorRows]) => {
       const sortedRows = [...creatorRows].sort((a, b) => a.stat_date.localeCompare(b.stat_date));
+      const rollingCreatorRows = [...(rollingByCreator.get(key) || creatorRows)].sort((a, b) =>
+        a.stat_date.localeCompare(b.stat_date)
+      );
       const latest = sortedRows[sortedRows.length - 1] || creatorRows[0];
       const managerRaw = getManagerRaw(latest);
       const diamonds = creatorRows.reduce((sum, row) => sum + getNumber(row, ["diamonds", "Diamonds"]), 0);
@@ -339,8 +512,24 @@ function buildCreatorSummaries(rows: CreatorStat[]) {
       const liveStreams = creatorRows.reduce((sum, row) => sum + getNumber(row, ["live_streams", "LIVE streams"]), 0);
       const newFollowers = creatorRows.reduce((sum, row) => sum + getNumber(row, ["new_followers", "New followers", "followers"]), 0);
       const daysSinceJoining = Math.max(...creatorRows.map((row) => getNumber(row, ["days_since_joining", "Days since joining"])), 0);
-      const healthScore = getHealthScore(creatorRows, windowDates);
+      const health = getHealthBreakdown(creatorRows, windowDates);
+      const rollingDates = Array.from(new Set(rollingCreatorRows.map((row) => row.stat_date)))
+        .sort((a, b) => a.localeCompare(b))
+        .slice(-30);
+      const monthlyHealth = getHealthBreakdown(rollingCreatorRows, rollingDates, "monthly");
       const dailyPoints = sortedRows.map(getDailyPoint);
+      const tierStatus = getText(latest, ["tier_status", "Tier status"], "Unknown");
+      const base = {
+        isNewCreator: daysSinceJoining > 0 && daysSinceJoining <= 14,
+        oneHourDays: health.oneHourDays,
+        healthWindowDays: health.healthWindowDays,
+        healthWindowHours: health.healthWindowHours,
+        healthWindowMatches: health.healthWindowMatches,
+        dph: liveHours > 0 ? diamonds / liveHours : 0,
+        diamonds,
+        tierStatus,
+        healthScore: health.healthScore,
+      };
 
       return {
         key,
@@ -357,11 +546,16 @@ function buildCreatorSummaries(rows: CreatorStat[]) {
         daysSinceJoining,
         dph: liveHours > 0 ? diamonds / liveHours : 0,
         isNewCreator: daysSinceJoining > 0 && daysSinceJoining <= 14,
-        healthScore,
-        healthStatus: getHealthStatus(healthScore, diamonds),
+        healthBreakdown: health.healthBreakdown,
+        healthScore: health.healthScore,
+        healthStatus: getHealthStatus(health.healthScore, diamonds),
+        monthlyHealthScore: monthlyHealth.healthScore,
+        monthlyHealthStatus: getHealthStatus(monthlyHealth.healthScore, diamonds),
+        monthlyHealthBreakdown: monthlyHealth.healthBreakdown,
+        creatorTags: getCreatorTags(base),
         dailyPoints,
         graduationStatus: getText(latest, ["graduation_status", "Graduation status"], "Unknown"),
-        tierStatus: getText(latest, ["tier_status", "Tier status"], "Unknown"),
+        tierStatus,
       };
     })
     .sort((a, b) => a.healthScore - b.healthScore);
@@ -534,9 +728,11 @@ export default function ManagerPortalPage() {
           monthBounds.end >= "2026-06-19"
             ? await fetchRows("aqua_daily_stats", monthBounds.previousStart > "2026-06-19" ? monthBounds.previousStart : "2026-06-19", monthBounds.end)
             : [];
-        const allRows = [...legacyRows, ...aquaRows].filter((row) =>
-          isManagerMatch(`${getManagerRaw(row)} ${getManagerLabel(getManagerRaw(row))}`, managerUsername)
-        );
+        const allRows = [...legacyRows, ...aquaRows]
+          .filter(isAquaRow)
+          .filter((row) =>
+            isManagerMatch(`${getManagerRaw(row)} ${getManagerLabel(getManagerRaw(row))}`, managerUsername)
+          );
 
         setRows(allRows);
       } catch (error) {
@@ -550,10 +746,28 @@ export default function ManagerPortalPage() {
     loadData();
   }, [managerUsername, monthBounds]);
 
-  const creators = useMemo(() => buildCreatorSummaries(rows), [rows]);
+  const dateRangeRows = useMemo(
+    () => rows.filter((row) => row.stat_date.startsWith(`${monthBounds.month}-`)),
+    [monthBounds.month, rows]
+  );
+  const latestPortalDate = useMemo(() => {
+    const dates = dateRangeRows.map((row) => row.stat_date).sort((a, b) => a.localeCompare(b));
+    return dates[dates.length - 1] || "";
+  }, [dateRangeRows]);
+  const activePortalCreatorKeys = useMemo(() => {
+    const latestRows = latestPortalDate
+      ? dateRangeRows.filter((row) => row.stat_date === latestPortalDate)
+      : dateRangeRows;
+
+    return new Set(latestRows.map((row) => getUsername(row).toLowerCase()));
+  }, [dateRangeRows, latestPortalDate]);
+  const creators = useMemo(
+    () => buildCreatorSummaries(dateRangeRows, rows).filter((creator) => activePortalCreatorKeys.has(creator.key)),
+    [activePortalCreatorKeys, dateRangeRows, rows]
+  );
   const matureCreators = useMemo(() => creators.filter((creator) => !creator.isNewCreator), [creators]);
   const selectedCreator = creators.find((creator) => creator.key === selectedCreatorKey) || creators[0] || null;
-  const weeklyComparison = useMemo(() => buildWeeklyComparison(creators, rows), [creators, rows]);
+  const weeklyComparison = useMemo(() => buildWeeklyComparison(creators, dateRangeRows), [creators, dateRangeRows]);
   const improvingCreators = weeklyComparison
     .filter((item) => item.change !== null && item.change > 10)
     .sort((a, b) => (b.change ?? 0) - (a.change ?? 0));
@@ -580,15 +794,131 @@ export default function ManagerPortalPage() {
       ? matureCreators.reduce((sum, creator) => sum + creator.healthScore, 0) / matureCreators.length
       : 0,
   };
-  const highPotentialCreators = creators
-    .filter((creator) => creator.isNewCreator && creator.diamonds >= 10000 && creator.liveHours >= 5)
+  const newCreators = creators
+    .filter((creator) => creator.isNewCreator)
     .sort((a, b) => b.diamonds - a.diamonds);
-  const hiddenPotentialCreators = matureCreators
-    .filter((creator) => creator.healthScore < 70 && creator.dph >= 1500)
-    .sort((a, b) => b.dph - a.dph);
-  const graduationCreators = creators
-    .filter((creator) => creator.daysSinceJoining > 0 && creator.daysSinceJoining <= 60)
-    .sort((a, b) => b.diamonds - a.diamonds);
+  const hiddenPotentialCreators = newCreators.filter(
+    (creator) =>
+      creator.diamonds / Math.max(creator.daysSinceJoining || 1, 1) >= 1200 ||
+      creator.dph >= 1000 ||
+      creator.healthScore >= 70
+  );
+  const highPotentialCreators = hiddenPotentialCreators;
+  const latestGraduationUploadDay = useMemo(() => {
+    const uploadedDays = dateRangeRows
+      .filter(
+        (row) =>
+          getNumber(row, ["diamonds", "Diamonds"]) > 0 ||
+          getDurationHours(row, ["live_hours", "LIVE duration", "live_duration"]) > 0 ||
+          getNumber(row, ["matches", "Matches"]) > 0
+      )
+      .map((row) => Number(row.stat_date.split("-")[2] || 0))
+      .filter((day) => day > 0);
+
+    return uploadedDays.length ? Math.min(Math.max(...uploadedDays), monthBounds.lastDay) : monthBounds.lastDay;
+  }, [dateRangeRows, monthBounds.lastDay]);
+  const graduationTrackerRows = useMemo<GraduationTrackerRow[]>(() => {
+    const currentMonthDay = Math.min(latestGraduationUploadDay, monthBounds.lastDay);
+    const targetToDate = (GRADUATION_TARGET / monthBounds.lastDay) * currentMonthDay;
+    const remainingDays = Math.max(monthBounds.lastDay - currentMonthDay, 0);
+
+    return creators
+      .filter(
+        (creator) =>
+          creator.diamonds >= MINIMUM_TRACKER_DIAMONDS &&
+          isGraduationEligibleStatus(creator.graduationStatus)
+      )
+      .map((creator) => {
+        const remainingDiamonds = Math.max(GRADUATION_TARGET - creator.diamonds, 0);
+        const avgNeededPerDay = remainingDays > 0 ? remainingDiamonds / remainingDays : remainingDiamonds;
+        const progressPercent = Math.min((creator.diamonds / GRADUATION_TARGET) * 100, 100);
+        const pacePercent = targetToDate > 0 ? (creator.diamonds / targetToDate) * 100 : 0;
+        let status: GraduationTrackerStatus = "red";
+        let statusLabel = "Far Behind";
+
+        if (creator.diamonds >= GRADUATION_TARGET) {
+          status = "gold";
+          statusLabel = "Graduated";
+        } else if (pacePercent >= 100) {
+          status = "green";
+          statusLabel = "On Target";
+        } else if (pacePercent >= 75) {
+          status = "amber";
+          statusLabel = "Slightly Behind";
+        }
+
+        return {
+          username: creator.username,
+          manager: creator.managerLabel,
+          daysSinceJoining: creator.daysSinceJoining,
+          diamonds: creator.diamonds,
+          remainingDiamonds,
+          remainingDays,
+          avgNeededPerDay,
+          progressPercent,
+          pacePercent,
+          status,
+          statusLabel,
+        };
+      })
+      .sort((a, b) => {
+        if (a.status !== b.status) {
+          const order: Record<GraduationTrackerStatus, number> = {
+            gold: 0,
+            green: 1,
+            amber: 2,
+            red: 3,
+          };
+          return order[a.status] - order[b.status];
+        }
+
+        return b.progressPercent - a.progressPercent;
+      });
+  }, [creators, latestGraduationUploadDay, monthBounds.lastDay]);
+  const [profileRange, setProfileRange] = useState<"week" | "month">("week");
+  const selectedProfilePoints = selectedCreator
+    ? profileRange === "week"
+      ? selectedCreator.dailyPoints.slice(-7)
+      : selectedCreator.dailyPoints
+    : [];
+  const selectedProfileStats =
+    selectedCreator && selectedProfilePoints.length
+      ? {
+          diamonds:
+            profileRange === "week"
+              ? selectedProfilePoints.reduce((sum, point) => sum + point.diamonds, 0)
+              : selectedCreator.diamonds,
+          liveHours:
+            profileRange === "week"
+              ? selectedProfilePoints.reduce((sum, point) => sum + point.liveHours, 0)
+              : selectedCreator.liveHours,
+          validDays:
+            profileRange === "week"
+              ? selectedProfilePoints.reduce((sum, point) => sum + point.validDays, 0)
+              : selectedCreator.validDays,
+          liveStreams: selectedCreator.liveStreams,
+          matches:
+            profileRange === "week"
+              ? selectedProfilePoints.reduce((sum, point) => sum + point.matches, 0)
+              : selectedCreator.matches,
+          newFollowers:
+            profileRange === "week"
+              ? selectedProfilePoints.reduce((sum, point) => sum + point.newFollowers, 0)
+              : selectedCreator.newFollowers,
+          dph:
+            (profileRange === "week"
+              ? selectedProfilePoints.reduce((sum, point) => sum + point.liveHours, 0)
+              : selectedCreator.liveHours) > 0
+              ? (profileRange === "week"
+                  ? selectedProfilePoints.reduce((sum, point) => sum + point.diamonds, 0)
+                  : selectedCreator.diamonds) /
+                (profileRange === "week"
+                  ? selectedProfilePoints.reduce((sum, point) => sum + point.liveHours, 0)
+                  : selectedCreator.liveHours)
+              : 0,
+        }
+      : null;
+  const selectedInsights = selectedCreator ? buildProfileInsights(selectedCreator, profileRange) : [];
 
   return (
     <section className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 md:px-8">
@@ -674,79 +1004,182 @@ export default function ManagerPortalPage() {
             </section>
 
             <section className="mb-6 rounded-3xl border border-slate-800 bg-slate-900 p-5">
-              <h2 className="text-2xl font-black uppercase text-sky-200">Graduation</h2>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {graduationCreators.slice(0, 12).map((creator) => (
-                  <button
-                    key={`graduation-${creator.key}`}
-                    type="button"
-                    onClick={() => setSelectedCreatorKey(creator.key)}
-                    className="rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left hover:border-sky-400"
-                  >
-                    <p className="font-black text-white">{creator.username}</p>
-                    <p className="mt-1 text-sm text-slate-400">
-                      {formatNumber(creator.diamonds)} diamonds / {formatNumber(creator.daysSinceJoining)} days
-                    </p>
-                  </button>
-                ))}
+              <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h2 className="text-2xl font-black uppercase text-sky-200">Aqua Graduation Tracker</h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Tracks eligible team creators towards {formatNumber(GRADUATION_TARGET)} diamonds.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-sky-300/20 bg-sky-400/10 px-4 py-3 text-sm font-bold text-sky-200">
+                  Target pace day {latestGraduationUploadDay}:{" "}
+                  {formatNumber((GRADUATION_TARGET / monthBounds.lastDay) * Math.min(latestGraduationUploadDay, monthBounds.lastDay))}
+                </div>
+              </div>
+
+              <div className="mb-4 grid gap-4 md:grid-cols-4">
+                <Metric label="Tracker Creators" value={formatNumber(graduationTrackerRows.length)} dark />
+                <Metric
+                  label="Graduated"
+                  value={formatNumber(graduationTrackerRows.filter((creator) => creator.status === "gold").length)}
+                  dark
+                />
+                <Metric
+                  label="On Target"
+                  value={formatNumber(graduationTrackerRows.filter((creator) => creator.status === "green").length)}
+                  dark
+                />
+                <Metric label="Minimum Entry" value={formatNumber(MINIMUM_TRACKER_DIAMONDS)} dark />
+              </div>
+
+              <div className="max-h-[620px] overflow-auto rounded-2xl border border-slate-800">
+                <table className="w-full min-w-[1000px] text-left text-sm">
+                  <thead className="sticky top-0 bg-slate-950 text-xs uppercase text-slate-400">
+                    <tr>
+                      <th className="p-3">Creator</th>
+                      <th className="p-3">Manager</th>
+                      <th className="p-3">Days Joined</th>
+                      <th className="p-3">Diamonds</th>
+                      <th className="p-3">Progress</th>
+                      <th className="p-3">Pace</th>
+                      <th className="p-3">Needed</th>
+                      <th className="p-3">Days Left</th>
+                      <th className="p-3">Avg Needed / Day</th>
+                      <th className="p-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {graduationTrackerRows.map((creator) => (
+                      <tr key={`graduation-${creator.username}`} className="border-t border-slate-800">
+                        <td className="p-3 font-black text-white">{creator.username}</td>
+                        <td className="p-3 text-slate-400">{creator.manager}</td>
+                        <td className="p-3">{formatNumber(creator.daysSinceJoining)}</td>
+                        <td className="p-3 font-bold text-sky-200">{formatNumber(creator.diamonds)}</td>
+                        <td className="p-3">
+                          <div className="h-3 w-36 overflow-hidden rounded-full bg-slate-800">
+                            <div
+                              className={`h-full ${graduationProgressClasses(creator.status)}`}
+                              style={{ width: `${creator.progressPercent}%` }}
+                            />
+                          </div>
+                          <span className="mt-1 block text-xs text-slate-400">
+                            {creator.progressPercent.toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="p-3">{creator.pacePercent.toFixed(1)}%</td>
+                        <td className="p-3">{formatNumber(creator.remainingDiamonds)}</td>
+                        <td className="p-3">{formatNumber(creator.remainingDays)}</td>
+                        <td className="p-3 font-bold text-slate-200">{formatNumber(creator.avgNeededPerDay)}</td>
+                        <td className="p-3">
+                          <span className={`rounded-full border px-3 py-1 text-xs font-black ${graduationStatusClasses(creator.status)}`}>
+                            {creator.statusLabel}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {!graduationTrackerRows.length ? (
+                      <tr>
+                        <td className="p-4 text-slate-500" colSpan={10}>
+                          No eligible Aqua graduation creators found for this team.
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
               </div>
             </section>
 
             {selectedCreator ? (
               <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <h2 className="text-2xl font-black uppercase text-white">{selectedCreator.username}</h2>
-                    <p className="mt-1 text-sm text-slate-400">{selectedCreator.managerLabel}</p>
+                    <p className="text-sm font-bold uppercase text-sky-300">Selected Creator Profile</p>
+                    <h2 className="mt-1 text-3xl font-black text-white md:text-5xl">{selectedCreator.username}</h2>
+                    <p className="mt-2 text-sm text-slate-400">{selectedCreator.managerLabel}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => downloadCreatorReport(selectedCreator, "creator")}
-                      className="rounded-xl border border-sky-300/30 bg-sky-400 px-3 py-2 text-xs font-black uppercase text-slate-950 hover:bg-sky-300"
-                    >
-                      Download Creator Report
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => downloadCreatorReport(selectedCreator, "internal")}
-                      className="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-black uppercase text-slate-200 hover:bg-slate-800"
-                    >
-                      Download Internal Data Report
-                    </button>
+                    <span className={`w-fit rounded-full border px-4 py-2 text-sm font-black ${statusClasses(selectedCreator.healthStatus)}`}>
+                      Weekly performance {selectedCreator.healthScore}/100 {selectedCreator.healthStatus}
+                    </span>
+                    <span className={`w-fit rounded-full border px-4 py-2 text-sm font-black ${statusClasses(selectedCreator.monthlyHealthStatus)}`}>
+                      30-day performance {selectedCreator.monthlyHealthScore}/100 {selectedCreator.monthlyHealthStatus}
+                    </span>
                   </div>
                 </div>
-                <div className="mt-5 grid gap-3 md:grid-cols-4">
-                  <Metric label="Health" value={`${selectedCreator.healthScore}/100`} dark />
-                  <Metric label="Diamonds" value={formatNumber(selectedCreator.diamonds)} dark />
-                  <Metric label="Hours" value={formatHours(selectedCreator.liveHours)} dark />
-                  <Metric label="DPH" value={formatNumber(selectedCreator.dph)} dark />
+
+                <div className="mb-5 flex flex-wrap gap-3">
+                  <div className="flex rounded-xl border border-slate-700 bg-slate-950 p-1">
+                    {(["week", "month"] as const).map((range) => (
+                      <button
+                        key={range}
+                        type="button"
+                        onClick={() => setProfileRange(range)}
+                        className={`rounded-lg px-4 py-2 text-sm font-black capitalize ${
+                          profileRange === range
+                            ? "bg-sky-500 text-slate-950"
+                            : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                        }`}
+                      >
+                        {range}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => downloadCreatorReport(selectedCreator, "creator")}
+                    className="rounded-xl border border-emerald-300/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-200 hover:bg-emerald-400/20"
+                  >
+                    Download Creator Report
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadCreatorReport(selectedCreator, "internal")}
+                    className="rounded-xl border border-sky-300/30 bg-sky-400/10 px-4 py-3 text-sm font-black text-sky-200 hover:bg-sky-400/20"
+                  >
+                    Download Internal Data Report
+                  </button>
                 </div>
-                <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-800">
-                  <table className="w-full min-w-[720px] text-left text-sm">
-                    <thead className="bg-slate-950 text-xs uppercase text-slate-400">
-                      <tr>
-                        <th className="p-3">Date</th>
-                        <th className="p-3">Health</th>
-                        <th className="p-3">Diamonds</th>
-                        <th className="p-3">Hours</th>
-                        <th className="p-3">Battles</th>
-                        <th className="p-3">Followers</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedCreator.dailyPoints.slice(-14).map((point) => (
-                        <tr key={point.date} className="border-t border-slate-800">
-                          <td className="p-3">{point.date}</td>
-                          <td className="p-3">{point.healthScore}/100</td>
-                          <td className="p-3">{formatNumber(point.diamonds)}</td>
-                          <td className="p-3">{formatHours(point.liveHours)}</td>
-                          <td className="p-3">{formatNumber(point.matches)}</td>
-                          <td className="p-3">{formatNumber(point.newFollowers)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+                {selectedProfileStats ? (
+                  <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+                    <Metric label="Diamonds" value={formatNumber(selectedProfileStats.diamonds)} dark />
+                    <Metric label="Live Hours" value={formatHours(selectedProfileStats.liveHours)} dark />
+                    <Metric label="Valid Days" value={formatNumber(selectedProfileStats.validDays)} dark />
+                    <Metric label="Live Streams" value={formatNumber(selectedProfileStats.liveStreams)} dark />
+                    <Metric label="Battles" value={formatNumber(selectedProfileStats.matches)} dark />
+                    <Metric label="New Followers" value={formatNumber(selectedProfileStats.newFollowers)} dark />
+                    <Metric label="DPH" value={formatNumber(selectedProfileStats.dph)} dark />
+                    <Metric label="Graduation" value={selectedCreator.graduationStatus} dark />
+                    <Metric label="Tier" value={selectedCreator.tierStatus} dark />
+                  </div>
+                ) : null}
+
+                <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950 p-5">
+                  <h3 className="text-xl font-black uppercase text-sky-200">Health Score Breakdown</h3>
+                  <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+                    <Metric label="Live Day Validation" value={`${Math.round(selectedCreator.healthBreakdown.liveDays)}/35`} dark />
+                    <Metric label="Live Hours" value={`${Math.round(selectedCreator.healthBreakdown.liveHours)}/30`} dark />
+                    <Metric label="Battles" value={`${Math.round(selectedCreator.healthBreakdown.matches)}/10`} dark />
+                    <Metric label="DPH" value={`${Math.round(selectedCreator.healthBreakdown.dph)}/25`} dark />
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {selectedCreator.creatorTags.map((tag) => (
+                      <span key={tag} className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs font-bold text-slate-300">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950 p-5">
+                  <h3 className="text-xl font-black uppercase text-sky-200">Creator Insights</h3>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    {selectedInsights.map((insight) => (
+                      <div key={insight} className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm text-slate-300">
+                        {insight}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </section>
             ) : null}
