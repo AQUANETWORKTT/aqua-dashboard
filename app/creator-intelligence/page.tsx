@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { saveAs } from "file-saver";
+import JSZip from "jszip";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
@@ -1767,7 +1769,7 @@ function CreatorListPanel({
   );
 }
 
-function downloadReport(creator: CreatorSummary, reportType: "creator" | "internal") {
+function buildReportHtml(creator: CreatorSummary, reportType: "creator" | "internal") {
   const insights = buildInsights(creator);
   const agencyLogo =
     reportType === "creator" && creator.agency === "Aqua"
@@ -1875,7 +1877,11 @@ function downloadReport(creator: CreatorSummary, reportType: "creator" | "intern
   </main>
 </body>
 </html>`;
-  const finalHtml = reportType === "creator" ? creatorHtml : html;
+  return reportType === "creator" ? creatorHtml : html;
+}
+
+function downloadReport(creator: CreatorSummary, reportType: "creator" | "internal") {
+  const finalHtml = buildReportHtml(creator, reportType);
   const blob = new Blob([finalHtml], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -1886,6 +1892,23 @@ function downloadReport(creator: CreatorSummary, reportType: "creator" | "intern
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+async function downloadTeamCreatorReports(managerSummary: ManagerHealthSummary) {
+  const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+  const zip = new JSZip();
+  const folderName = `${managerSummary.manager.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-creator-reports-${timestamp}`;
+  const folder = zip.folder(folderName);
+
+  managerSummary.creators
+    .filter((creator) => !creator.isNewCreator)
+    .forEach((creator) => {
+      const safeUsername = creator.username.replace(/[^a-z0-9._-]+/gi, "-").toLowerCase();
+      folder?.file(`${safeUsername}-weekly-creator-report.html`, buildReportHtml(creator, "creator"));
+    });
+
+  const blob = await zip.generateAsync({ type: "blob" });
+  saveAs(blob, `${folderName}.zip`);
 }
 
 function escapeHtml(value: string | number) {
@@ -3340,6 +3363,13 @@ export default function CreatorIntelligencePage() {
                       className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100"
                     >
                       Download Manager Report
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void downloadTeamCreatorReports(managerSummary)}
+                      className="rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-black text-purple-700 hover:bg-purple-100"
+                    >
+                      Download All Creator Reports
                     </button>
                   </div>
 
