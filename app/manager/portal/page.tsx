@@ -113,14 +113,13 @@ const managerSearchMap: Record<string, string[]> = {
   vitaly: ["vitali", "vitaly"],
   callum: ["callum"],
   harry: ["harry"],
-  chloe: ["chloe"],
-  joe: ["joe", "chloe"],
   millie: ["millie"],
   jade: ["jade", "jade1"],
   teddie1: ["teddie", "teddie1"],
   teddie: ["teddie", "teddie1"],
   ellie1: ["ellie1", "ellie b", "leb"],
   chris: ["matt"],
+  luke: ["luke_agency", "luke agency", "luke"],
 };
 
 const managerDisplayMap: Record<string, string> = {

@@ -37,7 +37,7 @@ const defaultManagers: ManagerRow[] = [
   { name: "millie", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
   { name: "vitali", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
   { name: "harry", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
-  { name: "joechloe", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
+  { name: "luke", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
 ];
 
 const managerTargets: Record<string, number> = {
@@ -53,7 +53,7 @@ const managerTargets: Record<string, number> = {
   millie: 30,
   vitali: 50,
   harry: 35,
-  joechloe: 30,
+  luke: 35,
 };
 
 function toNumber(value: unknown) {
@@ -130,13 +130,10 @@ function getBonusLabel(points: number, target: number) {
 
 function getDisplayName(name: string) {
   if (name === "ellie1") return "Ellie B";
-  if (name === "joechloe") return "Joe & Chloe";
   return name;
 }
 
 function getImageNames(name: string) {
-  if (name === "joechloe") return ["joe", "chloe"];
-
   if (name === "jade") return ["jade-new"];
   if (name === "ellie1") return ["ellieb-new"];
   if (name === "teddie") return ["teddie-new"];
@@ -195,20 +192,6 @@ export default function ManagerLeaderboardPage() {
     setTargets((targetData || []) as ManagerTargetDbRow[]);
 
     const merged = defaultManagers.map((manager) => {
-      if (manager.name === "joechloe") {
-        const joe = dbRows.find((item) => item.name === "joe");
-        const chloe = dbRows.find((item) => item.name === "chloe");
-
-        return {
-          name: "joechloe",
-          recruitPoints: (joe?.recruit_points ?? 0) + (chloe?.recruit_points ?? 0),
-          submissionPoints:
-            (joe?.submission_points ?? 0) + (chloe?.submission_points ?? 0),
-          adjustments:
-            (joe?.additional_points ?? 0) + (chloe?.additional_points ?? 0),
-        };
-      }
-
       const existing = dbRows.find((item) => item.name === manager.name);
 
       return {

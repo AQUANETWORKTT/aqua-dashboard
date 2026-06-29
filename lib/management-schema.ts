@@ -7,7 +7,8 @@ export type ManagerId =
   | "elliew"
   | "haz"
   | "alfieharnett"
-  | "lewis";
+  | "lewis"
+  | "luke";
 
 export type ManagerRow = {
   id: ManagerId;
@@ -119,11 +120,22 @@ export const DEFAULT_MANAGEMENT_DATA: ManagementData = {
       currentPayPercent: null,
       notes: "",
     },
+    {
+      id: "luke",
+      name: "Luke",
+      validGoLiveRate: null,
+      recruitsThisWeek: null,
+      recruitsMTD: null,
+      avgDiamondsPerCreator: null,
+      matchesPerCreator: null,
+      currentPayPercent: null,
+      notes: "",
+    },
   ],
   meetings: [],
 };
 
-export function clampNullableNumber(n: any): number | null {
+export function clampNullableNumber(n: unknown): number | null {
   if (n === "" || n === null || n === undefined) return null;
   const x = Number(n);
   if (!Number.isFinite(x)) return null;

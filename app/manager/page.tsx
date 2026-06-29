@@ -10,11 +10,11 @@ const allowedUsers = [
   "ellie",
   "vitali",
   "harry",
-  "chloe",
   "mavis",
   "teddie",
   "millie",
   "chris",
+  "luke",
 ];
 
 const userKeys: Record<string, string> = {
@@ -24,11 +24,11 @@ const userKeys: Record<string, string> = {
   ellie: "E5",
   vitali: "V7",
   harry: "H9",
-  chloe: "C10",
   mavis: "M13",
   teddie: "T14",
   millie: "M15",
   chris: "C16",
+  luke: "L17",
 };
 
 export default function ManagerLoginPage() {
