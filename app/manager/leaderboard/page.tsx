@@ -26,7 +26,6 @@ type ManagerTargetDbRow = {
 
 const defaultManagers: ManagerRow[] = [
   { name: "james", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
-  { name: "alfie", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
   { name: "dylan", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
   { name: "mavis", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
   { name: "chris", recruitPoints: 0, submissionPoints: 0, adjustments: 0 },
@@ -53,7 +52,7 @@ const managerTargets: Record<string, number> = {
   millie: 30,
   vitali: 50,
   harry: 35,
-  luke: 35,
+  luke: 20,
 };
 
 function toNumber(value: unknown) {

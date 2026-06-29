@@ -35,7 +35,7 @@ const defaultTargets: Record<string, number> = {
   millie: 30,
   vitali: 50,
   harry: 35,
-  luke: 35,
+  luke: 20,
 };
 
 function getDefaultTarget(name: string) {
@@ -55,7 +55,7 @@ const defaultManagers: ManagerRow[] = [
   { name: "millie", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 30 },
   { name: "vitali", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 50 },
   { name: "harry", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 35 },
-  { name: "luke", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 35 },
+  { name: "luke", recruitPoints: 0, submissionPoints: 0, pointAdjustments: 0, targetPoints: 20 },
 ];
 
 const POINTS_PER_RECRUIT = 3;
