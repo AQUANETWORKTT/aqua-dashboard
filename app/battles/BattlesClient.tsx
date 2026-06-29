@@ -91,6 +91,40 @@ function buildScoreOptions() {
   });
 }
 
+async function fetchTikTokAvatar(username: string) {
+  if (!username) return "";
+
+  try {
+    const res = await fetch("/api/tiktok-avatar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username }),
+    });
+
+    const json = await res.json();
+    return json.avatar || "";
+  } catch {
+    return "";
+  }
+}
+
+function resolveCreatorAvatar(username: string) {
+  const fallbackSrc = "/creators/default.jpg";
+  const localSrc = `/creators/${encodeURIComponent(username)}.jpg`;
+
+  return new Promise<string>((resolve) => {
+    const localImg = new window.Image();
+    localImg.src = localSrc;
+    localImg.onload = () => resolve(localSrc);
+    localImg.onerror = async () => {
+      const scrapedAvatar = await fetchTikTokAvatar(username);
+      resolve(scrapedAvatar || fallbackSrc);
+    };
+  });
+}
+
 function formatName(raw: string) {
   return raw.replace("@", "").trim().toUpperCase();
 }
@@ -164,6 +198,7 @@ function cleanFileName(value: string) {
 
 export default function BattlesClient({ user }: { user: string | null }) {
   const [battles, setBattles] = useState<Battle[]>([]);
+  const [resolvedAvatars, setResolvedAvatars] = useState<Record<string, string>>({});
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [estimatedScore, setEstimatedScore] = useState("");
@@ -179,6 +214,13 @@ export default function BattlesClient({ user }: { user: string | null }) {
   const dateOptions = buildDateOptions();
   const timeOptions = buildTimeOptions();
   const scoreOptions = buildScoreOptions();
+
+  function getResolvedAvatar(username: string | null | undefined, fallback?: string | null) {
+    const cleanUsername = String(username || "").replace("@", "").trim().toLowerCase();
+    return cleanUsername
+      ? resolvedAvatars[cleanUsername] || fallback || "/creators/default.jpg"
+      : "/creators/default.jpg";
+  }
 
   async function loadBattles() {
     const res = await fetch("/api/battles", { cache: "no-store" });
@@ -196,6 +238,40 @@ export default function BattlesClient({ user }: { user: string | null }) {
     loadBattles();
     loadPosterTemplate();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBattleAvatars() {
+      const usernames = Array.from(
+        new Set(
+          battles
+            .flatMap((battle) => [battle.requester_username, battle.accepter_username || ""])
+            .map((name) => name.replace("@", "").trim().toLowerCase())
+            .filter(Boolean)
+        )
+      ).filter((name) => !resolvedAvatars[name]);
+
+      if (!usernames.length) return;
+
+      const entries = await Promise.all(
+        usernames.map(async (username) => [username, await resolveCreatorAvatar(username)] as const)
+      );
+
+      if (!cancelled) {
+        setResolvedAvatars((current) => ({
+          ...current,
+          ...Object.fromEntries(entries),
+        }));
+      }
+    }
+
+    loadBattleAvatars();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [battles, resolvedAvatars]);
 
   async function loadPosterTemplate() {
     const { data } = await submissionsSupabase
@@ -478,7 +554,7 @@ export default function BattlesClient({ user }: { user: string | null }) {
               <article key={battle.id} className="battleCard">
                 <CreatorBlock
                   username={battle.requester_username}
-                  avatar={battle.requester_avatar}
+                  avatar={getResolvedAvatar(battle.requester_username, battle.requester_avatar)}
                 />
                 <div className="battleMeta">
                   <strong>{displayDate(battle.battle_date)}</strong>
@@ -517,8 +593,8 @@ export default function BattlesClient({ user }: { user: string | null }) {
                     template={templateJson}
                     name1={formatName(battle.requester_username)}
                     name2={formatName(battle.accepter_username || "")}
-                    image1={battle.requester_avatar || "/creators/default.jpg"}
-                    image2={battle.accepter_avatar || "/creators/default.jpg"}
+                    image1={getResolvedAvatar(battle.requester_username, battle.requester_avatar)}
+                    image2={getResolvedAvatar(battle.accepter_username, battle.accepter_avatar)}
                     date={formatPosterDate(battle.battle_date)}
                     time={formatPosterTime(battle.battle_time)}
                     posterRef={(el) => {
@@ -529,7 +605,7 @@ export default function BattlesClient({ user }: { user: string | null }) {
 
                 <div className="matchupVisual">
                   <img
-                    src={battle.requester_avatar || "/creators/default.jpg"}
+                    src={getResolvedAvatar(battle.requester_username, battle.requester_avatar)}
                     alt=""
                     className="matchAvatar matchAvatarLeft"
                     onError={(event) => {
@@ -537,7 +613,7 @@ export default function BattlesClient({ user }: { user: string | null }) {
                     }}
                   />
                   <img
-                    src={battle.accepter_avatar || "/creators/default.jpg"}
+                    src={getResolvedAvatar(battle.accepter_username, battle.accepter_avatar)}
                     alt=""
                     className="matchAvatar matchAvatarRight"
                     onError={(event) => {
@@ -547,11 +623,11 @@ export default function BattlesClient({ user }: { user: string | null }) {
 
                   <div className="matchCenter">
                     <div className="matchNames">
-                      <span style={{ fontSize: getMatchNameFontSize(battle.requester_username) }}>
+                      <span className="matchName" style={{ fontSize: getMatchNameFontSize(battle.requester_username) }}>
                         @{battle.requester_username}
                       </span>
                       <strong>VS</strong>
-                      <span style={{ fontSize: getMatchNameFontSize(battle.accepter_username || "") }}>
+                      <span className="matchName" style={{ fontSize: getMatchNameFontSize(battle.accepter_username || "") }}>
                         @{battle.accepter_username}
                       </span>
                     </div>
@@ -923,16 +999,19 @@ export default function BattlesClient({ user }: { user: string | null }) {
         }
 
         .matchNames {
-          display: flex;
+          display: grid;
           align-items: center;
+          justify-items: center;
           justify-content: center;
-          flex-wrap: wrap;
-          gap: 10px;
+          gap: 7px;
           font-weight: 900;
+          width: min(100%, 520px);
         }
 
         .matchNames span {
-          max-width: min(38vw, 260px);
+          display: block;
+          width: 100%;
+          max-width: min(76vw, 460px);
           white-space: nowrap;
           font-family: var(--display-font);
           line-height: 0.95;
@@ -948,7 +1027,7 @@ export default function BattlesClient({ user }: { user: string | null }) {
         .matchNames strong {
           color: #7cf6ff;
           font-family: var(--display-font);
-          font-size: 42px;
+          font-size: 38px;
           line-height: 0.8;
           text-shadow:
             0 3px 0 rgba(0, 0, 0, 0.7),
