@@ -21,6 +21,8 @@ function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
 }
 
+const HIDDEN_LEADERBOARD_USERNAMES = new Set(["arabellama_y"]);
+
 function currentMonthKey() {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -106,7 +108,12 @@ export default function LeaderboardPage() {
         ? await query.eq("stats_date", latestUpload.stats_date)
         : await query.eq("month_key", currentMonthKey());
 
-      setCreators((data || []) as CreatorMonthlyStat[]);
+      setCreators(
+        ((data || []) as CreatorMonthlyStat[]).filter((creator) => {
+          const username = normalizeUsername(cleanUsername(creator.username));
+          return !HIDDEN_LEADERBOARD_USERNAMES.has(username);
+        })
+      );
       setLoading(false);
     }
 
