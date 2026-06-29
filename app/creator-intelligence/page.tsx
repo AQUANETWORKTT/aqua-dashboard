@@ -1056,6 +1056,62 @@ function buildScoreImprovementTips(creator: CreatorSummary) {
   return tips;
 }
 
+function buildHealthScoreRows(creator: CreatorSummary) {
+  const breakdown = creator.healthBreakdown;
+
+  return [
+    {
+      area: "Live day validation",
+      earned: Math.round(breakdown.liveDays),
+      max: 35,
+      available: Math.max(35 - Math.round(breakdown.liveDays), 0),
+      improvement: "Go live consistently and make each live day count for at least one full hour.",
+    },
+    {
+      area: "Live hours",
+      earned: Math.round(breakdown.liveHours),
+      max: 30,
+      available: Math.max(30 - Math.round(breakdown.liveHours), 0),
+      improvement: "Build towards 20 total live hours in the weekly health window.",
+    },
+    {
+      area: "Battles",
+      earned: Math.round(breakdown.matches),
+      max: 10,
+      available: Math.max(10 - Math.round(breakdown.matches), 0),
+      improvement: "Increase battle volume and build a stronger repeat battle rhythm.",
+    },
+    {
+      area: "DPH (diamonds per hour)",
+      earned: Math.round(breakdown.dph),
+      max: 25,
+      available: Math.max(25 - Math.round(breakdown.dph), 0),
+      improvement: "Improve room choice, battle quality, confidence, gifting prompts and viewer conversion.",
+    },
+  ];
+}
+
+function getTopHealthScoreOpportunity(creator: CreatorSummary) {
+  const opportunities = buildHealthScoreRows(creator).filter((row) => row.available > 0);
+  return opportunities.sort((a, b) => b.available - a.available)[0];
+}
+
+function buildHealthScoreBreakdownTable(creator: CreatorSummary, escapeValues = false) {
+  return buildHealthScoreRows(creator)
+    .map((row) => {
+      const area = escapeValues ? escapeHtml(row.area) : row.area;
+      const improvement = escapeValues ? escapeHtml(row.improvement) : row.improvement;
+
+      return `<tr>
+        <td>${area}</td>
+        <td>${formatNumber(row.earned)}/${formatNumber(row.max)}</td>
+        <td>${formatNumber(row.available)}</td>
+        <td>${improvement}</td>
+      </tr>`;
+    })
+    .join("");
+}
+
 function buildManagerActions(creator: CreatorSummary) {
   const actions: string[] = [];
 
@@ -1395,6 +1451,11 @@ function buildCreatorReportHtml({
     .formula { border: 1px solid rgba(250, 204, 21, .58); background: linear-gradient(135deg, rgba(113, 63, 18, .72), rgba(15, 23, 42, .86)); border-radius: 20px; padding: 22px; font-size: 19px; font-weight: 900; color: #fef3c7; box-shadow: 0 0 30px rgba(250, 204, 21, .1); }
     .formula b { color: #facc15; }
     .formula span { display: block; margin-top: 8px; color: #fde68a; font-size: 15px; }
+    .score-table { width: 100%; border-collapse: collapse; border: 1px solid rgba(125, 211, 252, .18); background: rgba(15, 23, 42, .78); border-radius: 20px; overflow: hidden; }
+    .score-table th { color: #bae6fd; background: rgba(8, 47, 73, .82); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; text-align: left; padding: 12px; }
+    .score-table td { border-top: 1px solid rgba(125, 211, 252, .14); color: #d9efff; font-size: 14px; line-height: 1.45; padding: 12px; }
+    .score-table td:nth-child(2) { color: #7dd3fc; font-weight: 900; white-space: nowrap; }
+    .score-table td:nth-child(3) { color: #facc15; font-weight: 900; white-space: nowrap; }
     .diamond-chart { display: grid; grid-template-columns: 74px 1fr; gap: 14px; height: 250px; border: 1px solid rgba(125, 211, 252, .22); background: rgba(2, 6, 23, .52); border-radius: 20px; padding: 18px 18px 34px; }
     .scale { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; height: 198px; color: #9ccce8; font-size: 12px; font-weight: 800; padding-top: 4px; }
     .bars { position: relative; display: flex; align-items: end; gap: 12px; height: 198px; border-left: 2px solid rgba(148, 163, 184, .5); border-bottom: 2px solid rgba(148, 163, 184, .5); padding: 0 10px; background: repeating-linear-gradient(to top, rgba(148, 163, 184, .12), rgba(148, 163, 184, .12) 1px, transparent 1px, transparent 49px); }
@@ -1439,6 +1500,12 @@ function buildCreatorReportHtml({
     <strong>Creator target: 5 live days and 20 live hours per week</strong>
     <span>${getWeeklyTargetText(creator)}</span>
   </section>
+
+  <h2>Health Score Points</h2>
+  <table class="score-table">
+    <tr><th>Score Area</th><th>Points Earned</th><th>More Points Available</th><th>How To Improve</th></tr>
+    ${buildHealthScoreBreakdownTable(creator)}
+  </table>
 
   <h2>Tier Status</h2>
   <section class="tier-card">
@@ -1849,6 +1916,16 @@ function buildReportHtml(creator: CreatorSummary, reportType: "creator" | "inter
     ${agencyLogo ? `<img class="agency-logo" src="${agencyLogo}" alt="Aqua logo" />` : ""}
   </div>
   <table>${rows.map(([label, value]) => `<tr><td>${label}</td><td>${value}</td></tr>`).join("")}</table>
+  <h2>Health score points</h2>
+  <table>
+    <tr><td>Score area</td><td>Points earned / more available / improvement route</td></tr>
+    ${buildHealthScoreRows(creator)
+      .map(
+        (row) =>
+          `<tr><td>${escapeHtml(row.area)}</td><td><strong>${formatNumber(row.earned)}/${formatNumber(row.max)}</strong> earned. <strong>${formatNumber(row.available)}</strong> more points available. ${escapeHtml(row.improvement)}</td></tr>`
+      )
+      .join("")}
+  </table>
   <h2>Weekly breakdown</h2>
   <table>
     <tr><td>Day</td><td>Live result</td><td>Hours</td><td>Diamonds</td><td>Battles</td><td>Followers</td></tr>
@@ -2012,7 +2089,7 @@ function downloadManagerReport(
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     .panel { border: 1px solid #dbeafe; border-radius: 18px; padding: 18px; background: #f8fbff; }
     .creator-action-row td { padding: 0 10px 16px; background: white !important; border-top: 0; }
-    .creator-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .creator-action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .creator-action-box { border: 1px solid #dbeafe; background: #f8fbff; border-radius: 14px; padding: 12px 14px; line-height: 1.45; }
     .creator-action-title { color: #075985; font-size: 11px; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; }
     ul { margin: 10px 0 0; padding-left: 20px; }
@@ -2098,6 +2175,40 @@ function downloadManagerReport(
       <li>Protect healthy and elite creators by keeping their routine stable, then use them as examples for the team.</li>
       <li>Use the week-on-week movement section to decide who needs urgent manager follow-up and who needs their routine protected.</li>
     </ul>
+  </section>
+
+  <h2>Health Score Improvement Map</h2>
+  <section class="panel">
+    <p class="muted">This shows where each creator's health score came from and where the manager can still win more points.</p>
+    <table>
+      <tr>
+        <th>Creator</th>
+        <th>Total</th>
+        <th>Live Days</th>
+        <th>Hours</th>
+        <th>Battles</th>
+        <th>DPH</th>
+        <th>Biggest Points Available</th>
+        <th>Manager Improvement Route</th>
+      </tr>
+      ${managerSummary.creators
+        .map((creator) => {
+          const rows = buildHealthScoreRows(creator);
+          const opportunity = getTopHealthScoreOpportunity(creator);
+
+          return `<tr>
+            <td><strong>${escapeHtml(creator.username)}</strong></td>
+            <td>${formatNumber(creator.healthScore)}/100</td>
+            <td>${formatNumber(rows[0].earned)}/${formatNumber(rows[0].max)}</td>
+            <td>${formatNumber(rows[1].earned)}/${formatNumber(rows[1].max)}</td>
+            <td>${formatNumber(rows[2].earned)}/${formatNumber(rows[2].max)}</td>
+            <td>${formatNumber(rows[3].earned)}/${formatNumber(rows[3].max)}</td>
+            <td>${opportunity ? `${escapeHtml(opportunity.area)}: ${formatNumber(opportunity.available)} pts` : "No major gap"}</td>
+            <td>${escapeHtml(opportunity?.improvement || "Keep the current routine stable and set one stretch target.")}</td>
+          </tr>`;
+        })
+        .join("")}
+    </table>
   </section>
 
   <h2>Week-On-Week Movement</h2>
@@ -2189,6 +2300,7 @@ function downloadManagerReport(
         const creatorLastSevenMatches = getLastSevenMatches(creator);
         const creatorLastSevenDiamonds = getLastSevenDiamonds(creator);
         const creatorLastSevenDph = getLastSevenDph(creator);
+        const opportunity = getTopHealthScoreOpportunity(creator);
 
         return `<tr>
           <td><strong>${escapeHtml(creator.username)}</strong><br><span class="muted">${escapeHtml(creator.tierStatus)}</span></td>
@@ -2209,6 +2321,11 @@ function downloadManagerReport(
             <div class="creator-action-grid">
               <div class="creator-action-box"><div class="creator-action-title">Weekly Target</div>${escapeHtml(getWeeklyTargetText(creator))}</div>
               <div class="creator-action-box"><div class="creator-action-title">Manager Focus</div>${escapeHtml(focus || "Keep monitoring weekly performance.")}</div>
+              <div class="creator-action-box"><div class="creator-action-title">Health Score Points</div>${
+                opportunity
+                  ? `${escapeHtml(opportunity.area)} has ${formatNumber(opportunity.available)} points still available. ${escapeHtml(opportunity.improvement)}`
+                  : "No major score gap. Protect consistency and set one stretch target."
+              }</div>
             </div>
           </td>
         </tr>`;
