@@ -95,6 +95,16 @@ function formatName(raw: string) {
   return raw.replace("@", "").trim().toUpperCase();
 }
 
+function getMatchNameFontSize(raw: string) {
+  const length = formatName(raw).length;
+
+  if (length <= 10) return 28;
+  if (length <= 14) return 24;
+  if (length <= 18) return 20;
+  if (length <= 24) return 16;
+  return 13;
+}
+
 function getOrdinal(day: number) {
   if (day > 3 && day < 21) return `${day}TH`;
 
@@ -522,18 +532,28 @@ export default function BattlesClient({ user }: { user: string | null }) {
                     src={battle.requester_avatar || "/creators/default.jpg"}
                     alt=""
                     className="matchAvatar matchAvatarLeft"
+                    onError={(event) => {
+                      event.currentTarget.src = "/creators/default.jpg";
+                    }}
                   />
                   <img
                     src={battle.accepter_avatar || "/creators/default.jpg"}
                     alt=""
                     className="matchAvatar matchAvatarRight"
+                    onError={(event) => {
+                      event.currentTarget.src = "/creators/default.jpg";
+                    }}
                   />
 
                   <div className="matchCenter">
                     <div className="matchNames">
-                      <span>@{battle.requester_username}</span>
+                      <span style={{ fontSize: getMatchNameFontSize(battle.requester_username) }}>
+                        @{battle.requester_username}
+                      </span>
                       <strong>VS</strong>
-                      <span>@{battle.accepter_username}</span>
+                      <span style={{ fontSize: getMatchNameFontSize(battle.accepter_username || "") }}>
+                        @{battle.accepter_username}
+                      </span>
                     </div>
                     <div className="matchTime">
                       <strong>{displayDate(battle.battle_date)}</strong>
@@ -912,12 +932,10 @@ export default function BattlesClient({ user }: { user: string | null }) {
         }
 
         .matchNames span {
-          max-width: min(32vw, 220px);
-          overflow: hidden;
-          text-overflow: ellipsis;
+          max-width: min(38vw, 260px);
           white-space: nowrap;
           font-family: var(--display-font);
-          font-size: clamp(18px, 4vw, 28px);
+          line-height: 0.95;
           letter-spacing: 0.02em;
           text-transform: uppercase;
           color: white;
@@ -1002,7 +1020,13 @@ function CreatorBlock({
 }) {
   return (
     <div className="creatorBlock">
-      <img src={avatar || "/creators/default.jpg"} alt={username} />
+      <img
+        src={avatar || "/creators/default.jpg"}
+        alt={username}
+        onError={(event) => {
+          event.currentTarget.src = "/creators/default.jpg";
+        }}
+      />
       <strong>@{username}</strong>
       <style jsx>{`
         .creatorBlock {

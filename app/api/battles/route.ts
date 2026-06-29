@@ -85,6 +85,14 @@ function avatarProxyUrl(avatar: string) {
   return `/api/tiktok-avatar-image?url=${encodeURIComponent(avatar)}`;
 }
 
+function noStoreHeaders() {
+  return {
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+    Pragma: "no-cache",
+    Expires: "0",
+  };
+}
+
 async function getCreatorManager(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   username: string
@@ -115,10 +123,13 @@ async function fetchTikTokAvatar(username: string) {
 
   try {
     const refreshKey = Date.now();
+    const randomKey = Math.random();
     const response = await fetch(
-      `https://www.tiktok.com/@${username}?_t=${refreshKey}`,
+      `https://www.tiktok.com/@${username}?_t=${refreshKey}&_r=${randomKey}`,
       {
+        method: "GET",
         cache: "no-store",
+        next: { revalidate: 0 },
         headers: {
           "User-Agent":
             "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
@@ -147,6 +158,11 @@ async function fetchTikTokAvatar(username: string) {
   } catch {
     return "";
   }
+}
+
+function hasUsableAvatar(value: unknown) {
+  const avatar = String(value || "").trim();
+  return avatar && !avatar.includes("/creators/default.jpg");
 }
 
 async function sendTelegramMessage(text: string) {
@@ -179,7 +195,28 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ battles: data || [] });
+    const battles = await Promise.all(
+      (data || []).map(async (battle) => {
+        let requesterAvatar = battle.requester_avatar;
+        let accepterAvatar = battle.accepter_avatar;
+
+        if (!hasUsableAvatar(requesterAvatar)) {
+          requesterAvatar = await fetchTikTokAvatar(battle.requester_username);
+        }
+
+        if (battle.accepter_username && !hasUsableAvatar(accepterAvatar)) {
+          accepterAvatar = await fetchTikTokAvatar(battle.accepter_username);
+        }
+
+        return {
+          ...battle,
+          requester_avatar: requesterAvatar,
+          accepter_avatar: accepterAvatar,
+        };
+      })
+    );
+
+    return NextResponse.json({ battles }, { headers: noStoreHeaders() });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to load battles." },
