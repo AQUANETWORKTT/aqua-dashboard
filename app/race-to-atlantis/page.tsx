@@ -1240,22 +1240,18 @@ export default function RaceToAtlantisPage() {
           text-shadow: 0 0 12px var(--creator-track-glow, var(--track-glow));
         }
 
-        .race-avatar {
+        :global(.race-avatar) {
           width: 58px;
           height: 58px;
           box-sizing: border-box;
-          border: 2px solid color-mix(in srgb, var(--creator-track, var(--track)) 86%, #ffffff 8%);
+          border: 5px solid var(--creator-track, var(--track));
           border-radius: 999px;
           object-fit: cover;
           background: #06101d;
-          box-shadow:
-            0 0 0 1px rgba(255, 255, 255, 0.18),
-            0 0 0 5px color-mix(in srgb, var(--creator-track, var(--track)) 18%, transparent),
-            0 0 16px var(--creator-track-glow, var(--track-glow)),
-            inset 0 0 12px rgba(255, 255, 255, 0.16);
+          box-shadow: none;
         }
 
-        .race-avatar.fallback-logo-avatar {
+        :global(.race-avatar.fallback-logo-avatar) {
           object-fit: contain;
           padding: 8px;
           background:
