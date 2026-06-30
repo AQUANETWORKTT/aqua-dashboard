@@ -1039,16 +1039,24 @@ function buildScoreImprovementTips(creator: CreatorSummary) {
   const breakdown = creator.healthBreakdown;
 
   if (breakdown.liveDays < 35) {
-    tips.push(`Live Days: ${35 - Math.round(breakdown.liveDays)} more points available by going live on every tracked day.`);
+    tips.push(
+      `Live day validation: ${35 - Math.round(breakdown.liveDays)} more points available. A creator earns 3 points for appearing live and 2 extra points for completing the full hour. Check whether they are missing live days or ending lives before one hour.`
+    );
   }
   if (breakdown.liveHours < 30) {
-    tips.push(`Live Hours: ${30 - Math.round(breakdown.liveHours)} more points available by reaching 20 total live hours.`);
+    tips.push(
+      `Live hours: ${30 - Math.round(breakdown.liveHours)} more points available. They need ${formatHours(Math.max(20 - creator.healthWindowHours, 0))} more live hours to reach the 20 hour weekly target.`
+    );
   }
   if (breakdown.matches < 10) {
-    tips.push(`Battles: ${10 - Math.round(breakdown.matches)} more points available by moving closer to 70 weekly battles.`);
+    tips.push(
+      `Battles: ${10 - Math.round(breakdown.matches)} more points available. They need ${formatNumber(Math.max(70 - creator.healthWindowMatches, 0))} more battles to reach the 70 battle weekly target.`
+    );
   }
   if (breakdown.dph < 25) {
-    tips.push(`DPH (diamonds per hour): ${25 - Math.round(breakdown.dph)} more points available by improving diamonds per hour.`);
+    tips.push(
+      `DPH (diamonds per hour): ${25 - Math.round(breakdown.dph)} more points available. Improve room choice, battle quality, confidence, gifting prompts and viewer conversion to earn stronger quality creator points.`
+    );
   }
 
   if (!tips.length) tips.push("This creator is already close to the maximum score.");
@@ -1058,6 +1066,26 @@ function buildScoreImprovementTips(creator: CreatorSummary) {
 
 function buildHealthScoreRows(creator: CreatorSummary) {
   const breakdown = creator.healthBreakdown;
+  const missingHours = Math.max(20 - creator.healthWindowHours, 0);
+  const missingBattles = Math.max(70 - creator.healthWindowMatches, 0);
+  const missingLiveAppearDays = Math.max(creator.healthWindowDays - creator.liveAppearDays, 0);
+  const missingFullHourDays = Math.max(creator.liveAppearDays - creator.oneHourDays, 0);
+  const liveDayImprovement =
+    Math.round(breakdown.liveDays) >= 35
+      ? "Full live day validation is achieved. Maintain the routine: keep appearing live and completing the full hour."
+      : `This is to improve score points. A creator gets 3 points for coming on live, then 2 extra points for completing the full hour. Check whether they need ${formatNumber(missingLiveAppearDays)} more live day appearances and whether ${formatNumber(missingFullHourDays)} live day(s) need to reach the full hour.`;
+  const liveHoursImprovement =
+    missingHours <= 0
+      ? "20 weekly live hours is achieved. Maintain it and keep session length consistent."
+      : `They need ${formatHours(missingHours)} more live hours to reach the 20 hour weekly target and unlock more live hour points.`;
+  const battlesImprovement =
+    missingBattles <= 0
+      ? "70 weekly battles is achieved. Maintain the battle rhythm and keep battle quality strong."
+      : `They need ${formatNumber(missingBattles)} more battles to reach the 70 battle weekly target and unlock more battle points.`;
+  const dphImprovement =
+    Math.round(breakdown.dph) >= 25
+      ? "Strong DPH quality creator points achieved. Keep it up and maintain the same quality rooms, gifting moments and conversion."
+      : "Improve DPH quality creator points by choosing better rooms, improving battle quality, confidence, gifting prompts and viewer conversion.";
 
   return [
     {
@@ -1065,28 +1093,28 @@ function buildHealthScoreRows(creator: CreatorSummary) {
       earned: Math.round(breakdown.liveDays),
       max: 35,
       available: Math.max(35 - Math.round(breakdown.liveDays), 0),
-      improvement: "Go live consistently and make each live day count for at least one full hour.",
+      improvement: liveDayImprovement,
     },
     {
       area: "Live hours",
       earned: Math.round(breakdown.liveHours),
       max: 30,
       available: Math.max(30 - Math.round(breakdown.liveHours), 0),
-      improvement: "Build towards 20 total live hours in the weekly health window.",
+      improvement: liveHoursImprovement,
     },
     {
       area: "Battles",
       earned: Math.round(breakdown.matches),
       max: 10,
       available: Math.max(10 - Math.round(breakdown.matches), 0),
-      improvement: "Increase battle volume and build a stronger repeat battle rhythm.",
+      improvement: battlesImprovement,
     },
     {
       area: "DPH (diamonds per hour)",
       earned: Math.round(breakdown.dph),
       max: 25,
       available: Math.max(25 - Math.round(breakdown.dph), 0),
-      improvement: "Improve room choice, battle quality, confidence, gifting prompts and viewer conversion.",
+      improvement: dphImprovement,
     },
   ];
 }
