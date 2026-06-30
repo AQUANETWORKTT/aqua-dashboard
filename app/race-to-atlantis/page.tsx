@@ -530,8 +530,6 @@ export default function RaceToAtlantisPage() {
         <div className="race-logo-mark">
           <img src="/race-to-atlantis/logo.png" alt="Race to Atlantis" className="race-logo-image" />
         </div>
-        <p className="race-kicker">Aqua Agency July Challenge</p>
-        <p className="race-copy">Race to the top. First to achieve all targets wins.</p>
       </section>
 
       <section className="personal-track-section">
@@ -729,8 +727,8 @@ export default function RaceToAtlantisPage() {
           inset: -28px;
           z-index: -2;
           background: url("/race-to-atlantis/background.png") center top / cover no-repeat;
-          filter: blur(18px) saturate(1.18) brightness(0.72);
-          transform: scale(1.06);
+          filter: blur(3px) saturate(1.08) brightness(0.76);
+          transform: scale(1.015);
         }
 
         .race-page::after {
