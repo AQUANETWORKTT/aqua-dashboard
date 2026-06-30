@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#050b10",
   "theme_color": "#22d3ee",
-  "description": "Aqua Agency creator dashboard and incentives tracker.",
+  "description": "Aqua Agency creator dashboard.",
   "icons": [
   {
     "src": "/icons/icon-192.png",

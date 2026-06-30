@@ -84,11 +84,9 @@ function tagText(d: Difficulty) {
 /* ===== page ===== */
 
 export default function AquaBingoPage() {
-  const [checked, setChecked] = useState<number[]>([]);
-
-  useEffect(() => {
-    setChecked(readIds());
-  }, []);
+  const [checked, setChecked] = useState<number[]>(() =>
+    typeof window === "undefined" ? [] : readIds()
+  );
 
   useEffect(() => {
     writeIds(checked);
@@ -196,12 +194,12 @@ export default function AquaBingoPage() {
 
           <div className="bingo-prize">
             <div className="label">🥇 First to 1 line</div>
-            <div className="value">5,000 coins</div>
+            <div className="value">Complete the challenge</div>
           </div>
 
           <div className="bingo-prize">
             <div className="label">🥈 First to 2 lines</div>
-            <div className="value">10,000 coins</div>
+            <div className="value">Complete the challenge</div>
           </div>
 
           <div className="bingo-prize">

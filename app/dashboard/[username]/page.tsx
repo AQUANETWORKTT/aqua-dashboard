@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
-import { incentiveExtras } from "@/data/incentive-extras";
 
 type CreatorMonthlyStat = {
   id: string;
@@ -28,7 +27,6 @@ type TierConfig = {
   min: number;
   label: string;
   color: string;
-  incentiveCoins: number;
 };
 
 type ActivenessRule = {
@@ -151,16 +149,16 @@ function CreatorAvatar({
 }
 
 const TIERS: TierConfig[] = [
-  { id: 1, label: "Tier 1", min: 0, color: "#9CA3AF", incentiveCoins: 0 },
-  { id: 2, label: "Tier 2", min: 100_000, color: "#84cc16", incentiveCoins: 1_200 },
-  { id: 3, label: "Tier 3", min: 200_000, color: "#06b6d4", incentiveCoins: 2_400 },
-  { id: 4, label: "Tier 4", min: 300_000, color: "#3b82f6", incentiveCoins: 3_600 },
-  { id: 5, label: "Tier 5", min: 500_000, color: "#6366f1", incentiveCoins: 4_800 },
-  { id: 6, label: "Tier 6", min: 700_000, color: "#8b5cf6", incentiveCoins: 6_000 },
-  { id: 7, label: "Tier 7", min: 1_000_000, color: "#d946ef", incentiveCoins: 7_200 },
-  { id: 8, label: "Tier 8", min: 1_600_000, color: "#f43f5e", incentiveCoins: 8_400 },
-  { id: 9, label: "Tier 9", min: 2_500_000, color: "#f97316", incentiveCoins: 9_600 },
-  { id: 10, label: "Tier 10", min: 5_000_000, color: "#f59e0b", incentiveCoins: 10_800 },
+  { id: 1, label: "Tier 1", min: 0, color: "#9CA3AF" },
+  { id: 2, label: "Tier 2", min: 100_000, color: "#84cc16" },
+  { id: 3, label: "Tier 3", min: 200_000, color: "#06b6d4" },
+  { id: 4, label: "Tier 4", min: 300_000, color: "#3b82f6" },
+  { id: 5, label: "Tier 5", min: 500_000, color: "#6366f1" },
+  { id: 6, label: "Tier 6", min: 700_000, color: "#8b5cf6" },
+  { id: 7, label: "Tier 7", min: 1_000_000, color: "#d946ef" },
+  { id: 8, label: "Tier 8", min: 1_600_000, color: "#f43f5e" },
+  { id: 9, label: "Tier 9", min: 2_500_000, color: "#f97316" },
+  { id: 10, label: "Tier 10", min: 5_000_000, color: "#f59e0b" },
 ];
 
 const ACTIVENESS_RULES: ActivenessRule[] = [
@@ -282,23 +280,6 @@ export default function CreatorDashboardPage() {
     () => getActivenessLevel(validDaysNow, hoursNow),
     [validDaysNow, hoursNow]
   );
-
-  const reducedLiveDiamonds = Math.floor(monthlyDiamonds * 0.5);
-  const thousands = Math.floor(reducedLiveDiamonds / 1000);
-
-  let diamondPoints = 0;
-
-  if (thousands >= 1) {
-    diamondPoints += 10;
-    diamondPoints += Math.max(0, thousands - 1) * 5;
-  }
-
-  const hourPoints = Math.floor(hoursNow) * 3;
-  const validDayPoints = validDaysNow * 3;
-  const liveEarnedCoins = diamondPoints + hourPoints + validDayPoints;
-  const extrasCoins = incentiveExtras[username] ?? 0;
-  const tierCoins = currentTier?.incentiveCoins ?? 0;
-  const incentiveCoinsTotal = liveEarnedCoins + extrasCoins + tierCoins;
 
   const okReq = validDaysNow >= MIN_VALID_DAYS && hoursNow >= MIN_HOURS;
 
@@ -500,9 +481,7 @@ export default function CreatorDashboardPage() {
                 )}
 
                 <span style={pill(okReq)}>
-                  {okReq
-                    ? "Incentives Unlocked"
-                    : "Incentive Requirements Not Met"}
+                  {okReq ? "Activity Requirements Met" : "Activity Requirements Not Met"}
                 </span>
               </div>
             </div>
@@ -597,16 +576,6 @@ export default function CreatorDashboardPage() {
           </div>
 
           <div style={cardPad}>
-            <div style={title}>Incentive Coins</div>
-            <div style={{ ...bigNumber, ...gold, marginTop: 12 }}>
-              {incentiveCoinsTotal.toLocaleString()}
-            </div>
-            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}>
-              Live + extras + tier bonus
-            </p>
-          </div>
-
-          <div style={cardPad}>
             <div style={title}>Activeness</div>
             <div style={{ ...bigNumber, marginTop: 12 }}>
               Level {activenessLevel}
@@ -693,23 +662,12 @@ export default function CreatorDashboardPage() {
           <div style={{ marginTop: 18 }}>
             {nextTier ? (
               <>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    marginBottom: 10,
-                  }}
-                >
+                <div style={{ marginBottom: 10 }}>
                   <div style={{ fontWeight: 900 }}>
                     Next:{" "}
                     <span style={{ color: nextTier.color }}>
                       {nextTier.label}
                     </span>
-                  </div>
-
-                  <div style={gold}>
-                    + {nextTier.incentiveCoins.toLocaleString()} coins
                   </div>
                 </div>
 

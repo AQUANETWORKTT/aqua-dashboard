@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Coins, Crown, Sparkles } from "lucide-react";
+import { Crown, Sparkles } from "lucide-react";
 import { journeyLevels } from "@/data/journey-levels";
 
 type HistoryEntry = {
@@ -69,11 +69,6 @@ function getCurrentLevel(stats: {
   }
 
   return current;
-}
-
-function formatCash(value: number) {
-  if (Number.isInteger(value)) return `£${value}`;
-  return `£${value.toFixed(2).replace(/\.00$/, "")}`;
 }
 
 function formatDisplayName(value: string) {
@@ -153,21 +148,6 @@ export default function AquaJourneyPassPage() {
   const nextLevel = useMemo(() => {
     return journeyLevels.find((l) => l.level === currentLevel.level + 1) || null;
   }, [currentLevel]);
-
-  const incentiveUnlocked = stats.validDays >= 15 && stats.monthlyHours >= 40;
-
-  const currentReward =
-    currentLevel.rewardCoins > 0
-      ? `${currentLevel.rewardCoins.toLocaleString()} coins or ${formatCash(
-          currentLevel.rewardCash
-        )}`
-      : "First reward at Level 15";
-
-  const nextReward = nextLevel
-    ? nextLevel.rewardCoins > 0
-      ? `${nextLevel.rewardCoins.toLocaleString()} coins`
-      : "First reward at Level 15"
-    : "Max level reached";
 
   const displayName = formatDisplayName(history?.username || username || "Creator");
 
@@ -306,13 +286,13 @@ export default function AquaJourneyPassPage() {
 
               <div className="level-metrics">
                 <div className="metric-pill">
-                  <Coins size={15} />
+                  <Sparkles size={15} />
                   <span>{stats.monthlyDiamonds.toLocaleString()} diamonds</span>
                 </div>
 
                 <div className="metric-pill reward-pill">
                   <Crown size={15} />
-                  <span>{currentReward}</span>
+                  <span>Level {currentLevel.level}</span>
                 </div>
               </div>
 
@@ -320,7 +300,6 @@ export default function AquaJourneyPassPage() {
                 <div className="next-level-inline">
                   <span className="next-level-kicker">Next level</span>
                   <span className="next-level-value">Level {nextLevel.level}</span>
-                  <span className="next-level-reward">{nextReward}</span>
                 </div>
               )}
             </motion.div>
@@ -355,21 +334,6 @@ export default function AquaJourneyPassPage() {
           </div>
         )}
 
-        <div className="clean-section smaller">
-          <div className="section-title">
-            {incentiveUnlocked ? "Incentives Unlocked" : "Incentives Unlock At"}
-          </div>
-
-          <div className="small-stat-row">
-            <span>Valid Days</span>
-            <strong>{stats.validDays} / 15</strong>
-          </div>
-
-          <div className="small-stat-row">
-            <span>Hours</span>
-            <strong>{stats.monthlyHours.toFixed(1)} / 40.0</strong>
-          </div>
-        </div>
       </section>
 
       <style jsx>{`
