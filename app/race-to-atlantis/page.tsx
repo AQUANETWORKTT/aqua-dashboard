@@ -802,8 +802,12 @@ export default function RaceToAtlantisPage() {
         }
 
         .track-tab {
-          display: block;
+          display: flex;
+          position: relative;
+          flex-direction: column;
+          justify-content: center;
           min-height: 112px;
+          padding: 14px 12px 28px;
           border: 2px solid color-mix(in srgb, var(--track) 74%, transparent);
           border-radius: 18px;
           background:
@@ -870,34 +874,35 @@ export default function RaceToAtlantisPage() {
         }
 
         .track-tab small {
-          width: fit-content;
-          margin: 10px auto 0;
-          padding: 5px 9px;
-          border: 1px solid color-mix(in srgb, var(--track) 70%, transparent);
-          border-radius: 999px;
+          position: absolute;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          min-height: 18%;
+          display: grid;
+          place-items: center;
+          margin: 0;
+          padding: 6px 8px;
+          border-top: 1px solid color-mix(in srgb, var(--track) 62%, transparent);
+          border-radius: 0 0 15px 15px;
           color: #ffffff;
           font-family: system-ui, sans-serif;
           font-size: 11px;
           font-weight: 900;
           letter-spacing: 0.08em;
-          background: rgba(0, 0, 0, 0.24);
+          background: rgba(0, 0, 0, 0.34);
         }
 
         .track-tab.no-prize {
-          display: grid;
-          align-content: center;
-          justify-items: center;
-          padding: 14px;
+          justify-content: center;
+          padding: 14px 12px 28px;
         }
 
         .track-tab.no-prize span {
           font-size: clamp(24px, 3.5vw, 42px);
           line-height: 1.05;
           text-align: center;
-        }
-
-        .track-tab.no-prize small {
-          margin-top: 12px;
         }
 
         .track-shell {
