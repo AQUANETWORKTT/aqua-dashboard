@@ -714,7 +714,7 @@ export default function RaceToAtlantisPage() {
           position: relative;
           isolation: isolate;
           min-height: 100vh;
-          padding: 34px 16px 120px;
+          padding: 12px 16px 120px;
           color: #effcff;
           background: #01040a;
           font-family: "Orbitron", "Rajdhani", system-ui, sans-serif;
@@ -751,14 +751,14 @@ export default function RaceToAtlantisPage() {
         }
 
         .race-hero {
-          padding: 42px 0 24px;
+          padding: 10px 0 10px;
           text-align: center;
         }
 
         .race-logo-mark {
           display: inline-block;
           position: relative;
-          width: min(760px, 96%);
+          width: min(560px, 86%);
           overflow: hidden;
           animation: brandFloat 4.8s ease-in-out infinite;
         }
@@ -807,7 +807,7 @@ export default function RaceToAtlantisPage() {
         }
 
         .personal-track-section {
-          margin-bottom: 18px;
+          margin-bottom: 12px;
         }
 
         .track-tab {
@@ -909,7 +909,7 @@ export default function RaceToAtlantisPage() {
         }
 
         .track-tab.no-prize span {
-          font-size: clamp(24px, 3.5vw, 42px);
+          font-size: clamp(18px, 2.6vw, 30px);
           line-height: 1.05;
           text-align: center;
         }
