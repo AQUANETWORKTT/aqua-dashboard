@@ -62,7 +62,7 @@ const TRACKS: TrackConfig[] = [
     prize: "3K",
     tone: "#c47a3c",
     glow: "rgba(196, 122, 60, 0.34)",
-    creators: ["MD"],
+    creators: ["candicel05"],
     requirements: [
       { key: "diamonds", label: "Diamonds", target: 50000 },
       { key: "liveHours", label: "Live duration", target: 30, format: "hours" },
@@ -79,7 +79,7 @@ const TRACKS: TrackConfig[] = [
     prize: "6K",
     tone: "#cbd5e1",
     glow: "rgba(203, 213, 225, 0.3)",
-    creators: ["MD"],
+    creators: ["j.wliveacc"],
     requirements: [
       { key: "diamonds", label: "Diamonds", target: 150000 },
       { key: "liveHours", label: "Live duration", target: 60, format: "hours" },
@@ -96,7 +96,7 @@ const TRACKS: TrackConfig[] = [
     prize: "10K",
     tone: "#facc15",
     glow: "rgba(250, 204, 21, 0.32)",
-    creators: ["MD"],
+    creators: ["dylanjinks"],
     requirements: [
       { key: "diamonds", label: "Diamonds", target: 350000 },
       { key: "liveHours", label: "Live duration", target: 80, format: "hours" },
@@ -113,7 +113,7 @@ const TRACKS: TrackConfig[] = [
     prize: "5K",
     tone: "#38f3ff",
     glow: "rgba(56, 243, 255, 0.34)",
-    creators: ["MD"],
+    creators: ["xojayyy"],
     requirements: [
       { key: "diamonds", label: "Diamonds", target: 15000 },
       { key: "liveHours", label: "Live duration", target: 100, format: "hours" },
