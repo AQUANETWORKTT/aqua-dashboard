@@ -13,7 +13,7 @@ export default function NavBar({ user }: { user: string | null }) {
   if (hideOn.includes(pathname)) return null;
 
 const mobileLinks = [
-  { href: "/banned-help", title: "Ban Help", icon: "/nav-icons/ban-help.png", tone: "danger" },
+  { href: "/race-to-atlantis", title: "Race to Atlantis", icon: "/nav-icons/race-atlantis.svg", tone: "race" },
   { href: `/dashboard/${user}`, title: "Dashboard", icon: "/nav-icons/dashboard.png" },
   { href: "/", title: "Home", icon: "/nav-icons/home.png" },
   { href: "/leaderboard", title: "Leaderboard", icon: "/nav-icons/leaderboard.png" },
@@ -25,7 +25,7 @@ const desktopLinks = [
   { href: `/dashboard/${user}`, label: "Dashboard" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/battles", label: "Battles" },
-  { href: "/banned-help", label: "Ban Help" },
+  { href: "/race-to-atlantis", label: "Race to Atlantis" },
 ];
 
   return (
@@ -54,7 +54,7 @@ const desktopLinks = [
                 onClick={() => setOpen(false)}
                 className={`aqua-dropdown-link ${
                   pathname === link.href ? "active" : ""
-                } ${link.label === "Ban Help" ? "ban-help-link" : ""}`}
+                } ${link.label === "Race to Atlantis" ? "race-link" : ""}`}
               >
                 {link.label}
               </Link>
@@ -66,7 +66,7 @@ const desktopLinks = [
       <nav className="aqua-mobile-bottom">
         {mobileLinks.map((link) => {
           const active = pathname === link.href;
-          const ban = link.tone === "danger";
+          const race = link.tone === "race";
 
           return (
             <Link
@@ -75,7 +75,7 @@ const desktopLinks = [
               aria-label={link.title}
               title={link.title}
               className={`aqua-mobile-tab ${active ? "active" : ""} ${
-                ban ? "ban" : ""
+                race ? "race" : ""
               }`}
             >
               <img src={link.icon} alt="" aria-hidden="true" className="aqua-mobile-icon" />
@@ -165,10 +165,10 @@ const desktopLinks = [
           box-shadow: 0 0 18px rgba(45, 224, 255, 0.32);
         }
 
-        .aqua-dropdown-link.ban-help-link {
-          color: #ff4d4d;
-          border-color: rgba(255, 77, 77, 0.35);
-          background: rgba(255, 77, 77, 0.06);
+        .aqua-dropdown-link.race-link {
+          color: #54e8ff;
+          border-color: rgba(84, 232, 255, 0.5);
+          background: linear-gradient(135deg, rgba(84, 232, 255, 0.16), rgba(250, 204, 21, 0.08));
         }
 
         .aqua-mobile-bottom {
@@ -229,8 +229,8 @@ const desktopLinks = [
             filter: drop-shadow(0 0 7px rgba(45, 224, 255, 0.75));
           }
 
-          .aqua-mobile-tab.ban .aqua-mobile-icon {
-            filter: drop-shadow(0 0 8px rgba(255, 77, 77, 0.8));
+          .aqua-mobile-tab.race .aqua-mobile-icon {
+            filter: drop-shadow(0 0 9px rgba(84, 232, 255, 0.85));
           }
 
           .aqua-mobile-tab.active {
@@ -253,17 +253,17 @@ const desktopLinks = [
               0 0 20px rgba(45, 224, 255, 0.65);
           }
 
-          .aqua-mobile-tab.ban.active {
-            color: #ffb0b0;
+          .aqua-mobile-tab.race.active {
+            color: #54e8ff;
             background:
-              radial-gradient(circle at center, rgba(255, 77, 77, 0.14), transparent 62%);
+              radial-gradient(circle at center, rgba(84, 232, 255, 0.18), transparent 62%);
           }
 
-          .aqua-mobile-tab.ban.active::after {
-            background: #ff4d4d;
+          .aqua-mobile-tab.race.active::after {
+            background: #54e8ff;
             box-shadow:
-              0 0 10px rgba(255, 77, 77, 1),
-              0 0 20px rgba(255, 77, 77, 0.65);
+              0 0 10px rgba(84, 232, 255, 1),
+              0 0 20px rgba(84, 232, 255, 0.65);
           }
 
           body {
