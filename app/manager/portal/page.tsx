@@ -792,6 +792,9 @@ export default function ManagerPortalPage() {
     averageHealth: matureCreators.length
       ? matureCreators.reduce((sum, creator) => sum + creator.healthScore, 0) / matureCreators.length
       : 0,
+    averageThirtyDayHealth: matureCreators.length
+      ? matureCreators.reduce((sum, creator) => sum + creator.monthlyHealthScore, 0) / matureCreators.length
+      : 0,
   };
   const newCreators = creators
     .filter((creator) => creator.isNewCreator)
@@ -950,7 +953,8 @@ export default function ManagerPortalPage() {
             <section className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <Metric label="Total Creators" value={formatNumber(totals.totalCreators)} />
               <Metric label="Healthy Creators" value={formatNumber(totals.healthyCreators)} />
-              <Metric label="Team Health" value={`${formatNumber(totals.averageHealth)}/100`} />
+              <Metric label="7-Day Team Health" value={`${formatNumber(totals.averageHealth)}/100`} />
+              <Metric label="30-Day Team Health" value={`${formatNumber(totals.averageThirtyDayHealth)}/100`} />
               <Metric label="Total Diamonds" value={formatNumber(totals.diamonds)} />
               <Metric label="Total Live Hours" value={formatHours(totals.hours)} />
               <Metric label="Total Battles" value={formatNumber(totals.battles)} />
@@ -964,9 +968,14 @@ export default function ManagerPortalPage() {
                   <h2 className="text-2xl font-black uppercase text-sky-200">Manager Team Health</h2>
                   <p className="mt-1 text-sm text-slate-400">Only creators managed by this login.</p>
                 </div>
-                <span className="rounded-full border border-sky-300/30 bg-sky-400/10 px-3 py-1 text-sm font-black text-sky-200">
-                  {formatNumber(totals.averageHealth)}/100
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span className="rounded-full border border-sky-300/30 bg-sky-400/10 px-3 py-1 text-sm font-black text-sky-200">
+                    7-day {formatNumber(totals.averageHealth)}/100
+                  </span>
+                  <span className="rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1 text-xs font-black text-cyan-200">
+                    30-day {formatNumber(totals.averageThirtyDayHealth)}/100
+                  </span>
+                </div>
               </div>
               <div className="h-4 overflow-hidden rounded-full bg-slate-800">
                 <div className="h-full bg-sky-400" style={{ width: `${Math.min(Math.max(totals.averageHealth, 0), 100)}%` }} />

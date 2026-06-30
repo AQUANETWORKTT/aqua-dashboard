@@ -163,6 +163,7 @@ type ManagerHealthSummary = {
   matureCreators: number;
   newCreators: number;
   averageScore: number;
+  thirtyDayAverageScore: number;
   elite: number;
   healthy: number;
   needsAttention: number;
@@ -2036,10 +2037,7 @@ function downloadManagerReport(
   const stableCreators = movementItems.filter(
     (item) => item.change !== null && item.change >= -10 && item.change <= 10
   );
-  const thirtyDayAverage =
-    managerTrend.length > 0
-      ? managerTrend.reduce((sum, point) => sum + point.score, 0) / managerTrend.length
-      : 0;
+  const thirtyDayAverage = managerSummary.thirtyDayAverageScore;
   const trendChange =
     managerTrend.length > 1 ? managerTrend[managerTrend.length - 1].score - managerTrend[0].score : 0;
   const movementChanges = movementItems
@@ -2150,6 +2148,7 @@ function downloadManagerReport(
     <div class="section-cards">
       <div class="card"><div class="label">Creators</div><div class="value">${formatNumber(managerSummary.totalCreators)}</div></div>
       <div class="card"><div class="label">New Creators</div><div class="value">${formatNumber(managerSummary.newCreators)}</div></div>
+      <div class="card"><div class="label">30-Day Health Score</div><div class="value">${formatNumber(managerSummary.thirtyDayAverageScore)}</div></div>
       <div class="card"><div class="label">7-Day Movement</div><div class="value ${sevenDayMovement >= 0 ? "good" : "bad"}">${sevenDayMovement >= 0 ? "+" : ""}${formatNumber(sevenDayMovement)}</div></div>
       <div class="card"><div class="label">30-Day Movement</div><div class="value ${trendChange >= 0 ? "good" : "bad"}">${trendChange >= 0 ? "+" : ""}${formatNumber(trendChange)}</div></div>
     </div>
@@ -2299,7 +2298,8 @@ function downloadManagerReport(
     <tr>
       <th>Creator</th>
       <th>Status</th>
-      <th>Score</th>
+      <th>7-Day Score</th>
+      <th>30-Day Score</th>
       <th>Score Contribution</th>
       <th>Live Days</th>
       <th>Last 7 Hours</th>
@@ -2328,6 +2328,7 @@ function downloadManagerReport(
           <td><strong>${escapeHtml(creator.username)}</strong><br><span class="muted">${escapeHtml(creator.tierStatus)}</span></td>
           <td><span class="pill ${statusClass}">${escapeHtml(creator.healthStatus)}</span></td>
           <td>${formatNumber(creator.healthScore)}/100</td>
+          <td>${formatNumber(creator.monthlyHealthScore)}/100</td>
           <td>${contribution}</td>
           <td>${formatNumber(creator.oneHourDays)}/${formatNumber(creator.healthWindowDays)}</td>
           <td>${formatHours(creatorLastSevenHours)}h</td>
@@ -2339,7 +2340,7 @@ function downloadManagerReport(
           <td>${formatNumber(creator.diamonds)}</td>
         </tr>
         <tr class="creator-action-row">
-          <td colspan="12">
+          <td colspan="13">
             <div class="creator-action-grid">
               <div class="creator-action-box"><div class="creator-action-title">Weekly Target</div>${escapeHtml(getWeeklyTargetText(creator))}</div>
               <div class="creator-action-box"><div class="creator-action-title">Manager Focus</div>${escapeHtml(focus || "Keep monitoring weekly performance.")}</div>
@@ -2585,6 +2586,10 @@ export default function CreatorIntelligencePage() {
           scoreBase.length > 0
             ? scoreBase.reduce((sum, creator) => sum + creator.healthScore, 0) / scoreBase.length
             : 0;
+        const thirtyDayAverageScore =
+          scoreBase.length > 0
+            ? scoreBase.reduce((sum, creator) => sum + creator.monthlyHealthScore, 0) / scoreBase.length
+            : 0;
 
         return {
           manager: managerName,
@@ -2593,6 +2598,7 @@ export default function CreatorIntelligencePage() {
           matureCreators: matureCreators.length,
           newCreators: creators.length - matureCreators.length,
           averageScore,
+          thirtyDayAverageScore,
           elite: matureCreators.filter((creator) => creator.healthStatus === "Elite").length,
           healthy: matureCreators.filter((creator) => creator.healthStatus === "Healthy").length,
           needsAttention: matureCreators.filter((creator) => creator.healthStatus === "Needs Attention").length,
@@ -2720,6 +2726,11 @@ export default function CreatorIntelligencePage() {
     const totalHours = filteredCreators.reduce((sum, row) => sum + row.liveHours, 0);
     const totalMatches = filteredCreators.reduce((sum, row) => sum + row.matches, 0);
     const totalFollowers = filteredCreators.reduce((sum, row) => sum + row.newFollowers, 0);
+    const averageThirtyDayHealth =
+      matureFilteredCreators.length > 0
+        ? matureFilteredCreators.reduce((sum, row) => sum + row.monthlyHealthScore, 0) /
+          matureFilteredCreators.length
+        : 0;
 
     return {
       totalCreators: filteredCreators.length,
@@ -2729,6 +2740,7 @@ export default function CreatorIntelligencePage() {
       needsAttention: matureFilteredCreators.filter((row) => row.healthStatus === "Needs Attention").length,
       lowPerformance: matureFilteredCreators.filter((row) => row.healthStatus === "Low Performance").length,
       lowQuality: matureFilteredCreators.filter((row) => row.healthStatus === "Low Quality").length,
+      averageThirtyDayHealth,
       averageDph: totalHours > 0 ? totalDiamonds / totalHours : 0,
       totalDiamonds,
       totalHours,
@@ -3277,13 +3289,14 @@ export default function CreatorIntelligencePage() {
         <section className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Total creators" value={formatNumber(totals.totalCreators)} />
           <MetricCard
-            label="Average health score"
+            label="Average 7-day health score"
             value={
               agencyHealthTrend.length
                 ? `${formatNumber(agencyHealthTrend[agencyHealthTrend.length - 1].score)}/100`
                 : "0/100"
             }
           />
+          <MetricCard label="Average 30-day health score" value={`${formatNumber(totals.averageThirtyDayHealth)}/100`} />
           <MetricCard label="Low performance creators" value={formatNumber(totals.lowPerformance)} />
           <MetricCard label="Low quality creators" value={formatNumber(totals.lowQuality)} />
           <MetricCard label="Needs attention" value={formatNumber(totals.needsAttention)} />
@@ -3410,17 +3423,22 @@ export default function CreatorIntelligencePage() {
                         {formatNumber(managerSummary.newCreators)} new
                       </p>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full border px-3 py-1 text-sm font-black ${
-                        managerSummary.averageScore >= 70
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : managerSummary.averageScore >= 50
-                            ? "border-orange-200 bg-orange-50 text-orange-700"
-                            : "border-red-200 bg-red-50 text-red-700"
-                      }`}
-                    >
-                      {formatNumber(managerSummary.averageScore)}/100
-                    </span>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <span
+                        className={`rounded-full border px-3 py-1 text-sm font-black ${
+                          managerSummary.averageScore >= 70
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : managerSummary.averageScore >= 50
+                              ? "border-orange-200 bg-orange-50 text-orange-700"
+                              : "border-red-200 bg-red-50 text-red-700"
+                        }`}
+                      >
+                        7-day {formatNumber(managerSummary.averageScore)}/100
+                      </span>
+                      <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
+                        30-day {formatNumber(managerSummary.thirtyDayAverageScore)}/100
+                      </span>
+                    </div>
                   </div>
 
                   <div className="mt-4">
