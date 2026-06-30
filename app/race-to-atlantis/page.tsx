@@ -7,15 +7,19 @@ type TrackId = "bronze" | "silver" | "gold" | "pro";
 
 type CreatorStat = {
   [key: string]: unknown;
-  stat_date: string;
+  stats_date?: string | null;
+  month_key?: string | null;
   creator_username?: string | null;
   "Creator's username"?: string | null;
+  username?: string | null;
   creator_id?: string | null;
   diamonds?: number | null;
   live_hours?: number | null;
+  live_duration_hours?: number | null;
   live_duration?: string | null;
   valid_days?: number | null;
   valid_live_days?: number | null;
+  valid_go_live_days?: number | null;
   matches?: number | null;
   new_followers?: number | null;
   followers?: number | null;
@@ -48,8 +52,7 @@ type CreatorProgress = {
   completed: number;
 };
 
-const JULY_START = "2026-07-01";
-const JULY_END = "2026-07-31";
+const RACE_MONTH_KEY = "2026-07";
 
 const TRACKS: TrackConfig[] = [
   {
@@ -176,7 +179,7 @@ function getDurationHours(row: CreatorStat, keys: string[]) {
 }
 
 function getUsername(row: CreatorStat) {
-  return getText(row, ["creator_username", "Creator's username", "creator_id"], "Unknown").replace(/^@+/, "");
+  return getText(row, ["username", "creator_username", "Creator's username", "creator_id"], "Unknown").replace(/^@+/, "");
 }
 
 function usernameKey(username: string) {
@@ -238,18 +241,26 @@ function CreatorAvatar({ username }: { username: string }) {
 function buildCreatorProgress(rows: CreatorStat[], track: TrackConfig, username: string): CreatorProgress {
   const key = usernameKey(username);
   const creatorRows = rows.filter((row) => usernameKey(getUsername(row)) === key);
-  const statValues = creatorRows.reduce(
+  const emptyStats: Record<TrackRequirement["key"], number> = {
+    diamonds: 0,
+    liveHours: 0,
+    validDays: 0,
+    matches: 0,
+    followers: 0,
+    newFans: 0,
+  };
+  const statValues = creatorRows.reduce<Record<TrackRequirement["key"], number>>(
     (stats, row) => {
-      const liveHours = getDurationHours(row, ["live_hours", "LIVE duration", "live_duration"]);
+      const liveHours = getDurationHours(row, ["live_duration_hours", "live_hours", "LIVE duration", "live_duration"]);
       stats.diamonds += getNumber(row, ["diamonds", "Diamonds"]);
       stats.liveHours += liveHours;
-      stats.validDays += getNumber(row, ["valid_days", "valid_live_days", "Valid go LIVE days"]) || (liveHours >= 1 ? 1 : 0);
+      stats.validDays += getNumber(row, ["valid_go_live_days", "valid_days", "valid_live_days", "Valid go LIVE days"]) || (liveHours >= 1 ? 1 : 0);
       stats.matches += getNumber(row, ["matches", "Matches"]);
       stats.followers += getNumber(row, ["new_followers", "New followers", "followers"]);
       stats.newFans += getNumber(row, ["new_fans", "New fans", "fans"]);
       return stats;
     },
-    { diamonds: 0, liveHours: 0, validDays: 0, matches: 0, followers: 0, newFans: 0 }
+    emptyStats
   );
 
   const completed = track.requirements.filter((requirement) => statValues[requirement.key] >= requirement.target).length;
@@ -283,11 +294,10 @@ export default function RaceToAtlantisPage() {
 
       while (hasMore) {
         const { data, error } = await submissionsSupabase
-          .from("aqua_daily_stats")
+          .from("creator_monthly_stats")
           .select("*")
-          .gte("stat_date", JULY_START)
-          .lte("stat_date", JULY_END)
-          .order("stat_date", { ascending: true })
+          .eq("month_key", RACE_MONTH_KEY)
+          .order("stats_date", { ascending: false })
           .range(from, from + pageSize - 1);
 
         if (error) {
@@ -329,7 +339,7 @@ export default function RaceToAtlantisPage() {
         <div className="race-logo-mark">Race to Atlantis</div>
         <p className="race-kicker">Aqua Agency July Challenge</p>
         <p className="race-copy">
-          Creators are assigned to a track. Check your race card, then follow the leaderboard underneath.
+          Creators are assigned to a track. Progress is pulled from the July admin monthly upload.
         </p>
       </section>
 
@@ -354,7 +364,7 @@ export default function RaceToAtlantisPage() {
           <div className="personal-left">
             {assignedCreator ? <CreatorAvatar username={assignedCreator.username} /> : null}
             <div>
-              <p className="race-kicker">Your Assigned Track</p>
+              <p className="race-kicker">Your Track</p>
               <h2>{assignedCreator?.username || "MD"}</h2>
               <span>{activeTrack.name}</span>
             </div>
@@ -473,6 +483,7 @@ export default function RaceToAtlantisPage() {
 
         .race-logo-mark {
           display: inline-flex;
+          position: relative;
           align-items: center;
           justify-content: center;
           min-height: 112px;
@@ -486,6 +497,19 @@ export default function RaceToAtlantisPage() {
           text-transform: uppercase;
           text-shadow: 0 0 18px rgba(84, 232, 255, 0.86), 0 0 46px rgba(84, 232, 255, 0.35);
           box-shadow: inset 0 0 38px rgba(84, 232, 255, 0.08), 0 0 38px rgba(84, 232, 255, 0.16);
+          overflow: hidden;
+          animation: brandFloat 4.8s ease-in-out infinite;
+        }
+
+        .race-logo-mark::after {
+          content: "";
+          position: absolute;
+          inset: -40% auto -40% -40%;
+          width: 34%;
+          transform: rotate(18deg);
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+          opacity: 0.7;
+          animation: brandShine 4.2s ease-in-out infinite;
         }
 
         .race-kicker {
@@ -555,6 +579,7 @@ export default function RaceToAtlantisPage() {
           box-shadow:
             0 0 30px var(--track-glow),
             inset 0 0 24px rgba(255, 255, 255, 0.08);
+          animation: activeTrackPulse 2.8s ease-in-out infinite;
         }
 
         .track-tab span,
@@ -609,6 +634,7 @@ export default function RaceToAtlantisPage() {
         }
 
         .personal-card {
+          position: relative;
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 16px;
@@ -623,9 +649,22 @@ export default function RaceToAtlantisPage() {
           box-shadow:
             inset 0 0 24px rgba(255, 255, 255, 0.04),
             0 0 24px var(--track-glow);
+          overflow: hidden;
+        }
+
+        .personal-card::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.08) 42%, transparent 58%);
+          transform: translateX(-100%);
+          animation: panelSweep 5.5s ease-in-out infinite;
+          pointer-events: none;
         }
 
         .personal-left {
+          position: relative;
+          z-index: 1;
           display: flex;
           min-width: 0;
           align-items: center;
@@ -656,6 +695,8 @@ export default function RaceToAtlantisPage() {
         }
 
         .personal-stats {
+          position: relative;
+          z-index: 1;
           display: grid;
           grid-template-columns: repeat(3, minmax(96px, 1fr));
           gap: 10px;
@@ -829,9 +870,20 @@ export default function RaceToAtlantisPage() {
         }
 
         .progress-fill {
+          position: relative;
           height: 100%;
           border-radius: inherit;
           background: linear-gradient(90deg, var(--track), #ffffff);
+          overflow: hidden;
+        }
+
+        .progress-fill::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.78), transparent);
+          transform: translateX(-110%);
+          animation: progressShine 2.8s ease-in-out infinite;
         }
 
         .mini-stats {
@@ -882,6 +934,58 @@ export default function RaceToAtlantisPage() {
 
         .leader-callout strong {
           color: var(--track);
+        }
+
+        @keyframes brandFloat {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-5px);
+          }
+        }
+
+        @keyframes brandShine {
+          0%,
+          35% {
+            transform: translateX(0) rotate(18deg);
+          }
+          70%,
+          100% {
+            transform: translateX(460%) rotate(18deg);
+          }
+        }
+
+        @keyframes activeTrackPulse {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-2px);
+          }
+        }
+
+        @keyframes panelSweep {
+          0%,
+          45% {
+            transform: translateX(-100%);
+          }
+          75%,
+          100% {
+            transform: translateX(100%);
+          }
+        }
+
+        @keyframes progressShine {
+          0% {
+            transform: translateX(-110%);
+          }
+          58%,
+          100% {
+            transform: translateX(110%);
+          }
         }
 
         @media (max-width: 840px) {
