@@ -60,7 +60,6 @@ const GOLD_CREATORS = [
   "z.diness",
   "xomarky",
   "lucylou449",
-  "corie.watkins",
   "lukealbert4",
   "elliex035",
   "j.wliveacc",
@@ -528,7 +527,9 @@ export default function RaceToAtlantisPage() {
   return (
     <main className="race-page">
       <section className="race-hero">
-        <div className="race-logo-mark">Race to Atlantis</div>
+        <div className="race-logo-mark">
+          <img src="/race-to-atlantis/logo.png" alt="Race to Atlantis" className="race-logo-image" />
+        </div>
         <p className="race-kicker">Aqua Agency July Challenge</p>
         <p className="race-copy">Race to the top. First to achieve all targets wins.</p>
       </section>
@@ -712,13 +713,35 @@ export default function RaceToAtlantisPage() {
 
       <style jsx>{`
         .race-page {
+          position: relative;
+          isolation: isolate;
           min-height: 100vh;
           padding: 34px 16px 120px;
           color: #effcff;
-          background:
-            radial-gradient(circle at 50% -10%, rgba(56, 243, 255, 0.24), transparent 34%),
-            linear-gradient(180deg, #031424 0%, #06101d 42%, #01040a 100%);
+          background: #01040a;
           font-family: "Orbitron", "Rajdhani", system-ui, sans-serif;
+          overflow: hidden;
+        }
+
+        .race-page::before {
+          content: "";
+          position: fixed;
+          inset: -28px;
+          z-index: -2;
+          background: url("/race-to-atlantis/background.png") center top / cover no-repeat;
+          filter: blur(18px) saturate(1.18) brightness(0.72);
+          transform: scale(1.06);
+        }
+
+        .race-page::after {
+          content: "";
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(56, 243, 255, 0.28), transparent 32%),
+            linear-gradient(180deg, rgba(1, 10, 22, 0.34) 0%, rgba(1, 4, 10, 0.78) 48%, rgba(1, 4, 10, 0.92) 100%);
+          pointer-events: none;
         }
 
         .race-hero,
@@ -735,34 +758,22 @@ export default function RaceToAtlantisPage() {
         }
 
         .race-logo-mark {
-          display: inline-flex;
+          display: inline-block;
           position: relative;
-          align-items: center;
-          justify-content: center;
-          min-height: 112px;
-          padding: 18px 26px;
-          border: 2px solid rgba(84, 232, 255, 0.45);
-          border-radius: 24px;
-          color: #ffffff;
-          font-size: clamp(30px, 8vw, 74px);
-          font-weight: 950;
-          line-height: 0.96;
-          text-transform: uppercase;
-          text-shadow: 0 0 18px rgba(84, 232, 255, 0.86), 0 0 46px rgba(84, 232, 255, 0.35);
-          box-shadow: inset 0 0 38px rgba(84, 232, 255, 0.08), 0 0 38px rgba(84, 232, 255, 0.16);
+          width: min(760px, 96%);
           overflow: hidden;
           animation: brandFloat 4.8s ease-in-out infinite;
         }
 
-        .race-logo-mark::after {
-          content: "";
-          position: absolute;
-          inset: -40% auto -40% -40%;
-          width: 34%;
-          transform: rotate(18deg);
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
-          opacity: 0.7;
-          animation: brandShine 4.2s ease-in-out infinite;
+        .race-logo-image {
+          display: block;
+          width: 100%;
+          height: auto;
+          object-fit: contain;
+          filter:
+            drop-shadow(0 0 18px rgba(56, 243, 255, 0.22))
+            drop-shadow(0 20px 28px rgba(0, 0, 0, 0.34));
+          mix-blend-mode: screen;
         }
 
         .race-kicker {
