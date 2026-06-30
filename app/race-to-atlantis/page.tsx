@@ -195,6 +195,17 @@ function formatRequirementValue(value: number, requirement: TrackRequirement) {
   return formatNumber(value);
 }
 
+function getCookieValue(name: string) {
+  if (typeof document === "undefined") return "";
+  return (
+    document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${name}=`))
+      ?.split("=")[1] || ""
+  );
+}
+
 async function fetchTikTokAvatar(username: string) {
   if (!username) return "";
 
@@ -283,6 +294,7 @@ export default function RaceToAtlantisPage() {
   const [activeTrackId, setActiveTrackId] = useState<TrackId>("bronze");
   const [rows, setRows] = useState<CreatorStat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loggedInUsername, setLoggedInUsername] = useState("");
 
   useEffect(() => {
     async function loadRows() {
@@ -320,18 +332,50 @@ export default function RaceToAtlantisPage() {
     loadRows();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    window.setTimeout(() => {
+      if (!cancelled) setLoggedInUsername(usernameKey(decodeURIComponent(getCookieValue("aqua_user"))));
+    }, 0);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const activeTrack = TRACKS.find((track) => track.id === activeTrackId) || TRACKS[0];
+  const trackLeaderboards = useMemo(() => {
+    return TRACKS.map((track) => ({
+      track,
+      creators: track.creators
+        .map((username) => buildCreatorProgress(rows, track, username))
+        .sort((a, b) => b.progress - a.progress),
+    }));
+  }, [rows]);
+
   const leaderboard = useMemo(() => {
-    return activeTrack.creators
-      .map((username) => buildCreatorProgress(rows, activeTrack, username))
-      .sort((a, b) => b.progress - a.progress);
-  }, [activeTrack, rows]);
+    return trackLeaderboards.find((trackData) => trackData.track.id === activeTrack.id)?.creators || [];
+  }, [activeTrack.id, trackLeaderboards]);
 
   const leader = leaderboard[0];
-  const assignedCreator = leaderboard.find((creator) => usernameKey(creator.username) === "md") || leader;
-  const assignedPosition = assignedCreator
-    ? leaderboard.findIndex((creator) => usernameKey(creator.username) === usernameKey(assignedCreator.username)) + 1
-    : 0;
+  const assignedEntry = loggedInUsername
+    ? trackLeaderboards.reduce<{
+        track: TrackConfig;
+        creator: CreatorProgress;
+        position: number;
+      } | null>((match, trackData) => {
+        if (match) return match;
+        const creatorIndex = trackData.creators.findIndex((creator) => usernameKey(creator.username) === loggedInUsername);
+        if (creatorIndex < 0) return null;
+        return {
+          track: trackData.track,
+          creator: trackData.creators[creatorIndex],
+          position: creatorIndex + 1,
+        };
+      }, null)
+    : null;
+  const personalTrack = assignedEntry?.track || activeTrack;
+  const personalName = assignedEntry?.creator.username || loggedInUsername || "Aqua Creator";
 
   return (
     <main className="race-page">
@@ -360,28 +404,31 @@ export default function RaceToAtlantisPage() {
       </section>
 
       <section className="track-shell" style={{ "--track": activeTrack.tone, "--track-glow": activeTrack.glow } as React.CSSProperties}>
-        <div className="personal-card">
+        <div
+          className={`personal-card ${assignedEntry ? "" : "not-competing"}`}
+          style={{ "--track": personalTrack.tone, "--track-glow": personalTrack.glow } as React.CSSProperties}
+        >
           <div className="personal-left">
-            {assignedCreator ? <CreatorAvatar username={assignedCreator.username} /> : null}
+            <CreatorAvatar username={personalName} />
             <div>
               <p className="race-kicker">Your Track</p>
-              <h2>{assignedCreator?.username || "MD"}</h2>
-              <span>{activeTrack.name}</span>
+              <h2>{personalName}</h2>
+              <span>{assignedEntry ? assignedEntry.track.name : "Not competing"}</span>
             </div>
           </div>
           <div className="personal-stats">
             <div>
               <span>Track Position</span>
-              <strong>{assignedPosition ? `#${assignedPosition}` : "TBC"}</strong>
+              <strong>{assignedEntry ? `#${assignedEntry.position}` : "N/A"}</strong>
             </div>
             <div>
               <span>Progress</span>
-              <strong>{assignedCreator ? `${Math.round(assignedCreator.progress * 100)}%` : "0%"}</strong>
+              <strong>{assignedEntry ? `${Math.round(assignedEntry.creator.progress * 100)}%` : "0%"}</strong>
             </div>
             <div>
               <span>Targets Hit</span>
               <strong>
-                {assignedCreator ? `${assignedCreator.completed}/${activeTrack.requirements.length}` : `0/${activeTrack.requirements.length}`}
+                {assignedEntry ? `${assignedEntry.creator.completed}/${assignedEntry.track.requirements.length}` : "0/0"}
               </strong>
             </div>
           </div>
@@ -399,10 +446,15 @@ export default function RaceToAtlantisPage() {
         </div>
 
         <div className="requirement-strip">
-          {activeTrack.requirements.map((requirement) => (
-            <div key={requirement.key} className="requirement-chip">
+          {activeTrack.requirements.map((requirement, index) => (
+            <div
+              key={requirement.key}
+              className="requirement-chip"
+              style={{ "--delay": `${index * 55}ms` } as React.CSSProperties}
+            >
               <span>{requirement.label}</span>
               <strong>{formatRequirementValue(requirement.target, requirement)}</strong>
+              <small>target</small>
             </div>
           ))}
         </div>
@@ -426,13 +478,19 @@ export default function RaceToAtlantisPage() {
                   <div className="mini-stats">
                     {activeTrack.requirements.map((requirement) => {
                       const done = creator.stats[requirement.key] >= requirement.target;
+                      const statProgress = Math.min(creator.stats[requirement.key] / Math.max(requirement.target, 1), 1);
                       return (
-                        <div key={requirement.key} className={done ? "mini-stat done" : "mini-stat"}>
-                          <span>{requirement.label}</span>
-                          <strong>
-                            {formatRequirementValue(creator.stats[requirement.key], requirement)} /{" "}
-                            {formatRequirementValue(requirement.target, requirement)}
-                          </strong>
+                        <div
+                          key={requirement.key}
+                          className={done ? "mini-stat done" : "mini-stat"}
+                          style={{ "--stat-progress": `${Math.round(statProgress * 100)}%` } as React.CSSProperties}
+                        >
+                          <span className="stat-ring">{Math.round(statProgress * 100)}%</span>
+                          <span className="stat-copy">
+                            <em>{requirement.label}</em>
+                            <strong>{formatRequirementValue(creator.stats[requirement.key], requirement)}</strong>
+                            <small>Target {formatRequirementValue(requirement.target, requirement)}</small>
+                          </span>
                         </div>
                       );
                     })}
@@ -652,6 +710,13 @@ export default function RaceToAtlantisPage() {
           overflow: hidden;
         }
 
+        .personal-card.not-competing {
+          border-color: rgba(84, 232, 255, 0.32);
+          box-shadow:
+            inset 0 0 24px rgba(255, 255, 255, 0.03),
+            0 0 18px rgba(84, 232, 255, 0.12);
+        }
+
         .personal-card::before {
           content: "";
           position: absolute;
@@ -783,15 +848,34 @@ export default function RaceToAtlantisPage() {
         }
 
         .requirement-chip {
-          min-height: 66px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          border-radius: 14px;
-          padding: 10px;
-          background: rgba(0, 0, 0, 0.22);
+          position: relative;
+          min-height: 94px;
+          border: 1px solid color-mix(in srgb, var(--track) 56%, rgba(255, 255, 255, 0.08));
+          border-radius: 16px;
+          padding: 13px 11px;
+          background:
+            radial-gradient(circle at 10% 0%, var(--track-glow), transparent 54%),
+            linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.22));
+          box-shadow:
+            inset 0 0 18px rgba(255, 255, 255, 0.045),
+            0 0 18px rgba(0, 0, 0, 0.22);
+          overflow: hidden;
+          animation: statSlideIn 460ms ease both;
+          animation-delay: var(--delay);
+        }
+
+        .requirement-chip::before {
+          content: "";
+          position: absolute;
+          inset: auto 12px 9px 12px;
+          height: 3px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, transparent, var(--track), transparent);
+          box-shadow: 0 0 14px var(--track-glow);
         }
 
         .requirement-chip span,
-        .mini-stat span,
+        .stat-copy em,
         .finish-box span {
           display: block;
           color: rgba(239, 252, 255, 0.58);
@@ -800,11 +884,37 @@ export default function RaceToAtlantisPage() {
           font-weight: 800;
         }
 
+        .requirement-chip span {
+          position: relative;
+          z-index: 1;
+          text-transform: uppercase;
+        }
+
         .requirement-chip strong {
           display: block;
-          margin-top: 5px;
-          color: #fff;
-          font-size: 15px;
+          position: relative;
+          z-index: 1;
+          margin-top: 7px;
+          color: var(--track);
+          font-size: clamp(20px, 2.2vw, 28px);
+          font-weight: 950;
+          line-height: 1;
+          text-shadow:
+            0 0 12px var(--track-glow),
+            0 0 26px var(--track-glow);
+        }
+
+        .requirement-chip small {
+          display: block;
+          position: relative;
+          z-index: 1;
+          margin-top: 6px;
+          color: rgba(255, 255, 255, 0.78);
+          font-family: system-ui, sans-serif;
+          font-size: 10px;
+          font-weight: 900;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
         }
 
         .race-list {
@@ -888,28 +998,87 @@ export default function RaceToAtlantisPage() {
 
         .mini-stats {
           display: grid;
-          grid-template-columns: repeat(6, minmax(0, 1fr));
-          gap: 6px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
         }
 
         .mini-stat {
+          display: flex;
+          min-height: 72px;
           min-width: 0;
-          border-radius: 10px;
-          padding: 7px;
-          background: rgba(255, 255, 255, 0.055);
+          align-items: center;
+          gap: 9px;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 14px;
+          padding: 9px;
+          background:
+            linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.22)),
+            rgba(255, 255, 255, 0.035);
+          box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.03);
         }
 
         .mini-stat.done {
-          outline: 1px solid color-mix(in srgb, var(--track) 70%, transparent);
-          background: var(--track-glow);
+          border-color: color-mix(in srgb, var(--track) 70%, transparent);
+          background:
+            radial-gradient(circle at 0% 0%, var(--track-glow), transparent 58%),
+            rgba(255, 255, 255, 0.05);
+          box-shadow:
+            inset 0 0 16px rgba(255, 255, 255, 0.04),
+            0 0 16px var(--track-glow);
         }
 
-        .mini-stat strong {
+        .stat-ring {
+          display: grid;
+          flex: 0 0 48px;
+          width: 48px;
+          height: 48px;
+          place-items: center;
+          border: 2px solid color-mix(in srgb, var(--track) 78%, transparent);
+          border-radius: 50%;
+          color: var(--track);
+          font-size: 12px;
+          font-weight: 950;
+          background:
+            radial-gradient(circle, rgba(0, 0, 0, 0.75) 50%, transparent 52%),
+            conic-gradient(var(--track) var(--stat-progress), rgba(255, 255, 255, 0.12) 0);
+          box-shadow:
+            inset 0 0 12px rgba(0, 0, 0, 0.5),
+            0 0 14px var(--track-glow);
+          text-shadow: 0 0 10px var(--track-glow);
+        }
+
+        .stat-copy {
+          min-width: 0;
+        }
+
+        .stat-copy em {
+          overflow: hidden;
+          font-style: normal;
+          text-overflow: ellipsis;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+
+        .stat-copy strong {
           display: block;
-          margin-top: 3px;
+          margin-top: 4px;
+          color: #ffffff;
           overflow-wrap: anywhere;
           font-family: system-ui, sans-serif;
-          font-size: 12px;
+          font-size: 15px;
+          font-weight: 950;
+          line-height: 1.1;
+        }
+
+        .stat-copy small {
+          display: block;
+          margin-top: 4px;
+          color: var(--track);
+          font-family: system-ui, sans-serif;
+          font-size: 10px;
+          font-weight: 900;
+          text-transform: uppercase;
+          text-shadow: 0 0 10px var(--track-glow);
         }
 
         .finish-box strong {
@@ -985,6 +1154,17 @@ export default function RaceToAtlantisPage() {
           58%,
           100% {
             transform: translateX(110%);
+          }
+        }
+
+        @keyframes statSlideIn {
+          from {
+            opacity: 0;
+            transform: translateX(-18px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
           }
         }
 
