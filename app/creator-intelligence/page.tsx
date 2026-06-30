@@ -3423,7 +3423,7 @@ export default function CreatorIntelligencePage() {
                         {formatNumber(managerSummary.newCreators)} new
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
+                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
                       <span
                         className={`rounded-full border px-3 py-1 text-sm font-black ${
                           managerSummary.averageScore >= 70
@@ -3435,7 +3435,7 @@ export default function CreatorIntelligencePage() {
                       >
                         7-day {formatNumber(managerSummary.averageScore)}/100
                       </span>
-                      <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
+                      <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-black text-sky-700">
                         30-day {formatNumber(managerSummary.thirtyDayAverageScore)}/100
                       </span>
                     </div>
