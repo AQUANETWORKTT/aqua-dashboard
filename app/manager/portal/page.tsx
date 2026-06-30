@@ -56,7 +56,9 @@ type CreatorSummary = {
   key: string;
   id: string;
   username: string;
+  managerRaw: string;
   managerLabel: string;
+  agency: string;
   group: string;
   diamonds: number;
   liveHours: number;
@@ -174,18 +176,27 @@ function getText(row: CreatorStat, keys: string[], fallback = "") {
 }
 
 function durationToHours(value: unknown) {
-  const text = cleanText(value).toLowerCase();
+  if (typeof value === "number") return value;
+  const text = cleanText(value);
   if (!text) return 0;
+  if (!text.includes(":")) {
+    const lowerText = text.toLowerCase();
+    const hours = Number(lowerText.match(/(\d+(?:\.\d+)?)\s*h/)?.[1] || 0);
+    const minutes = Number(lowerText.match(/(\d+(?:\.\d+)?)\s*m/)?.[1] || 0);
+    const seconds = Number(lowerText.match(/(\d+(?:\.\d+)?)\s*s/)?.[1] || 0);
 
-  const hours = Number(text.match(/(\d+(?:\.\d+)?)\s*h/)?.[1] || 0);
-  const minutes = Number(text.match(/(\d+(?:\.\d+)?)\s*m/)?.[1] || 0);
-  const seconds = Number(text.match(/(\d+(?:\.\d+)?)\s*s/)?.[1] || 0);
+    if (hours || minutes || seconds) {
+      return Number((hours + minutes / 60 + seconds / 3600).toFixed(2));
+    }
 
-  if (hours || minutes || seconds) {
-    return Number((hours + minutes / 60 + seconds / 3600).toFixed(2));
+    return safeNumber(text);
   }
 
-  return safeNumber(value);
+  const parts = text.split(":").map((part) => Number(part));
+  if (parts.some((part) => !Number.isFinite(part))) return 0;
+  if (parts.length === 3) return parts[0] + parts[1] / 60 + parts[2] / 3600;
+  if (parts.length === 2) return parts[0] + parts[1] / 60;
+  return safeNumber(text);
 }
 
 function getNumber(row: CreatorStat, keys: string[]) {
@@ -207,7 +218,7 @@ function getDurationHours(row: CreatorStat, keys: string[]) {
 }
 
 function getUsername(row: CreatorStat) {
-  return getText(row, ["creator_username", "Creator's username", "creator_id"], "Unknown").replace(/^@/, "");
+  return getText(row, ["username", "creator_username", "Creator's username", "creator_id"], "Unknown").replace(/^@/, "");
 }
 
 function getManagerRaw(row: CreatorStat) {
@@ -502,6 +513,8 @@ function buildCreatorSummaries(rows: CreatorStat[], rollingRows: CreatorStat[] =
       );
       const latest = sortedRows[sortedRows.length - 1] || creatorRows[0];
       const managerRaw = getManagerRaw(latest);
+      const groupValue = getText(latest, ["team", "group_name", "Group"], "Aqua");
+      const agencyValue = getAgencyFromGroup(groupValue, getText(latest, ["agency"], "Aqua"));
       const diamonds = creatorRows.reduce((sum, row) => sum + getNumber(row, ["diamonds", "Diamonds"]), 0);
       const liveHours = creatorRows.reduce(
         (sum, row) => sum + getDurationHours(row, ["live_hours", "LIVE duration", "live_duration"]),
@@ -534,8 +547,10 @@ function buildCreatorSummaries(rows: CreatorStat[], rollingRows: CreatorStat[] =
         key,
         id: getText(latest, ["creator_id", "Creator ID"], key),
         username: getUsername(latest),
+        managerRaw,
         managerLabel: getManagerLabel(managerRaw),
-        group: getText(latest, ["team", "group_name", "Group"], "Aqua"),
+        agency: agencyValue,
+        group: groupValue,
         diamonds,
         liveHours,
         validDays: creatorRows.filter((row) => getDurationHours(row, ["live_hours", "LIVE duration", "live_duration"]) >= 1).length,
@@ -727,13 +742,7 @@ export default function ManagerPortalPage() {
           monthBounds.end >= "2026-06-19"
             ? await fetchRows("aqua_daily_stats", monthBounds.previousStart > "2026-06-19" ? monthBounds.previousStart : "2026-06-19", monthBounds.end)
             : [];
-        const allRows = [...legacyRows, ...aquaRows]
-          .filter(isAquaRow)
-          .filter((row) =>
-            isManagerMatch(`${getManagerRaw(row)} ${getManagerLabel(getManagerRaw(row))}`, managerUsername)
-          );
-
-        setRows(allRows);
+        setRows([...legacyRows, ...aquaRows].filter(isAquaRow));
       } catch (error) {
         console.error(error);
         setRows([]);
@@ -761,8 +770,14 @@ export default function ManagerPortalPage() {
     return new Set(latestRows.map((row) => getUsername(row).toLowerCase()));
   }, [dateRangeRows, latestPortalDate]);
   const creators = useMemo(
-    () => buildCreatorSummaries(dateRangeRows, rows).filter((creator) => activePortalCreatorKeys.has(creator.key)),
-    [activePortalCreatorKeys, dateRangeRows, rows]
+    () =>
+      buildCreatorSummaries(dateRangeRows, rows).filter(
+        (creator) =>
+          creator.agency === "Aqua" &&
+          activePortalCreatorKeys.has(creator.key) &&
+          isManagerMatch(`${creator.managerRaw} ${creator.managerLabel}`, managerUsername)
+      ),
+    [activePortalCreatorKeys, dateRangeRows, managerUsername, rows]
   );
   const matureCreators = useMemo(() => creators.filter((creator) => !creator.isNewCreator), [creators]);
   const selectedCreator = creators.find((creator) => creator.key === selectedCreatorKey) || creators[0] || null;

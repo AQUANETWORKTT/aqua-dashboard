@@ -242,6 +242,11 @@ const TRACKS: TrackConfig[] = [
   },
 ];
 
+function getAssignedTrack(username: string) {
+  const key = usernameKey(username);
+  return TRACKS.find((track) => track.id !== "pro" && track.creators.some((creator) => usernameKey(creator) === key)) || TRACKS[0];
+}
+
 function cleanText(value: unknown, fallback = "") {
   return String(value ?? fallback).trim();
 }
@@ -578,7 +583,9 @@ export default function RaceToAtlantisPage() {
                 </strong>
                 <small>View track</small>
               </>
-            ) : null}
+            ) : (
+              <small>View track</small>
+            )}
           </button>
         ))}
       </section>
@@ -630,6 +637,7 @@ export default function RaceToAtlantisPage() {
 
             <div className="race-list">
               {leaderboard.map((creator, index) => {
+                const creatorTrack = activeTrack.id === "pro" ? getAssignedTrack(creator.username) : activeTrack;
                 const isYourLeaderboardCard =
                   assignedEntry &&
                   activeTrack.id === assignedEntry.track.id &&
@@ -639,6 +647,12 @@ export default function RaceToAtlantisPage() {
                   <article
                     key={`${activeTrack.id}-${creator.username}`}
                     className={`race-row ${isYourLeaderboardCard ? "leaderboard-personal-card" : ""}`}
+                    style={
+                      {
+                        "--creator-track": creatorTrack.tone,
+                        "--creator-track-glow": creatorTrack.glow,
+                      } as React.CSSProperties
+                    }
                   >
                     <div className="rank-box">#{index + 1}</div>
                     <CreatorAvatar username={creator.username} />
@@ -871,7 +885,8 @@ export default function RaceToAtlantisPage() {
 
         .track-tab.no-prize {
           display: grid;
-          place-items: center;
+          align-content: center;
+          justify-items: center;
           padding: 14px;
         }
 
@@ -879,6 +894,10 @@ export default function RaceToAtlantisPage() {
           font-size: clamp(24px, 3.5vw, 42px);
           line-height: 1.05;
           text-align: center;
+        }
+
+        .track-tab.no-prize small {
+          margin-top: 12px;
         }
 
         .track-shell {
@@ -1200,13 +1219,13 @@ export default function RaceToAtlantisPage() {
         }
 
         .race-row.leaderboard-personal-card {
-          border-color: color-mix(in srgb, var(--track) 68%, transparent);
+          border-color: color-mix(in srgb, var(--creator-track, var(--track)) 68%, transparent);
           background:
-            radial-gradient(circle at 0% 0%, var(--track-glow), transparent 34%),
+            radial-gradient(circle at 0% 0%, var(--creator-track-glow, var(--track-glow)), transparent 34%),
             rgba(1, 6, 14, 0.82);
           box-shadow:
             inset 0 0 24px rgba(255, 255, 255, 0.04),
-            0 0 24px var(--track-glow);
+            0 0 24px var(--creator-track-glow, var(--track-glow));
         }
 
         .rank-box,
@@ -1216,28 +1235,29 @@ export default function RaceToAtlantisPage() {
         }
 
         .rank-box {
-          color: var(--track);
+          color: var(--creator-track, var(--track));
           font-size: 18px;
+          text-shadow: 0 0 12px var(--creator-track-glow, var(--track-glow));
         }
 
         .race-avatar {
           width: 58px;
           height: 58px;
-          border: 3px solid color-mix(in srgb, var(--track) 86%, #ffffff 10%);
-          border-radius: 50%;
+          box-sizing: border-box;
+          border: 2px solid color-mix(in srgb, var(--creator-track, var(--track)) 86%, #ffffff 8%);
+          border-radius: 999px;
           object-fit: cover;
-          padding: 2px;
-          background:
-            linear-gradient(#06101d, #06101d) padding-box,
-            conic-gradient(from 20deg, var(--track), #ffffff, var(--track), rgba(255, 255, 255, 0.38), var(--track)) border-box;
+          background: #06101d;
           box-shadow:
-            0 0 0 1px rgba(255, 255, 255, 0.12),
-            0 0 18px var(--track-glow),
+            0 0 0 1px rgba(255, 255, 255, 0.18),
+            0 0 0 5px color-mix(in srgb, var(--creator-track, var(--track)) 18%, transparent),
+            0 0 16px var(--creator-track-glow, var(--track-glow)),
             inset 0 0 12px rgba(255, 255, 255, 0.16);
         }
 
         .race-avatar.fallback-logo-avatar {
           object-fit: contain;
+          padding: 8px;
           background:
             radial-gradient(circle at 50% 48%, rgba(56, 243, 255, 0.18), transparent 56%),
             #06101d;
@@ -1260,26 +1280,33 @@ export default function RaceToAtlantisPage() {
 
         h3 {
           margin: 0;
-          font-size: 18px;
+          color: #ffffff;
+          font-size: clamp(19px, 2.4vw, 28px);
+          font-weight: 950;
+          line-height: 1.05;
+          text-shadow:
+            0 0 10px var(--creator-track-glow, var(--track-glow)),
+            0 0 22px rgba(84, 232, 255, 0.18);
+          overflow-wrap: anywhere;
         }
 
         .creator-title-row span {
-          color: var(--track);
+          color: var(--creator-track, var(--track));
           font-size: 13px;
           font-weight: 950;
         }
 
         .your-track-badge {
           padding: 5px 9px;
-          border: 1px solid color-mix(in srgb, var(--track) 72%, transparent);
+          border: 1px solid color-mix(in srgb, var(--creator-track, var(--track)) 72%, transparent);
           border-radius: 999px;
           color: #ffffff !important;
           font-family: system-ui, sans-serif;
           font-size: 10px !important;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          background: color-mix(in srgb, var(--track) 22%, rgba(0, 0, 0, 0.45));
-          box-shadow: 0 0 13px var(--track-glow);
+          background: color-mix(in srgb, var(--creator-track, var(--track)) 22%, rgba(0, 0, 0, 0.45));
+          box-shadow: 0 0 13px var(--creator-track-glow, var(--track-glow));
         }
 
         .progress-rail {
