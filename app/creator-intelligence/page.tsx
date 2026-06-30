@@ -1507,12 +1507,6 @@ function buildCreatorReportHtml({
     ${buildHealthScoreBreakdownTable(creator)}
   </table>
 
-  <h2>Tier Status</h2>
-  <section class="tier-card">
-    <strong>${creator.tierStatus || "Tier status not available"}</strong>
-    <span>${creator.sourceStatus ? `Current status: ${creator.sourceStatus}. ` : ""}Keep using the weekly targets to protect or improve tier position.</span>
-  </section>
-
   <h2>Weekly Live Breakdown</h2>
   <section class="week">
     ${weekRows
