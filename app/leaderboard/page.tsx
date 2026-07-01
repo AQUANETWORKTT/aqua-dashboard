@@ -778,33 +778,89 @@ export default function LeaderboardPage() {
           }
 
           .row {
-            grid-template-columns: 1fr;
-            padding: 96px 12px 12px;
+            min-height: 0;
+            grid-template-columns: 42px 88px minmax(0, 1fr);
+            grid-template-areas:
+              "rank avatar info"
+              "metrics metrics metrics";
+            gap: 12px;
+            align-items: center;
+            padding: 12px;
+            border-radius: 22px;
+            background:
+              radial-gradient(circle at 0% 0%, rgba(45, 224, 255, 0.16), transparent 42%),
+              linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent 34%),
+              rgba(8, 18, 35, 0.88);
           }
 
           .avatarFade {
-            width: 100%;
-            height: 118px;
-            mask-image: linear-gradient(180deg, #000 0%, #000 48%, transparent 100%);
-            -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 48%, transparent 100%);
+            position: relative;
+            inset: auto;
+            grid-area: avatar;
+            width: 88px;
+            height: 88px;
+            opacity: 1;
+            border-radius: 18px;
+            overflow: hidden;
+            mask-image: none;
+            -webkit-mask-image: none;
+            box-shadow:
+              0 0 0 2px rgba(124, 246, 255, 0.36),
+              0 12px 22px rgba(0, 0, 0, 0.34);
           }
 
           .avatarFade :global(.avatar) {
-            width: 100%;
-            height: 118px;
-            border-radius: 22px 22px 0 0;
+            width: 88px;
+            height: 88px;
+            border-radius: 18px;
+            object-fit: cover;
           }
 
           .rankPlate {
-            width: fit-content;
-            height: auto;
-            padding: 8px 12px;
+            grid-area: rank;
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            font-size: 17px;
+            border-radius: 50%;
+          }
+
+          .info {
+            grid-area: info;
+          }
+
+          .username {
+            font-size: clamp(19px, 6vw, 25px);
+            line-height: 1.04;
+          }
+
+          .row :global(.badgeWrap) {
+            gap: 5px;
+            margin-top: 7px;
+          }
+
+          .row :global(.badge) {
+            max-width: 100%;
+            padding: 5px 7px;
+            font-size: 8px;
+            white-space: normal;
+            text-align: center;
           }
 
           :global(.metrics),
           :global(.podiumMetrics) {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             transform: none;
+          }
+
+          :global(.metrics) {
+            grid-area: metrics;
+            width: 100%;
+            min-width: 0;
+            gap: 8px;
+            border: 0;
+            overflow: visible;
+            background: transparent;
           }
 
           :global(.metricBox > *) {
@@ -812,7 +868,29 @@ export default function LeaderboardPage() {
           }
 
           :global(.metricBox) {
-            text-align: left;
+            min-height: 72px;
+            border: 1px solid rgba(124, 246, 255, 0.16);
+            border-radius: 15px;
+            text-align: center;
+            background:
+              linear-gradient(145deg, rgba(45, 224, 255, 0.1), rgba(0, 0, 0, 0.22)),
+              rgba(0, 0, 0, 0.24);
+          }
+
+          :global(.metricBox):first-child {
+            border-left: 1px solid rgba(124, 246, 255, 0.16);
+          }
+
+          :global(.metricValue) {
+            font-size: 15px;
+          }
+
+          :global(.metricValue.small) {
+            font-size: 15px;
+          }
+
+          :global(.metricLabel) {
+            font-size: 9px;
           }
         }
       `}</style>

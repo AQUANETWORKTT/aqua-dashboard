@@ -660,6 +660,9 @@ export default function RaceToAtlantisPage() {
                         <h3>{creator.username}</h3>
                         <div className="creator-title-meta">
                           {isYourLeaderboardCard ? <span className="your-track-badge">Your Track</span> : null}
+                          <span className="target-count-badge">
+                            {creator.completed}/{activeTrack.requirements.length} targets
+                          </span>
                           <span>{Math.round(creator.progress * 100)}% complete</span>
                         </div>
                       </div>
@@ -1232,6 +1235,10 @@ export default function RaceToAtlantisPage() {
           background: rgba(1, 6, 14, 0.72);
         }
 
+        .creator-main {
+          min-width: 0;
+        }
+
         .race-row.leaderboard-personal-card {
           border-color: color-mix(in srgb, var(--creator-track, var(--track)) 68%, transparent);
           background:
@@ -1550,7 +1557,6 @@ export default function RaceToAtlantisPage() {
         @media (max-width: 560px) {
           .track-tabs,
           .requirement-strip,
-          .mini-stats,
           .personal-stats {
             grid-template-columns: 1fr;
           }
@@ -1567,6 +1573,186 @@ export default function RaceToAtlantisPage() {
           .winner-callout {
             align-items: flex-start;
             flex-direction: column;
+          }
+        }
+
+        @media (max-width: 680px) {
+          .race-page {
+            padding-inline: 10px;
+          }
+
+          .track-shell {
+            padding: 14px;
+            border-radius: 20px;
+          }
+
+          .race-list {
+            gap: 12px;
+          }
+
+          .race-row {
+            grid-template-columns: 82px minmax(0, 1fr);
+            grid-template-areas:
+              "avatar title"
+              "progress progress"
+              "stats stats"
+              "finish finish";
+            gap: 12px;
+            align-items: center;
+            padding: 14px;
+            border-radius: 22px;
+            background:
+              radial-gradient(circle at 0% 0%, var(--creator-track-glow, var(--track-glow)), transparent 34%),
+              linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(0, 0, 0, 0.24)),
+              rgba(1, 6, 14, 0.84);
+          }
+
+          .race-row.leaderboard-personal-card {
+            background:
+              radial-gradient(circle at 0% 0%, var(--creator-track-glow, var(--track-glow)), transparent 42%),
+              linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(0, 0, 0, 0.26)),
+              rgba(1, 6, 14, 0.88);
+          }
+
+          .rank-box {
+            grid-area: avatar;
+            z-index: 2;
+            align-self: end;
+            justify-self: end;
+            min-width: 42px;
+            margin: 0 -3px -3px 0;
+            padding: 6px 8px;
+            border: 2px solid var(--creator-track, var(--track));
+            border-radius: 12px;
+            background: rgba(1, 6, 14, 0.9);
+            color: var(--creator-track, var(--track));
+            font-size: 15px;
+            line-height: 1;
+            box-shadow: 0 0 14px var(--creator-track-glow, var(--track-glow));
+          }
+
+          .race-row :global(.race-avatar) {
+            grid-area: avatar;
+            align-self: start;
+            justify-self: start;
+            width: 78px;
+            height: 78px;
+            border-width: 5px;
+            border-radius: 18px;
+          }
+
+          .race-row :global(.race-avatar.fallback-logo-avatar) {
+            padding: 10px;
+          }
+
+          .creator-main {
+            display: contents;
+          }
+
+          .creator-title-row {
+            grid-area: title;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 7px;
+            min-width: 0;
+          }
+
+          h3 {
+            font-size: clamp(21px, 7vw, 30px);
+            line-height: 1;
+          }
+
+          .creator-title-meta {
+            width: 100%;
+            justify-content: space-between;
+            gap: 8px;
+          }
+
+          .creator-title-row span:not(.your-track-badge) {
+            padding: 6px 9px;
+            border: 1px solid color-mix(in srgb, var(--creator-track, var(--track)) 54%, transparent);
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.28);
+            font-size: 12px;
+          }
+
+          .progress-rail {
+            grid-area: progress;
+            height: 15px;
+            margin: 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow:
+              inset 0 0 10px rgba(0, 0, 0, 0.55),
+              0 0 14px var(--creator-track-glow, var(--track-glow));
+          }
+
+          .progress-fill {
+            background: linear-gradient(90deg, var(--creator-track, var(--track)), #ffffff);
+          }
+
+          .mini-stats {
+            grid-area: stats;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+          }
+
+          .mini-stat {
+            min-height: 118px;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 10px;
+            border-radius: 16px;
+          }
+
+          .stat-ring {
+            flex: 0 0 42px;
+            width: 42px;
+            height: 42px;
+            font-size: 11px;
+          }
+
+          .stat-copy em {
+            white-space: normal;
+          }
+
+          .stat-copy strong {
+            font-size: 18px;
+          }
+
+          .stat-copy small {
+            color: var(--creator-track, var(--track));
+            font-size: 9px;
+          }
+
+          .finish-box {
+            grid-area: finish;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            align-items: baseline;
+            padding: 12px;
+            border: 1px solid color-mix(in srgb, var(--creator-track, var(--track)) 54%, transparent);
+            border-radius: 16px;
+            background:
+              linear-gradient(135deg, var(--creator-track-glow, var(--track-glow)), rgba(0, 0, 0, 0.16)),
+              rgba(0, 0, 0, 0.3);
+          }
+
+          .finish-box strong {
+            color: var(--creator-track, var(--track));
+            font-size: 32px;
+            line-height: 1;
+          }
+
+          .finish-box span {
+            color: rgba(239, 252, 255, 0.72);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
           }
         }
       `}</style>
