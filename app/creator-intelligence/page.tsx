@@ -193,6 +193,7 @@ const MONTHS = [
 
 const GRADUATION_TARGET = 200000;
 const MINIMUM_TRACKER_DIAMONDS = 1000;
+const MANUAL_FOCUS_STORAGE_KEY = "creator-intelligence-manual-focus";
 const CHART_METRICS: {
   key: ChartMetricKey;
   label: string;
@@ -571,6 +572,40 @@ function getLastSevenMatches(creator: CreatorSummary) {
 function getLastSevenDph(creator: CreatorSummary) {
   const hours = getLastSevenHours(creator);
   return hours > 0 ? getLastSevenDiamonds(creator) / hours : 0;
+}
+
+function addDays(dateValue: string, offset: number) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  date.setDate(date.getDate() + offset);
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function formatShortDate(dateValue: string) {
+  const [, monthValue, dayValue] = dateValue.split("-");
+  return `${dayValue}/${monthValue}`;
+}
+
+function getFocusDailyStatus(creator: CreatorSummary, latestDate: string) {
+  const endDate = latestDate || creator.latestDate;
+  const pointsByDate = new Map(creator.dailyPoints.map((point) => [point.date, point]));
+
+  return [-2, -1, 0].map((offset) => {
+    const date = addDays(endDate, offset);
+    const point = pointsByDate.get(date);
+    const liveHours = point?.liveHours ?? 0;
+    const missed = !point || liveHours < 1;
+
+    return {
+      date,
+      liveHours,
+      missed,
+      label: !point ? "Missed" : liveHours < 1 ? "Under 1h" : "On",
+    };
+  });
 }
 
 function getHealthStatus(score: number, diamonds = 0): HealthStatus {
@@ -2384,6 +2419,17 @@ export default function CreatorIntelligencePage() {
   const [rows, setRows] = useState<CreatorStat[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCreatorKey, setSelectedCreatorKey] = useState("");
+  const [manualFocusCreatorKeys, setManualFocusCreatorKeys] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+
+    try {
+      const savedKeys = window.localStorage.getItem(MANUAL_FOCUS_STORAGE_KEY);
+      const parsedKeys = savedKeys ? JSON.parse(savedKeys) : [];
+      return Array.isArray(parsedKeys) ? parsedKeys.filter((key) => typeof key === "string") : [];
+    } catch {
+      return [];
+    }
+  });
   const [expandedManager, setExpandedManager] = useState("");
   const [floatingProfileOpen, setFloatingProfileOpen] = useState(false);
   const [profileRange, setProfileRange] = useState<"week" | "month">("week");
@@ -2398,6 +2444,10 @@ export default function CreatorIntelligencePage() {
     () => Array.from({ length: lastDay }, (_, index) => index + 1),
     [lastDay]
   );
+
+  useEffect(() => {
+    window.localStorage.setItem(MANUAL_FOCUS_STORAGE_KEY, JSON.stringify(manualFocusCreatorKeys));
+  }, [manualFocusCreatorKeys]);
 
   useEffect(() => {
     async function fetchRows(table: "creator_daily_stats" | "aqua_daily_stats", startDate: string, endDate: string) {
@@ -2713,6 +2763,21 @@ export default function CreatorIntelligencePage() {
     [matureFilteredCreators]
   );
 
+  const manualFocusCreators = useMemo(
+    () =>
+      manualFocusCreatorKeys
+        .map((key) => aquaSummaries.find((creator) => creator.key === key))
+        .filter(Boolean) as CreatorSummary[],
+    [aquaSummaries, manualFocusCreatorKeys]
+  );
+  const manualFocusAlertCount = useMemo(
+    () =>
+      manualFocusCreators.filter((creator) =>
+        getFocusDailyStatus(creator, latestAquaDate || creator.latestDate).some((day) => day.missed)
+      ).length,
+    [latestAquaDate, manualFocusCreators]
+  );
+
   const lowQualityCreators = useMemo(
     () =>
       matureFilteredCreators
@@ -3019,6 +3084,24 @@ export default function CreatorIntelligencePage() {
     selectedProfileStats && selectedCreator
       ? buildProfileInsights(selectedProfileStats, selectedProfilePoints, profileRange)
       : [];
+  const selectedCreatorIsFocused = selectedCreator
+    ? manualFocusCreatorKeys.includes(selectedCreator.key)
+    : false;
+
+  function selectCreator(creatorKey: string) {
+    setSelectedCreatorKey(creatorKey);
+    setFloatingProfileOpen(true);
+  }
+
+  function addCreatorToFocus(creatorKey: string) {
+    setManualFocusCreatorKeys((currentKeys) =>
+      currentKeys.includes(creatorKey) ? currentKeys : [...currentKeys, creatorKey]
+    );
+  }
+
+  function removeCreatorFromFocus(creatorKey: string) {
+    setManualFocusCreatorKeys((currentKeys) => currentKeys.filter((key) => key !== creatorKey));
+  }
 
   function copyWhatsAppText(title: string, lines: string[]) {
     const text = [title, ...lines].join("\n\n");
@@ -3536,10 +3619,7 @@ export default function CreatorIntelligencePage() {
                         <button
                           key={`manager-team-${managerSummary.manager}-${creator.key}`}
                           type="button"
-                          onClick={() => {
-                            setSelectedCreatorKey(creator.key);
-                            setFloatingProfileOpen(true);
-                          }}
+                          onClick={() => selectCreator(creator.key)}
                           className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-left hover:border-sky-200 hover:bg-sky-50"
                         >
                           <span>
@@ -3627,6 +3707,114 @@ export default function CreatorIntelligencePage() {
         </section>
 
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-3xl font-black uppercase text-sky-900">Focus</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Creators you manually add from the floating profile. Red means they missed the day or went live for less than one hour.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-black text-slate-700">
+                {formatNumber(manualFocusCreators.length)} focused
+              </span>
+              <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-black text-red-700">
+                {formatNumber(manualFocusAlertCount)} need check
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-auto rounded-2xl border border-slate-200">
+            <table className="w-full min-w-[820px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="p-3">Creator</th>
+                  <th className="p-3">Manager</th>
+                  <th className="p-3">Last 3 Days</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {manualFocusCreators.map((creator) => {
+                  const focusDays = getFocusDailyStatus(creator, latestAquaDate || creator.latestDate);
+                  const needsCheck = focusDays.some((day) => day.missed);
+
+                  return (
+                    <tr
+                      key={`manual-focus-${creator.key}`}
+                      className={`border-t border-slate-100 ${needsCheck ? "bg-red-50/60" : "bg-white"}`}
+                    >
+                      <td className="p-3">
+                        <button
+                          type="button"
+                          onClick={() => selectCreator(creator.key)}
+                          className="text-left font-black text-slate-950 hover:text-sky-700"
+                        >
+                          {creator.username}
+                        </button>
+                        <p className="mt-1 text-xs text-slate-500">{getCreatorMetaLine(creator)}</p>
+                      </td>
+                      <td className="p-3 text-slate-600">{creator.managerLabel}</td>
+                      <td className="p-3">
+                        <div className="flex gap-2">
+                          {focusDays.map((day) => (
+                            <div
+                              key={`${creator.key}-${day.date}`}
+                              className={`min-w-24 rounded-xl border px-3 py-2 ${
+                                day.missed
+                                  ? "border-red-200 bg-red-100 text-red-800"
+                                  : "border-emerald-200 bg-emerald-50 text-emerald-800"
+                              }`}
+                            >
+                              <p className="text-[10px] font-black uppercase">{formatShortDate(day.date)}</p>
+                              <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/70">
+                                <div
+                                  className={day.missed ? "h-full bg-red-500" : "h-full bg-emerald-500"}
+                                  style={{ width: `${Math.min((day.liveHours / 3) * 100, 100)}%` }}
+                                />
+                              </div>
+                              <p className="mt-1 text-xs font-black">{formatHours(day.liveHours)}h</p>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-black ${
+                            needsCheck
+                              ? "border-red-200 bg-red-100 text-red-700"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          }`}
+                        >
+                          {needsCheck ? "Check in" : "On track"}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <button
+                          type="button"
+                          onClick={() => removeCreatorFromFocus(creator.key)}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                        >
+                          Remove Focus
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {!manualFocusCreators.length ? (
+                  <tr>
+                    <td className="p-4 text-slate-500" colSpan={5}>
+                      No creators added yet. Open any creator profile and choose Add Creator To Focus.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-3xl font-black uppercase text-sky-900">Manager Focus Queue</h2>
@@ -3645,7 +3833,7 @@ export default function CreatorIntelligencePage() {
                 <button
                   key={`focus-${creator.key}`}
                   type="button"
-                  onClick={() => setSelectedCreatorKey(creator.key)}
+                  onClick={() => selectCreator(creator.key)}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-left hover:border-sky-300 hover:bg-sky-50"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -3863,7 +4051,7 @@ export default function CreatorIntelligencePage() {
                   <button
                     key={`improving-${item.creator.key}`}
                     type="button"
-                    onClick={() => setSelectedCreatorKey(item.creator.key)}
+                    onClick={() => selectCreator(item.creator.key)}
                     className="w-full rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 text-left hover:border-emerald-200 hover:bg-emerald-50"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -3898,7 +4086,7 @@ export default function CreatorIntelligencePage() {
                   <button
                     key={`stable-${item.creator.key}`}
                     type="button"
-                    onClick={() => setSelectedCreatorKey(item.creator.key)}
+                    onClick={() => selectCreator(item.creator.key)}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-left hover:border-sky-200 hover:bg-sky-50"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -3942,7 +4130,7 @@ export default function CreatorIntelligencePage() {
                   <button
                     key={`not-improving-${item.creator.key}`}
                     type="button"
-                    onClick={() => setSelectedCreatorKey(item.creator.key)}
+                    onClick={() => selectCreator(item.creator.key)}
                     className="w-full rounded-xl border border-red-100 bg-red-50/60 p-3 text-left hover:border-red-200 hover:bg-red-50"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -3991,7 +4179,7 @@ export default function CreatorIntelligencePage() {
                 <button
                   key={`low-quality-${creator.key}`}
                   type="button"
-                  onClick={() => setSelectedCreatorKey(creator.key)}
+                  onClick={() => selectCreator(creator.key)}
                   className="rounded-xl border border-red-100 bg-red-50/60 p-3 text-left hover:border-red-200 hover:bg-red-50"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -4077,7 +4265,7 @@ export default function CreatorIntelligencePage() {
                             <button
                               key={creator.key}
                               type="button"
-                              onClick={() => setSelectedCreatorKey(creator.key)}
+                              onClick={() => selectCreator(creator.key)}
                             className={`rounded-xl border p-4 text-left transition hover:border-sky-300 hover:bg-sky-50 ${
                                 selected
                                   ? "border-sky-400 bg-sky-50"
@@ -4247,7 +4435,7 @@ export default function CreatorIntelligencePage() {
                     <button
                       key={`inactive-new-${creator.key}`}
                       type="button"
-                      onClick={() => setSelectedCreatorKey(creator.key)}
+                      onClick={() => selectCreator(creator.key)}
                       className="flex items-center justify-between rounded-xl border border-red-100 bg-white px-3 py-2 text-left hover:border-red-200"
                     >
                       <span className="font-bold text-red-900">{creator.username}</span>
@@ -4264,7 +4452,7 @@ export default function CreatorIntelligencePage() {
                 <button
                   key={`new-${creator.key}`}
                   type="button"
-                  onClick={() => setSelectedCreatorKey(creator.key)}
+                  onClick={() => selectCreator(creator.key)}
                   className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left hover:border-sky-300 hover:bg-sky-50"
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -4359,6 +4547,21 @@ export default function CreatorIntelligencePage() {
                   <MetricCard label="Last 7 DPH" value={formatNumber(getLastSevenDph(selectedCreator))} />
                 </div>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectedCreatorIsFocused
+                        ? removeCreatorFromFocus(selectedCreator.key)
+                        : addCreatorToFocus(selectedCreator.key)
+                    }
+                    className={`rounded-xl border px-4 py-3 text-sm font-black ${
+                      selectedCreatorIsFocused
+                        ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                    }`}
+                  >
+                    {selectedCreatorIsFocused ? "Remove Focus" : "Add Creator To Focus"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => downloadReport(selectedCreator, "creator")}
