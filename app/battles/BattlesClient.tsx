@@ -655,15 +655,37 @@ export default function BattlesClient({ user }: { user: string | null }) {
 
       <style jsx>{`
         .battlePage {
+          position: relative;
+          isolation: isolate;
           min-height: 100vh;
           padding: 24px 14px 128px;
-          background:
-            radial-gradient(circle at top, rgba(45, 224, 255, 0.18), transparent 34%),
-            linear-gradient(180deg, #020617, #030712 58%, #000);
+          background: #01040a;
           color: white;
           font-family: Arial, sans-serif;
           --display-font: Impact, Haettenschweiler, "Arial Black", sans-serif;
           --body-font: "Trebuchet MS", Verdana, sans-serif;
+          overflow: hidden;
+        }
+
+        .battlePage::before {
+          content: "";
+          position: fixed;
+          inset: -18px;
+          z-index: -2;
+          background: url("/race-to-atlantis/background.png") center top / cover no-repeat;
+          filter: blur(3px) saturate(1.08) brightness(0.76);
+          transform: scale(1.015);
+        }
+
+        .battlePage::after {
+          content: "";
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(56, 243, 255, 0.24), transparent 32%),
+            linear-gradient(180deg, rgba(1, 10, 22, 0.36) 0%, rgba(1, 4, 10, 0.78) 48%, rgba(1, 4, 10, 0.92) 100%);
+          pointer-events: none;
         }
 
         .centerPage {
@@ -684,7 +706,7 @@ export default function BattlesClient({ user }: { user: string | null }) {
           padding: 28px;
           border: 1px solid rgba(45, 224, 255, 0.24);
           border-radius: 18px;
-          background: rgba(8, 18, 35, 0.94);
+          background: rgba(8, 18, 35, 0.88);
         }
 
         h1,
@@ -763,7 +785,7 @@ export default function BattlesClient({ user }: { user: string | null }) {
           padding: 20px;
           background:
             radial-gradient(circle at 50% 0%, rgba(45, 224, 255, 0.24), transparent 40%),
-            linear-gradient(180deg, rgba(9, 24, 46, 0.98), rgba(4, 10, 24, 0.98));
+            linear-gradient(180deg, rgba(9, 24, 46, 0.9), rgba(4, 10, 24, 0.9));
         }
 
         .requestPanel::before {
@@ -923,7 +945,7 @@ export default function BattlesClient({ user }: { user: string | null }) {
           background:
             linear-gradient(120deg, rgba(45, 224, 255, 0.12), transparent 38%),
             linear-gradient(240deg, rgba(124, 246, 255, 0.12), transparent 38%),
-            rgba(8, 18, 35, 0.94);
+            rgba(8, 18, 35, 0.88);
         }
 
         .hiddenPoster {

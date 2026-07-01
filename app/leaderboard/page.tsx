@@ -83,6 +83,59 @@ function CreatorAvatar({ username }: { username: string }) {
   return <img src={src} alt={username} className="avatar" />;
 }
 
+function CreatorBadges({ usernameKey }: { usernameKey: string }) {
+  return (
+    <div className="badgeWrap">
+      {usernameKey === "alfie.harnett" && <span className="badge yellow animatedBadge">Aqua Ascension Winner</span>}
+      {usernameKey === "dylanjinks" && <span className="badge blue animatedBadge">2x Box Battle Winner</span>}
+      {usernameKey === "mavismim" && <span className="badge purple animatedBadge">February Finale Winner</span>}
+      {usernameKey === "xomarky" && (
+        <>
+          <span className="badge cyan animatedBadge">Deep Dive Winner</span>
+          <span className="badge green animatedBadge">Aqua Trials Winner</span>
+          <span className="badge pink animatedBadge">Box Battle Winner</span>
+        </>
+      )}
+      {usernameKey === "lucylou449" && (
+        <>
+          <span className="badge pink animatedBadge">Box Battle Winner</span>
+          <span className="badge roseGold animatedBadge">Affluent April Tournament Winner</span>
+        </>
+      )}
+      {usernameKey === "elliex035" && (
+        <>
+          <span className="badge pink animatedBadge">Beat The Boss Champion</span>
+          <span className="badge blue animatedBadge">World Cup Campaign Winner - Team England</span>
+        </>
+      )}
+      {usernameKey === "libbyamberxoxo" && <span className="badge blue animatedBadge">World Cup Campaign Winner - Team England</span>}
+      {usernameKey === "adam_gym234" && <span className="badge blue animatedBadge">World Cup Campaign Winner - Team England</span>}
+      {usernameKey === "j.wliveacc" && <span className="badge blue animatedBadge">World Cup Campaign Winner - Team England</span>}
+      {usernameKey === "callum.072" && <span className="badge cyan animatedBadge">May Aqua Hours Winner</span>}
+      {usernameKey === "corie.watkins" && <span className="badge sunset animatedBadge">Sunset Showdown Champion</span>}
+    </div>
+  );
+}
+
+function MetricSet({ creator, podium = false }: { creator: CreatorMonthlyStat; podium?: boolean }) {
+  return (
+    <div className={podium ? "podiumMetrics" : "metrics"}>
+      <div className={podium ? "" : "metricBox primaryMetric"}>
+        <strong className="metricValue">{Number(creator.diamonds || 0).toLocaleString()}</strong>
+        <span className="metricLabel">Monthly</span>
+      </div>
+      <div className={podium ? "" : "metricBox"}>
+        <strong className="metricValue small">{Number(creator.live_duration_hours || 0).toFixed(1)}h</strong>
+        <span className="metricLabel">Hours</span>
+      </div>
+      <div className={podium ? "" : "metricBox"}>
+        <strong className="metricValue small">{Number(creator.matches || 0).toLocaleString()}</strong>
+        <span className="metricLabel">Matches</span>
+      </div>
+    </div>
+  );
+}
+
 export default function LeaderboardPage() {
   const [creators, setCreators] = useState<CreatorMonthlyStat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,183 +173,98 @@ export default function LeaderboardPage() {
     loadCreators();
   }, []);
 
+  const podiumCreators = [creators[1], creators[0], creators[2]].filter(Boolean) as CreatorMonthlyStat[];
+  const remainingCreators = creators.slice(3);
+
   return (
     <main className="page">
       <section className="hero">
         <div className="kicker">AQUA CREATOR NETWORK</div>
         <h1 className="title">CREATOR LEADERBOARD</h1>
-        <p className="subtitle">
-          Monthly performance rankings across the Aqua creator roster.
-        </p>
+        <p className="subtitle">Monthly performance rankings across the Aqua creator roster.</p>
       </section>
 
       {loading ? (
         <div className="loading">Loading leaderboard...</div>
       ) : (
-        <section className="list">
-          {creators.map((creator, index) => {
-            const rank = index + 1;
-            const username = cleanUsername(creator.username);
-            const usernameKey = normalizeUsername(username);
+        <>
+          <section className="podium" aria-label="Top three creators">
+            {podiumCreators.map((creator) => {
+              const realIndex = creators.findIndex((item) => item.creator_id === creator.creator_id);
+              const rank = realIndex + 1;
+              const username = cleanUsername(creator.username);
+              const usernameKey = normalizeUsername(username);
+              const tone = rank === 1 ? "gold" : rank === 2 ? "silver" : "bronze";
 
-            return (
-              <div
-                key={creator.creator_id}
-                className={`row ${
-                  rank === 1
-                    ? "rankOne"
-                    : rank === 2
-                    ? "rankTwo"
-                    : rank === 3
-                    ? "rankThree"
-                    : ""
-                }`}
-              >
-                <div className="mainInfo">
-                  <div
-                    className={`rank ${
-                      rank === 1
-                        ? "gold"
-                        : rank === 2
-                        ? "silver"
-                        : rank === 3
-                        ? "bronze"
-                        : ""
-                    }`}
-                  >
-                    #{rank}
+              return (
+                <article key={creator.creator_id} className={`podiumCard ${tone}Podium rank${rank}`}>
+                  <div className="podiumRank">#{rank}</div>
+                  <div className="podiumAvatar">
+                    <CreatorAvatar username={username} />
                   </div>
+                  <div className="podiumName">{username}</div>
+                  <CreatorBadges usernameKey={usernameKey} />
+                  <MetricSet creator={creator} podium />
+                </article>
+              );
+            })}
+          </section>
 
-                  <CreatorAvatar username={username} />
+          <section className="list">
+            {remainingCreators.map((creator, index) => {
+              const rank = index + 4;
+              const username = cleanUsername(creator.username);
+              const usernameKey = normalizeUsername(username);
 
+              return (
+                <article key={creator.creator_id} className="row">
+                  <div className="avatarFade">
+                    <CreatorAvatar username={username} />
+                  </div>
+                  <div className="rankPlate">#{rank}</div>
                   <div className="info">
                     <div className="username">{username}</div>
-
-                    <div className="badgeWrap">
-                      {usernameKey === "alfie.harnett" && (
-                        <span className="badge yellow animatedBadge">
-                          Aqua Ascension Winner
-                        </span>
-                      )}
-
-                      {usernameKey === "dylanjinks" && (
-                        <span className="badge blue animatedBadge">
-                          2x Box Battle Winner
-                        </span>
-                      )}
-
-                      {usernameKey === "mavismim" && (
-                        <span className="badge purple animatedBadge">
-                          February Finale Winner
-                        </span>
-                      )}
-
-                      {usernameKey === "xomarky" && (
-                        <>
-                          <span className="badge cyan animatedBadge">
-                            Deep Dive Winner
-                          </span>
-                          <span className="badge green animatedBadge">
-                            Aqua Trials Winner
-                          </span>
-                          <span className="badge pink animatedBadge">
-                            Box Battle Winner
-                          </span>
-                        </>
-                      )}
-
-                      {usernameKey === "lucylou449" && (
-                        <>
-                          <span className="badge pink animatedBadge">
-                            Box Battle Winner
-                          </span>
-                          <span className="badge roseGold animatedBadge">
-                            Affluent April 128 👤 Tournament Winner
-                          </span>
-                        </>
-                      )}
-
-                      {usernameKey === "elliex035" && (
-                        <>
-                          <span className="badge pink animatedBadge">
-                            Beat The Boss Champion
-                          </span>
-                          <span className="badge blue animatedBadge">
-                            World Cup Campaign Winner - Team England
-                          </span>
-                        </>
-                      )}
-
-                      {usernameKey === "libbyamberxoxo" && (
-                        <span className="badge blue animatedBadge">
-                          World Cup Campaign Winner - Team England
-                        </span>
-                      )}
-
-                      {usernameKey === "adam_gym234" && (
-                        <span className="badge blue animatedBadge">
-                          World Cup Campaign Winner - Team England
-                        </span>
-                      )}
-
-                      {usernameKey === "j.wliveacc" && (
-                        <span className="badge blue animatedBadge">
-                          World Cup Campaign Winner - Team England
-                        </span>
-                      )}
-
-                      {usernameKey === "callum.072" && (
-                        <span className="badge cyan animatedBadge">
-                          May Aqua Hours Winner
-                        </span>
-                      )}
-
-                      {usernameKey === "corie.watkins" && (
-                        <span className="badge sunset animatedBadge">
-                          Sunset Showdown Champion
-                        </span>
-                      )}
-                    </div>
+                    <CreatorBadges usernameKey={usernameKey} />
                   </div>
-                </div>
-
-                <div className="metrics">
-                  <div className="metricBox">
-                    <div className="metricValue">
-                      {Number(creator.diamonds || 0).toLocaleString()}
-                    </div>
-                    <div className="metricLabel">Monthly</div>
-                  </div>
-
-                  <div className="metricBox">
-                    <div className="metricValue small">
-                      {Number(creator.live_duration_hours || 0).toFixed(1)}h
-                    </div>
-                    <div className="metricLabel">Hours</div>
-                  </div>
-
-                  <div className="metricBox">
-                    <div className="metricValue small">
-                      {Number(creator.matches || 0).toLocaleString()}
-                    </div>
-                    <div className="metricLabel">Matches</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </section>
+                  <MetricSet creator={creator} />
+                </article>
+              );
+            })}
+          </section>
+        </>
       )}
 
       <style jsx>{`
         .page {
+          position: relative;
+          isolation: isolate;
           min-height: 100vh;
-          padding: 24px 12px 60px;
-          background:
-            radial-gradient(circle at top, rgba(0, 180, 255, 0.16), transparent 34%),
-            linear-gradient(180deg, #020617 0%, #030712 55%, #000 100%);
+          padding: 24px 12px 72px;
+          background: #01040a;
           color: white;
           font-family: Arial, sans-serif;
+          overflow: hidden;
+        }
+
+        .page::before {
+          content: "";
+          position: fixed;
+          inset: -18px;
+          z-index: -2;
+          background: url("/race-to-atlantis/background.png") center top / cover no-repeat;
+          filter: blur(3px) saturate(1.08) brightness(0.76);
+          transform: scale(1.015);
+        }
+
+        .page::after {
+          content: "";
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          background:
+            radial-gradient(circle at 50% 0%, rgba(56, 243, 255, 0.24), transparent 32%),
+            linear-gradient(180deg, rgba(1, 10, 22, 0.36) 0%, rgba(1, 4, 10, 0.78) 48%, rgba(1, 4, 10, 0.92) 100%);
+          pointer-events: none;
         }
 
         .hero {
@@ -324,102 +292,373 @@ export default function LeaderboardPage() {
         .loading {
           margin-top: 12px;
           text-align: center;
-          color: rgba(255, 255, 255, 0.65);
+          color: rgba(255, 255, 255, 0.68);
           font-size: 14px;
+        }
+
+        .podium {
+          display: grid;
+          grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.12fr) minmax(0, 0.92fr);
+          align-items: end;
+          gap: 14px;
+          max-width: 1120px;
+          margin: 0 auto 18px;
+        }
+
+        .podiumCard {
+          position: relative;
+          min-height: 310px;
+          display: grid;
+          justify-items: center;
+          align-content: start;
+          gap: 10px;
+          padding: 18px 14px 16px;
+          border: 1px solid rgba(124, 246, 255, 0.22);
+          border-radius: 26px;
+          background:
+            linear-gradient(145deg, rgba(255, 255, 255, 0.07), transparent 38%),
+            linear-gradient(180deg, rgba(9, 24, 46, 0.86), rgba(2, 8, 18, 0.9)),
+            rgba(8, 18, 35, 0.78);
+          overflow: hidden;
+          box-shadow:
+            inset 0 0 32px rgba(255, 255, 255, 0.045),
+            0 18px 34px rgba(0, 0, 0, 0.34);
+        }
+
+        .podiumCard::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          opacity: 0.28;
+          background: radial-gradient(circle at 50% 0%, var(--podium), transparent 42%);
+          pointer-events: none;
+        }
+
+        .rank1 {
+          min-height: 362px;
+          --podium: rgba(255, 216, 77, 0.72);
+        }
+
+        .rank2 {
+          min-height: 320px;
+          --podium: rgba(226, 232, 240, 0.62);
+        }
+
+        .rank3 {
+          min-height: 300px;
+          --podium: rgba(196, 122, 60, 0.62);
+        }
+
+        .goldPodium {
+          border-color: rgba(255, 216, 77, 0.68);
+          box-shadow:
+            inset 0 0 32px rgba(255, 255, 255, 0.045),
+            0 0 0 1px rgba(255, 216, 77, 0.12),
+            0 18px 38px rgba(0, 0, 0, 0.38);
+        }
+
+        .silverPodium {
+          border-color: rgba(226, 232, 240, 0.58);
+        }
+
+        .bronzePodium {
+          border-color: rgba(196, 122, 60, 0.58);
+        }
+
+        .podiumRank {
+          position: relative;
+          z-index: 1;
+          color: var(--podium);
+          font-size: 30px;
+          font-weight: 950;
+          text-shadow: 0 0 18px currentColor;
+        }
+
+        .podiumAvatar {
+          position: relative;
+          z-index: 1;
+        }
+
+        .podiumAvatar :global(.avatar) {
+          width: 112px;
+          height: 112px;
+          border-radius: 28px;
+          border: 3px solid color-mix(in srgb, var(--podium) 70%, white 10%);
+          box-shadow: 0 14px 30px rgba(0, 0, 0, 0.38);
+        }
+
+        .rank1 .podiumAvatar :global(.avatar) {
+          width: 134px;
+          height: 134px;
+        }
+
+        .podiumName,
+        .username {
+          position: relative;
+          z-index: 1;
+          color: #ffffff;
+          font-weight: 950;
+          text-transform: uppercase;
+          overflow-wrap: anywhere;
+          text-shadow:
+            0 2px 0 rgba(0, 0, 0, 0.5),
+            0 0 18px rgba(45, 224, 255, 0.38);
+        }
+
+        .podiumName {
+          font-size: clamp(18px, 2.6vw, 30px);
+          text-align: center;
+          line-height: 1.02;
+        }
+
+        :global(.podiumMetrics) {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+          width: 100%;
+          margin-top: auto;
+        }
+
+        :global(.podiumMetrics div),
+        :global(.metricBox) {
+          position: relative;
+          min-width: 0;
+          padding: 10px 11px;
+          background: rgba(0, 0, 0, 0.28);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          overflow: hidden;
+        }
+
+        :global(.podiumMetrics div) {
+          border-radius: 14px;
+          text-align: center;
         }
 
         .list {
           display: grid;
           gap: 12px;
-          max-width: 1100px;
+          max-width: 1120px;
           margin: 0 auto;
         }
 
         .row {
           position: relative;
+          min-height: 112px;
           display: grid;
-          grid-template-columns: 1fr auto;
-          gap: 16px;
+          grid-template-columns: 82px minmax(0, 1fr) minmax(330px, auto);
+          gap: 14px;
           align-items: center;
-          padding: 14px;
-          border-radius: 22px;
-          background: rgba(8, 18, 35, 0.95);
+          padding: 12px 12px 12px 114px;
           border: 1px solid rgba(45, 224, 255, 0.18);
+          border-radius: 22px;
+          background:
+            linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent 28%),
+            linear-gradient(100deg, rgba(45, 224, 255, 0.12), transparent 42%),
+            rgba(8, 18, 35, 0.84);
           overflow: hidden;
+          box-shadow:
+            inset 0 0 20px rgba(255, 255, 255, 0.026),
+            0 12px 26px rgba(0, 0, 0, 0.22);
         }
 
-        .rankOne {
-          border-color: rgba(255, 215, 106, 0.7);
-          animation: goldPulse 2.6s ease-in-out infinite;
-        }
-
-        .rankTwo {
-          border-color: rgba(219, 234, 254, 0.65);
-          animation: silverPulse 2.8s ease-in-out infinite;
-        }
-
-        .rankThree {
-          border-color: rgba(251, 146, 60, 0.65);
-          animation: bronzePulse 3s ease-in-out infinite;
-        }
-
-        .rankOne::before,
-        .rankTwo::before,
-        .rankThree::before {
-          content: "";
+        .avatarFade {
           position: absolute;
-          inset: -2px;
-          border-radius: 24px;
-          pointer-events: none;
-          opacity: 0.35;
-          background: linear-gradient(
-            120deg,
-            transparent,
-            rgba(124, 246, 255, 0.35),
-            transparent
-          );
-          animation: waterSweep 3.8s linear infinite;
+          inset: 0 auto 0 0;
+          width: 138px;
+          opacity: 0.92;
+          mask-image: linear-gradient(90deg, #000 0%, #000 46%, transparent 100%);
+          -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 46%, transparent 100%);
         }
 
-        .mainInfo {
+        .avatarFade :global(.avatar) {
+          width: 138px;
+          height: 100%;
+          border-radius: 22px 0 0 22px;
+          object-fit: cover;
+          border: 0;
+        }
+
+        .rankPlate {
           position: relative;
           z-index: 1;
-          display: flex;
-          align-items: center;
-          gap: 12px;
+          width: 62px;
+          height: 62px;
+          display: grid;
+          place-items: center;
+          border-radius: 16px;
+          color: #7cf6ff;
+          font-size: 18px;
+          font-weight: 950;
+          background: rgba(0, 0, 0, 0.42);
+          border: 1px solid rgba(124, 246, 255, 0.24);
+        }
+
+        .info {
+          position: relative;
+          z-index: 1;
           min-width: 0;
         }
 
-        .rank {
-          width: 54px;
-          height: 54px;
-          border-radius: 16px;
+        .username {
+          font-size: clamp(18px, 2.4vw, 26px);
+          line-height: 1;
+        }
+
+        :global(.badgeWrap) {
+          position: relative;
+          z-index: 1;
           display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          justify-content: center;
+          margin-top: 8px;
+        }
+
+        .row :global(.badgeWrap) {
+          justify-content: flex-start;
+        }
+
+        :global(.badge) {
+          position: relative;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 15px;
+          padding: 6px 9px;
+          border-radius: 9px;
+          font-size: 10px;
           font-weight: 900;
-          background: rgba(255, 255, 255, 0.04);
-          color: #cbd5e1;
-          flex-shrink: 0;
+          line-height: 1.15;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          overflow: hidden;
+          transform: skewX(-8deg);
+          text-shadow: none;
+          white-space: nowrap;
         }
 
-        .gold {
+        :global(.animatedBadge) {
+          animation: badgeLift 4.6s ease-in-out infinite;
+        }
+
+        :global(.animatedBadge)::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          transform: translateX(-120%) skewX(-18deg);
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+          animation: badgeSweep 5.4s ease-in-out infinite;
+        }
+
+        :global(.yellow) {
           color: #ffd76a;
-          box-shadow: 0 0 18px rgba(255, 215, 106, 0.35);
+          background: rgba(255, 215, 106, 0.1);
+          border-color: rgba(255, 215, 106, 0.38);
         }
 
-        .silver {
-          color: #dbeafe;
-          box-shadow: 0 0 18px rgba(219, 234, 254, 0.25);
+        :global(.blue) {
+          color: #60a5fa;
+          background: rgba(96, 165, 250, 0.1);
+          border-color: rgba(96, 165, 250, 0.38);
         }
 
-        .bronze {
-          color: #fb923c;
-          box-shadow: 0 0 18px rgba(251, 146, 60, 0.25);
+        :global(.purple) {
+          color: #c084fc;
+          background: rgba(192, 132, 252, 0.1);
+          border-color: rgba(192, 132, 252, 0.38);
+        }
+
+        :global(.cyan) {
+          color: #7cf6ff;
+          background: rgba(124, 246, 255, 0.1);
+          border-color: rgba(124, 246, 255, 0.38);
+        }
+
+        :global(.green) {
+          color: #4ade80;
+          background: rgba(74, 222, 128, 0.1);
+          border-color: rgba(74, 222, 128, 0.38);
+        }
+
+        :global(.pink) {
+          color: #fff;
+          background: rgba(255, 47, 168, 0.2);
+          border-color: rgba(255, 47, 168, 0.48);
+        }
+
+        :global(.roseGold) {
+          color: #ffd1ea;
+          background: rgba(255, 134, 196, 0.14);
+          border-color: rgba(255, 134, 196, 0.38);
+        }
+
+        :global(.sunset) {
+          color: #fff7ed;
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.28), rgba(249, 115, 22, 0.24));
+          border-color: rgba(251, 146, 60, 0.62);
+        }
+
+        :global(.metrics) {
+          position: relative;
+          z-index: 1;
+          display: grid;
+          grid-template-columns: 1.2fr 0.9fr 0.9fr;
+          gap: 0;
+          justify-self: end;
+          min-width: 330px;
+          border-radius: 18px;
+          overflow: hidden;
+          transform: skewX(-10deg);
+          border: 1px solid rgba(124, 246, 255, 0.18);
+        }
+
+        :global(.metricBox) {
+          border-radius: 0;
+          border: 0;
+          border-left: 1px solid rgba(255, 255, 255, 0.08);
+          text-align: right;
+          background: rgba(0, 0, 0, 0.32);
+        }
+
+        :global(.metricBox):first-child {
+          border-left: 0;
+        }
+
+        :global(.metricBox > *),
+        :global(.podiumMetrics div > *) {
+          display: block;
+        }
+
+        :global(.metricBox > *) {
+          transform: skewX(10deg);
+        }
+
+        :global(.primaryMetric) {
+          background: rgba(45, 224, 255, 0.12);
+        }
+
+        :global(.metricValue) {
+          color: #ffffff;
+          font-size: 18px;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        :global(.metricValue.small) {
+          color: #7cf6ff;
+          font-size: 16px;
+        }
+
+        :global(.metricLabel) {
+          margin-top: 5px;
+          color: rgba(255, 255, 255, 0.56);
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
         }
 
         :global(.avatar) {
+          display: block;
           width: 58px;
           height: 58px;
           border-radius: 16px;
@@ -429,276 +668,94 @@ export default function LeaderboardPage() {
           background: rgba(255, 255, 255, 0.05);
         }
 
-        .info {
-          min-width: 0;
-          flex: 1;
-        }
-
-        .username {
-          font-size: 18px;
-          font-weight: 900;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .badgeWrap {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-top: 6px;
-        }
-
-        .badge {
-          position: relative;
-          padding: 5px 8px;
-          border-radius: 999px;
-          font-size: 10px;
-          font-weight: 800;
-          line-height: 1.15;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          overflow: hidden;
-        }
-
-        .animatedBadge {
-          animation: badgePulse 2.4s ease-in-out infinite;
-        }
-
-        .animatedBadge::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          transform: translateX(-110%);
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.28),
-            transparent
-          );
-          animation: badgeShimmer 3.2s ease-in-out infinite;
-        }
-
-        .yellow {
-          color: #ffd76a;
-          background: rgba(255, 215, 106, 0.08);
-          border-color: rgba(255, 215, 106, 0.35);
-        }
-
-        .blue {
-          color: #60a5fa;
-          background: rgba(96, 165, 250, 0.08);
-          border-color: rgba(96, 165, 250, 0.35);
-        }
-
-        .purple {
-          color: #c084fc;
-          background: rgba(192, 132, 252, 0.08);
-          border-color: rgba(192, 132, 252, 0.35);
-        }
-
-        .cyan {
-          color: #7cf6ff;
-          background: rgba(124, 246, 255, 0.08);
-          border-color: rgba(124, 246, 255, 0.35);
-        }
-
-        .green {
-          color: #4ade80;
-          background: rgba(74, 222, 128, 0.08);
-          border-color: rgba(74, 222, 128, 0.35);
-        }
-
-        .pink {
-          color: #fff;
-          background: rgba(255, 47, 168, 0.18);
-          border-color: rgba(255, 47, 168, 0.45);
-          box-shadow: 0 0 14px rgba(255, 47, 168, 0.25);
-        }
-
-        .roseGold {
-          color: #ffd1ea;
-          background: rgba(255, 134, 196, 0.12);
-          border-color: rgba(255, 134, 196, 0.35);
-          box-shadow: 0 0 14px rgba(255, 134, 196, 0.18);
-        }
-
-        .sunset {
-          color: #fff7ed;
-          background: linear-gradient(
-            135deg,
-            rgba(239, 68, 68, 0.26),
-            rgba(249, 115, 22, 0.24)
-          );
-          border-color: rgba(251, 146, 60, 0.62);
-          box-shadow:
-            0 0 14px rgba(239, 68, 68, 0.32),
-            0 0 22px rgba(249, 115, 22, 0.24);
-        }
-
-        .metrics {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          gap: 10px;
-        }
-
-        .metricBox {
-          min-width: 105px;
-          padding: 10px 12px;
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.04);
-          text-align: right;
-        }
-
-        .metricValue {
-          font-size: 18px;
-          font-weight: 900;
-        }
-
-        .metricValue.small {
-          color: #7cf6ff;
-          font-size: 16px;
-        }
-
-        .metricLabel {
-          font-size: 10px;
-          color: rgba(255, 255, 255, 0.5);
-          margin-top: 4px;
-        }
-
-        @keyframes badgePulse {
+        @keyframes badgeLift {
           0%,
           100% {
+            transform: translateY(0) skewX(-8deg);
             filter: brightness(1);
-            box-shadow: 0 0 10px currentColor;
           }
           50% {
-            filter: brightness(1.22);
-            box-shadow: 0 0 18px currentColor;
+            transform: translateY(-2px) skewX(-8deg);
+            filter: brightness(1.18);
           }
         }
 
-        @keyframes badgeShimmer {
-          0% {
-            transform: translateX(-110%);
-          }
-          45% {
-            transform: translateX(120%);
-          }
-          100% {
-            transform: translateX(120%);
-          }
-        }
-
-        @keyframes waterSweep {
-          0% {
-            transform: translateX(-80%);
-          }
-          100% {
-            transform: translateX(80%);
-          }
-        }
-
-        @keyframes goldPulse {
+        @keyframes badgeSweep {
           0%,
-          100% {
-            box-shadow: 0 0 16px rgba(255, 215, 106, 0.22);
+          48% {
+            transform: translateX(-120%) skewX(-18deg);
           }
-          50% {
-            box-shadow: 0 0 30px rgba(255, 215, 106, 0.45);
+          70%,
+          100% {
+            transform: translateX(120%) skewX(-18deg);
           }
         }
 
-        @keyframes silverPulse {
-          0%,
-          100% {
-            box-shadow: 0 0 16px rgba(219, 234, 254, 0.18);
+        @media (max-width: 880px) {
+          .podium {
+            grid-template-columns: 1fr;
           }
-          50% {
-            box-shadow: 0 0 28px rgba(219, 234, 254, 0.36);
-          }
-        }
 
-        @keyframes bronzePulse {
-          0%,
-          100% {
-            box-shadow: 0 0 16px rgba(251, 146, 60, 0.18);
+          .podiumCard,
+          .rank1,
+          .rank2,
+          .rank3 {
+            min-height: 0;
           }
-          50% {
-            box-shadow: 0 0 28px rgba(251, 146, 60, 0.36);
-          }
-        }
 
-        @media (max-width: 700px) {
           .row {
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 12px;
-          }
-
-          .mainInfo {
-            display: grid;
-            grid-template-columns: 42px 50px 1fr;
-            gap: 10px;
-            align-items: start;
-          }
-
-          .rank {
-            width: 42px;
-            height: 42px;
-            font-size: 12px;
-            border-radius: 12px;
-          }
-
-          :global(.avatar) {
-            width: 50px;
-            height: 50px;
-            border-radius: 14px;
-          }
-
-          .username {
-            font-size: 14px;
-            white-space: normal;
-            line-height: 1.2;
-            word-break: break-word;
-          }
-
-          .badgeWrap {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 5px;
-          }
-
-          .badge {
-            font-size: 8px;
-            max-width: 100%;
+            grid-template-columns: 58px minmax(0, 1fr);
+            padding: 12px 12px 12px 92px;
           }
 
           .metrics {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
+            grid-column: 1 / -1;
             width: 100%;
-          }
-
-          .metricBox {
             min-width: 0;
+          }
+        }
+
+        @media (max-width: 560px) {
+          .page {
+            padding-inline: 10px;
+          }
+
+          .row {
+            grid-template-columns: 1fr;
+            padding: 96px 12px 12px;
+          }
+
+          .avatarFade {
             width: 100%;
+            height: 118px;
+            mask-image: linear-gradient(180deg, #000 0%, #000 48%, transparent 100%);
+            -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 48%, transparent 100%);
+          }
+
+          .avatarFade :global(.avatar) {
+            width: 100%;
+            height: 118px;
+            border-radius: 22px 22px 0 0;
+          }
+
+          .rankPlate {
+            width: fit-content;
+            height: auto;
+            padding: 8px 12px;
+          }
+
+          :global(.metrics),
+          :global(.podiumMetrics) {
+            grid-template-columns: 1fr;
+            transform: none;
+          }
+
+          :global(.metricBox > *) {
+            transform: none;
+          }
+
+          :global(.metricBox) {
             text-align: left;
-            padding: 10px;
-          }
-
-          .metricValue {
-            font-size: 15px;
-          }
-
-          .metricValue.small {
-            font-size: 14px;
-          }
-
-          .metricLabel {
-            font-size: 8px;
           }
         }
       `}</style>

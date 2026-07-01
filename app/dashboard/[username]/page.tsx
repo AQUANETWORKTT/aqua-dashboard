@@ -304,7 +304,7 @@ export default function CreatorDashboardPage() {
     minHeight: "100vh",
     padding: "26px 14px 70px",
     background:
-      "radial-gradient(circle at top, rgba(0,180,255,0.16), transparent 32%), linear-gradient(180deg, #020617 0%, #030712 55%, #000 100%)",
+      "radial-gradient(circle at 50% 0%, rgba(56,243,255,0.24), transparent 32%), linear-gradient(180deg, rgba(1,10,22,0.36) 0%, rgba(1,4,10,0.78) 48%, rgba(1,4,10,0.92) 100%), url('/race-to-atlantis/background.png') center top / cover fixed no-repeat",
     color: "#fff",
     fontFamily: "'Orbitron', 'Rajdhani', system-ui, sans-serif",
   };
@@ -320,7 +320,7 @@ export default function CreatorDashboardPage() {
   const card: React.CSSProperties = {
     borderRadius: 24,
     background:
-      "linear-gradient(180deg, rgba(7,17,31,0.92), rgba(3,7,18,0.96))",
+      "linear-gradient(180deg, rgba(7,17,31,0.86), rgba(3,7,18,0.9))",
     border: "1px solid rgba(45,224,255,0.22)",
     boxShadow:
       "inset 0 0 26px rgba(45,224,255,0.04), 0 0 28px rgba(0,180,255,0.10)",
