@@ -779,10 +779,10 @@ export default function LeaderboardPage() {
 
           .row {
             min-height: 0;
-            grid-template-columns: 42px 88px minmax(0, 1fr);
+            grid-template-columns: 94px minmax(0, 1fr);
             grid-template-areas:
-              "rank avatar info"
-              "metrics metrics metrics";
+              "avatar info"
+              "metrics metrics";
             gap: 12px;
             align-items: center;
             padding: 12px;
@@ -817,7 +817,10 @@ export default function LeaderboardPage() {
           }
 
           .rankPlate {
-            grid-area: rank;
+            position: absolute;
+            left: 16px;
+            top: 58px;
+            z-index: 2;
             width: 42px;
             height: 42px;
             padding: 0;
