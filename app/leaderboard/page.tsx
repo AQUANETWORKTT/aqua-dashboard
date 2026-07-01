@@ -181,7 +181,6 @@ export default function LeaderboardPage() {
       <section className="hero">
         <div className="kicker">AQUA CREATOR NETWORK</div>
         <h1 className="title">CREATOR LEADERBOARD</h1>
-        <p className="subtitle">Monthly performance rankings across the Aqua creator roster.</p>
       </section>
 
       {loading ? (
@@ -197,8 +196,8 @@ export default function LeaderboardPage() {
               const tone = rank === 1 ? "gold" : rank === 2 ? "silver" : "bronze";
 
               return (
-                <article key={creator.creator_id} className={`podiumCard ${tone}Podium rank${rank}`}>
-                  <div className="podiumRank">#{rank}</div>
+                <article key={creator.creator_id} className={`podiumCard ${tone}Podium rank${rank}`} data-rank={rank}>
+                  <div className="podiumRank" aria-label={`Rank ${rank}`}>{rank}</div>
                   <div className="podiumAvatar">
                     <CreatorAvatar username={username} />
                   </div>
@@ -221,7 +220,9 @@ export default function LeaderboardPage() {
                   <div className="avatarFade">
                     <CreatorAvatar username={username} />
                   </div>
-                  <div className="rankPlate">#{rank}</div>
+                  <div className="rankPlate" aria-label={`Rank ${rank}`}>
+                    <span>{rank}</span>
+                  </div>
                   <div className="info">
                     <div className="username">{username}</div>
                     <CreatorBadges usernameKey={usernameKey} />
@@ -316,6 +317,7 @@ export default function LeaderboardPage() {
           border: 1px solid rgba(124, 246, 255, 0.22);
           border-radius: 26px;
           background:
+            var(--metal),
             linear-gradient(145deg, rgba(255, 255, 255, 0.07), transparent 38%),
             linear-gradient(180deg, rgba(9, 24, 46, 0.86), rgba(2, 8, 18, 0.9)),
             rgba(8, 18, 35, 0.78);
@@ -334,19 +336,39 @@ export default function LeaderboardPage() {
           pointer-events: none;
         }
 
+        .podiumCard::after {
+          content: attr(data-rank);
+          position: absolute;
+          right: -16px;
+          bottom: -42px;
+          z-index: 0;
+          color: var(--podium);
+          font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+          font-size: clamp(190px, 22vw, 330px);
+          font-weight: 950;
+          line-height: 0.8;
+          opacity: 0.14;
+          transform: skewX(-12deg);
+          text-shadow: 0 0 26px color-mix(in srgb, var(--podium) 48%, transparent);
+          pointer-events: none;
+        }
+
         .rank1 {
           min-height: 362px;
           --podium: rgba(255, 216, 77, 0.72);
+          --metal: linear-gradient(145deg, rgba(255, 245, 164, 0.24), rgba(255, 197, 36, 0.14) 38%, rgba(76, 36, 0, 0.2));
         }
 
         .rank2 {
           min-height: 320px;
           --podium: rgba(226, 232, 240, 0.62);
+          --metal: linear-gradient(145deg, rgba(255, 255, 255, 0.24), rgba(199, 213, 228, 0.15) 42%, rgba(31, 41, 55, 0.2));
         }
 
         .rank3 {
           min-height: 300px;
           --podium: rgba(196, 122, 60, 0.62);
+          --metal: linear-gradient(145deg, rgba(255, 186, 105, 0.22), rgba(176, 91, 34, 0.16) 42%, rgba(50, 20, 3, 0.2));
         }
 
         .goldPodium {
@@ -359,19 +381,37 @@ export default function LeaderboardPage() {
 
         .silverPodium {
           border-color: rgba(226, 232, 240, 0.58);
+          box-shadow:
+            inset 0 0 32px rgba(255, 255, 255, 0.05),
+            0 0 0 1px rgba(226, 232, 240, 0.12),
+            0 18px 34px rgba(0, 0, 0, 0.34);
         }
 
         .bronzePodium {
           border-color: rgba(196, 122, 60, 0.58);
+          box-shadow:
+            inset 0 0 32px rgba(255, 255, 255, 0.045),
+            0 0 0 1px rgba(196, 122, 60, 0.13),
+            0 18px 34px rgba(0, 0, 0, 0.34);
         }
 
         .podiumRank {
           position: relative;
           z-index: 1;
-          color: var(--podium);
-          font-size: 30px;
+          justify-self: start;
+          margin-left: 4px;
+          color: transparent;
+          font-size: clamp(42px, 5vw, 74px);
           font-weight: 950;
-          text-shadow: 0 0 18px currentColor;
+          line-height: 0.86;
+          font-family: Impact, Haettenschweiler, "Arial Black", sans-serif;
+          background: linear-gradient(135deg, #ffffff 0%, color-mix(in srgb, var(--podium) 78%, #ffffff 12%) 28%, color-mix(in srgb, var(--podium) 72%, #4b2500 18%) 58%, #fff0a8 100%);
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          -webkit-text-stroke: 1px rgba(0, 0, 0, 0.34);
+          transform: skewX(-12deg) rotate(-2deg);
+          filter: drop-shadow(0 5px 0 rgba(0, 0, 0, 0.44)) drop-shadow(0 0 12px color-mix(in srgb, var(--podium) 48%, transparent));
         }
 
         .podiumAvatar {
@@ -487,12 +527,17 @@ export default function LeaderboardPage() {
           height: 62px;
           display: grid;
           place-items: center;
-          border-radius: 16px;
+          border-radius: 50%;
           color: #7cf6ff;
           font-size: 18px;
           font-weight: 950;
-          background: rgba(0, 0, 0, 0.42);
-          border: 1px solid rgba(124, 246, 255, 0.24);
+          background:
+            radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.34), transparent 18%),
+            linear-gradient(145deg, rgba(124, 246, 255, 0.24), rgba(2, 8, 18, 0.84));
+          border: 2px solid rgba(124, 246, 255, 0.44);
+          box-shadow:
+            inset 0 -7px 14px rgba(0, 0, 0, 0.32),
+            0 0 18px rgba(124, 246, 255, 0.2);
         }
 
         .info {
@@ -694,6 +739,18 @@ export default function LeaderboardPage() {
         @media (max-width: 880px) {
           .podium {
             grid-template-columns: 1fr;
+          }
+
+          .rank1 {
+            order: 1;
+          }
+
+          .rank2 {
+            order: 2;
+          }
+
+          .rank3 {
+            order: 3;
           }
 
           .podiumCard,
