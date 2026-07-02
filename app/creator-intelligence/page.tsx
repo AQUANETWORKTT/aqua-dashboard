@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { saveAs } from "file-saver";
+import { toBlob } from "html-to-image";
 import JSZip from "jszip";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
@@ -1160,11 +1161,11 @@ function getTopHealthScoreOpportunity(creator: CreatorSummary) {
   return opportunities.sort((a, b) => b.available - a.available)[0];
 }
 
-function buildHealthScoreBreakdownTable(creator: CreatorSummary, escapeValues = false) {
-  return buildHealthScoreRows(creator)
+function buildCreatorHealthScoreBreakdownTable(creator: CreatorSummary) {
+  return buildCreatorHealthScoreRows(creator)
     .map((row) => {
-      const area = escapeValues ? escapeHtml(row.area) : row.area;
-      const improvement = escapeValues ? escapeHtml(row.improvement) : row.improvement;
+      const area = escapeHtml(row.area);
+      const improvement = escapeHtml(row.improvement);
 
       return `<tr>
         <td>${area}</td>
@@ -1199,6 +1200,25 @@ function buildManagerActions(creator: CreatorSummary) {
   actions.push("Prioritise the weakest score area first: live days, live hours, battles, or DPH (diamonds per hour).");
 
   return actions;
+}
+
+function buildCreatorHealthScoreRows(creator: CreatorSummary) {
+  const healthRows = buildHealthScoreRows(creator);
+  const guidance: Record<string, string> = {
+    "Live day validation":
+      "To improve your points, increase the number of days you go LIVE for at least one full hour. Aim for 5 strong live days each week.",
+    "Live hours":
+      "To improve your points, increase your total live time by planning longer sessions and avoiding short stop-start lives.",
+    Battles:
+      "To improve your points, increase your battle volume and choose stronger battle partners who help your room stay active.",
+    "DPH (diamonds per hour)":
+      "To improve your points, raise your diamonds per hour with better room choice, stronger gifting moments and clearer viewer prompts.",
+  };
+
+  return healthRows.map((row) => ({
+    ...row,
+    improvement: guidance[row.area] ?? row.improvement,
+  }));
 }
 
 function buildManagerFocusDetail(creator: CreatorSummary) {
@@ -1568,7 +1588,7 @@ function buildCreatorReportHtml({
   <h2>Health Score Points</h2>
   <table class="score-table">
     <tr><th>Score Area</th><th>Points Earned</th><th>More Points Available</th><th>How To Improve</th></tr>
-    ${buildHealthScoreBreakdownTable(creator)}
+    ${buildCreatorHealthScoreBreakdownTable(creator)}
   </table>
 
   <h2>Weekly Live Breakdown</h2>
@@ -2015,14 +2035,80 @@ function buildReportHtml(creator: CreatorSummary, reportType: "creator" | "inter
   return reportType === "creator" ? creatorHtml : html;
 }
 
-function downloadReport(creator: CreatorSummary, reportType: "creator" | "internal") {
+async function waitForReportAssets(doc: Document) {
+  const fonts = doc.fonts;
+  if (fonts) {
+    await fonts.ready;
+  }
+
+  await Promise.all(
+    Array.from(doc.images).map((image) => {
+      if (image.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        image.onload = () => resolve();
+        image.onerror = () => resolve();
+      });
+    })
+  );
+}
+
+async function renderCreatorReportToPngBlob(html: string) {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.position = "fixed";
+  iframe.style.left = "-10000px";
+  iframe.style.top = "0";
+  iframe.style.width = "980px";
+  iframe.style.height = "1px";
+  iframe.style.border = "0";
+  document.body.appendChild(iframe);
+
+  try {
+    const doc = iframe.contentDocument;
+    if (!doc) throw new Error("Could not create report renderer.");
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    await waitForReportAssets(doc);
+
+    const report = doc.querySelector("main") as HTMLElement | null;
+    if (!report) throw new Error("Could not find report content.");
+
+    const height = Math.ceil(report.scrollHeight);
+    iframe.style.height = `${height}px`;
+
+    const blob = await toBlob(report, {
+      cacheBust: true,
+      pixelRatio: 2,
+      width: 980,
+      height,
+      style: {
+        margin: "0",
+        maxWidth: "980px",
+        width: "980px",
+      },
+    });
+
+    if (!blob) throw new Error("Could not render report image.");
+    return blob;
+  } finally {
+    iframe.remove();
+  }
+}
+
+async function downloadReport(creator: CreatorSummary, reportType: "creator" | "internal") {
   const finalHtml = buildReportHtml(creator, reportType);
-  const blob = new Blob([finalHtml], { type: "text/html" });
+  const blob =
+    reportType === "creator"
+      ? await renderCreatorReportToPngBlob(finalHtml)
+      : new Blob([finalHtml], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
   link.href = url;
-  link.download = `${creator.username}-${reportType === "creator" ? "weekly-creator-report" : "internal-data-report"}-${timestamp}.html`;
+  link.download = `${creator.username}-${reportType === "creator" ? "weekly-creator-report" : "internal-data-report"}-${timestamp}.${reportType === "creator" ? "png" : "html"}`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -2035,12 +2121,11 @@ async function downloadTeamCreatorReports(managerSummary: ManagerHealthSummary) 
   const folderName = `${managerSummary.manager.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-creator-reports-${timestamp}`;
   const folder = zip.folder(folderName);
 
-  managerSummary.creators
-    .filter((creator) => !creator.isNewCreator)
-    .forEach((creator) => {
-      const safeUsername = creator.username.replace(/[^a-z0-9._-]+/gi, "-").toLowerCase();
-      folder?.file(`${safeUsername}-weekly-creator-report.html`, buildReportHtml(creator, "creator"));
-    });
+  for (const creator of managerSummary.creators.filter((creator) => !creator.isNewCreator)) {
+    const safeUsername = creator.username.replace(/[^a-z0-9._-]+/gi, "-").toLowerCase();
+    const reportBlob = await renderCreatorReportToPngBlob(buildReportHtml(creator, "creator"));
+    folder?.file(`${safeUsername}-weekly-creator-report.png`, reportBlob);
+  }
 
   const blob = await zip.generateAsync({ type: "blob" });
   saveAs(blob, `${folderName}.zip`);
