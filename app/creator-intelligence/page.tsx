@@ -2557,15 +2557,36 @@ export default function CreatorIntelligencePage() {
     loadData();
   }, [month]);
 
-  const dateRangeRows = useMemo(() => {
-    return rows.filter((row) => {
-      const day = getDayNumber(row.stat_date);
-      return row.stat_date.startsWith(`${month}-`) && day >= startDay && day <= endDay;
-    });
-  }, [rows, month, startDay, endDay]);
+  const selectedEndDate = `${month}-${String(endDay).padStart(2, "0")}`;
+  const rowsThroughSelectedEnd = useMemo(
+    () => rows.filter((row) => row.stat_date <= selectedEndDate),
+    [rows, selectedEndDate]
+  );
+  const rollingUploadedDates = useMemo(
+    () =>
+      Array.from(new Set(rowsThroughSelectedEnd.map((row) => row.stat_date)))
+        .sort((a, b) => a.localeCompare(b)),
+    [rowsThroughSelectedEnd]
+  );
+  const rollingSevenDateSet = useMemo(
+    () => new Set(rollingUploadedDates.slice(-7)),
+    [rollingUploadedDates]
+  );
+  const dateRangeRows = useMemo(
+    () => rowsThroughSelectedEnd.filter((row) => rollingSevenDateSet.has(row.stat_date)),
+    [rollingSevenDateSet, rowsThroughSelectedEnd]
+  );
 
-  const allSummaries = useMemo(() => buildCreatorSummaries(dateRangeRows, rows), [dateRangeRows, rows]);
+  const allSummaries = useMemo(
+    () => buildCreatorSummaries(dateRangeRows, rowsThroughSelectedEnd),
+    [dateRangeRows, rowsThroughSelectedEnd]
+  );
   const aquaRows = useMemo(() => dateRangeRows.filter(isAquaRow), [dateRangeRows]);
+  const rollingAquaRows = useMemo(() => rowsThroughSelectedEnd.filter(isAquaRow), [rowsThroughSelectedEnd]);
+  const currentMonthAquaRows = useMemo(
+    () => rowsThroughSelectedEnd.filter((row) => isAquaRow(row) && row.stat_date.startsWith(`${month}-`)),
+    [month, rowsThroughSelectedEnd]
+  );
   const latestAquaDate = useMemo(() => {
     const dates = aquaRows.map((row) => row.stat_date).sort((a, b) => a.localeCompare(b));
     return dates[dates.length - 1] || "";
@@ -2713,7 +2734,7 @@ export default function CreatorIntelligencePage() {
     () =>
       managerHealthSummaries
         .map((managerSummary) => {
-          const trend = buildManagerHealthTrend(rows, managerSummary);
+          const trend = buildManagerHealthTrend(rowsThroughSelectedEnd, managerSummary);
           const first = trend[0]?.score ?? 0;
           const latest = trend[trend.length - 1]?.score ?? 0;
           const change = trend.length > 1 ? latest - first : 0;
@@ -2753,7 +2774,7 @@ export default function CreatorIntelligencePage() {
           };
         })
         .sort((a, b) => b.weekPercentChange - a.weekPercentChange),
-    [managerHealthSummaries, rows]
+    [managerHealthSummaries, rowsThroughSelectedEnd]
   );
 
   const newCreators = useMemo(
@@ -2865,12 +2886,12 @@ export default function CreatorIntelligencePage() {
   }, [filteredCreators, matureFilteredCreators, newCreators.length]);
 
   const agencyHealthTrend = useMemo<AgencyHealthTrendPoint[]>(() => {
-    const dates = Array.from(new Set(aquaRows.map((row) => row.stat_date))).sort((a, b) =>
+    const dates = Array.from(new Set(rollingAquaRows.map((row) => row.stat_date))).sort((a, b) =>
       a.localeCompare(b)
-    );
+    ).slice(-30);
 
     return dates.map((date) => {
-      const rowsUpToDate = aquaRows.filter(
+      const rowsUpToDate = rollingAquaRows.filter(
         (row) => row.stat_date <= date && activeAquaCreatorKeys.has(getUsername(row).toLowerCase())
       );
       const matureCreators = buildCreatorSummaries(rowsUpToDate).filter(
@@ -2888,17 +2909,17 @@ export default function CreatorIntelligencePage() {
         creators: matureCreators.length,
       };
     });
-  }, [activeAquaCreatorKeys, aquaRows]);
+  }, [activeAquaCreatorKeys, rollingAquaRows]);
 
   const weeklyHealthComparison = useMemo<WeeklyHealthComparison[]>(() => {
     if (!latestAquaDate) return [];
 
-    const uploadedDates = Array.from(new Set(aquaRows.map((row) => row.stat_date))).sort((a, b) =>
+    const uploadedDates = Array.from(new Set(rollingAquaRows.map((row) => row.stat_date))).sort((a, b) =>
       a.localeCompare(b)
     );
     const previousUploadedDates = uploadedDates.slice(-14, -7);
     const previousUploadedDateSet = new Set(previousUploadedDates);
-    const previousRows = aquaRows.filter(
+    const previousRows = rollingAquaRows.filter(
       (row) =>
         previousUploadedDateSet.has(row.stat_date) &&
         activeAquaCreatorKeys.has(getUsername(row).toLowerCase())
@@ -2925,7 +2946,7 @@ export default function CreatorIntelligencePage() {
         const bChange = b.change ?? -999;
         return aChange - bChange;
       });
-  }, [activeAquaCreatorKeys, aquaRows, latestAquaDate, matureFilteredCreators]);
+  }, [activeAquaCreatorKeys, rollingAquaRows, latestAquaDate, matureFilteredCreators]);
 
   const improvingCreators = useMemo(
     () =>
@@ -2983,7 +3004,7 @@ export default function CreatorIntelligencePage() {
   );
 
   const latestGraduationUploadDay = useMemo(() => {
-    const uploadedDays = aquaRows
+    const uploadedDays = currentMonthAquaRows
       .filter(
         (row) =>
           getNumber(row, ["diamonds", "Diamonds"]) > 0 ||
@@ -2994,7 +3015,7 @@ export default function CreatorIntelligencePage() {
       .filter((day) => day > 0);
 
     return uploadedDays.length ? Math.min(Math.max(...uploadedDays), lastDay) : Math.min(endDay, lastDay);
-  }, [aquaRows, endDay, lastDay]);
+  }, [currentMonthAquaRows, endDay, lastDay]);
 
   const graduationTrackerRows = useMemo<GraduationTrackerRow[]>(() => {
     const currentMonthDay = Math.min(latestGraduationUploadDay, lastDay);
@@ -3685,7 +3706,7 @@ export default function CreatorIntelligencePage() {
                             : 0,
                           managerGrowthSummaries.find(
                             (item) => item.managerSummary.manager === managerSummary.manager
-                          )?.trend || buildManagerHealthTrend(rows, managerSummary)
+                          )?.trend || buildManagerHealthTrend(rowsThroughSelectedEnd, managerSummary)
                         )
                       }
                       className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100"
