@@ -432,6 +432,10 @@ function getPlainManagerName(managerLabel: string) {
   return managerLabel.replace(/^Team\s+/i, "");
 }
 
+function isTeamHealthScoreCreator(creator: Pick<CreatorSummary, "daysSinceJoining">) {
+  return creator.daysSinceJoining > 3;
+}
+
 function getCreatorMetaLine(creator: Pick<CreatorSummary, "agency" | "group" | "managerLabel">) {
   const managerName = getPlainManagerName(creator.managerLabel);
   const cleanGroup = creator.group.replace(/^Unassigned\s+/i, "").trim();
@@ -1331,7 +1335,7 @@ function buildManagerHealthTrend(
       (row) => isAquaRow(row) && row.stat_date <= date && creatorKeys.has(getUsername(row).toLowerCase())
     );
     const summaries = buildCreatorSummaries(rowsUpToDate).filter(
-      (creator) => creatorKeys.has(creator.key) && !creator.isNewCreator
+      (creator) => creatorKeys.has(creator.key) && isTeamHealthScoreCreator(creator)
     );
     const score =
       summaries.length > 0
@@ -1468,9 +1472,14 @@ function buildCreatorReportHtml({
       font-family: Arial, sans-serif;
     }
     main {
-      max-width: 980px;
+      width: 980px;
       margin: 0 auto;
-      min-height: 100vh;
+      display: grid;
+      gap: 24px;
+      background: #020817;
+    }
+    .report-page {
+      min-height: 1742px;
       padding: 44px;
       background:
         linear-gradient(180deg, rgba(14, 165, 233, .14), transparent 360px),
@@ -1549,7 +1558,8 @@ function buildCreatorReportHtml({
     .bar-label { position: absolute; bottom: -27px; color: #bae6fd; font-size: 12px; font-weight: 900; }
     footer { margin-top: 26px; color: #4f7895; font-size: 12px; text-align: center; }
     @media (max-width: 760px) {
-      main { padding: 24px; }
+      main { width: 100%; }
+      .report-page { min-height: 0; padding: 24px; }
       .grid { grid-template-columns: repeat(2, 1fr); }
       .week { grid-template-columns: 1fr; }
       .diamond-chart { grid-template-columns: 56px 1fr; overflow-x: auto; }
@@ -1562,6 +1572,7 @@ function buildCreatorReportHtml({
 </head>
 <body>
 <main>
+<section class="report-page">
   <section class="hero">
     <div>
       <div class="eyebrow">Weekly Performance Report</div>
@@ -1605,6 +1616,9 @@ function buildCreatorReportHtml({
       )
       .join("")}
   </section>
+</section>
+
+<section class="report-page">
 
   <h2>What You Did Well</h2>
   <section class="tips">
@@ -1649,6 +1663,7 @@ function buildCreatorReportHtml({
   </section>
 
   <footer>Keep pushing every live session.</footer>
+</section>
 </main>
 </body>
 </html>`;
@@ -1831,7 +1846,7 @@ function AgencyHealthTrendChart({ points }: { points: AgencyHealthTrendPoint[] }
         <div>
           <h3 className="text-xl font-black uppercase text-sky-900">Aqua Health Score Trend</h3>
           <p className="text-sm text-slate-500">
-            Average mature creator health score, excluding new creators.
+            Average Aqua health score for creators from day 4 onward.
           </p>
         </div>
         <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
@@ -2121,7 +2136,7 @@ async function downloadTeamCreatorReports(managerSummary: ManagerHealthSummary) 
   const folderName = `${managerSummary.manager.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-creator-reports-${timestamp}`;
   const folder = zip.folder(folderName);
 
-  for (const creator of managerSummary.creators.filter((creator) => !creator.isNewCreator)) {
+  for (const creator of managerSummary.creators.filter(isTeamHealthScoreCreator)) {
     const safeUsername = creator.username.replace(/[^a-z0-9._-]+/gi, "-").toLowerCase();
     const reportBlob = await renderCreatorReportToPngBlob(buildReportHtml(creator, "creator"));
     folder?.file(`${safeUsername}-weekly-creator-report.png`, reportBlob);
@@ -2146,8 +2161,8 @@ function downloadManagerReport(
   agencyAverageScore: number,
   managerTrend: ManagerHealthTrendPoint[]
 ) {
-  const matureCreators = managerSummary.creators.filter((creator) => !creator.isNewCreator);
-  const creatorsForStats = matureCreators.length ? matureCreators : managerSummary.creators;
+  const healthScoreCreators = managerSummary.creators.filter(isTeamHealthScoreCreator);
+  const creatorsForStats = healthScoreCreators;
   const strongestCreators = [...creatorsForStats].sort((a, b) => b.healthScore - a.healthScore).slice(0, 8);
   const belowAgencyAverageCreators = [...creatorsForStats]
     .filter((creator) => creator.healthScore < agencyAverageScore)
@@ -2434,8 +2449,8 @@ function downloadManagerReport(
       .map((creator) => {
         const statusClass = reportToneClass(creator.healthStatus);
         const contribution =
-          creator.isNewCreator || !creatorsForStats.length
-            ? "New creator"
+          !isTeamHealthScoreCreator(creator) || !creatorsForStats.length
+            ? "Not scored yet"
             : `${formatNumber(creator.healthScore / creatorsForStats.length)} avg pts`;
         const focus = buildManagerFocusDetail(creator).slice(0, 2).join(" ");
         const creatorLastSevenHours = getLastSevenHours(creator);
@@ -2680,7 +2695,7 @@ export default function CreatorIntelligencePage() {
   ]);
 
   const matureFilteredCreators = useMemo(
-    () => filteredCreators.filter((creator) => !creator.isNewCreator),
+    () => filteredCreators.filter(isTeamHealthScoreCreator),
     [filteredCreators]
   );
 
@@ -2715,8 +2730,8 @@ export default function CreatorIntelligencePage() {
 
     return Array.from(grouped.entries())
       .map(([managerName, creators]) => {
-        const matureCreators = creators.filter((creator) => !creator.isNewCreator);
-        const scoreBase = matureCreators.length ? matureCreators : creators;
+        const matureCreators = creators.filter(isTeamHealthScoreCreator);
+        const scoreBase = matureCreators;
         const averageScore =
           scoreBase.length > 0
             ? scoreBase.reduce((sum, creator) => sum + creator.healthScore, 0) / scoreBase.length
@@ -2731,7 +2746,7 @@ export default function CreatorIntelligencePage() {
           creators: creators.sort((a, b) => a.healthScore - b.healthScore),
           totalCreators: creators.length,
           matureCreators: matureCreators.length,
-          newCreators: creators.length - matureCreators.length,
+          newCreators: creators.filter((creator) => creator.isNewCreator).length,
           averageScore,
           thirtyDayAverageScore,
           elite: matureCreators.filter((creator) => creator.healthStatus === "Elite").length,
@@ -2909,7 +2924,7 @@ export default function CreatorIntelligencePage() {
         (row) => row.stat_date <= date && activeAquaCreatorKeys.has(getUsername(row).toLowerCase())
       );
       const matureCreators = buildCreatorSummaries(rowsUpToDate).filter(
-        (creator) => creator.agency === "Aqua" && !creator.isNewCreator
+        (creator) => creator.agency === "Aqua" && isTeamHealthScoreCreator(creator)
       );
       const average =
         matureCreators.length > 0
@@ -2939,7 +2954,7 @@ export default function CreatorIntelligencePage() {
         activeAquaCreatorKeys.has(getUsername(row).toLowerCase())
     );
     const previousSummaries = buildCreatorSummaries(previousRows).filter(
-      (creator) => creator.agency === "Aqua" && !creator.isNewCreator
+      (creator) => creator.agency === "Aqua" && isTeamHealthScoreCreator(creator)
     );
     const previousByCreator = new Map(
       previousSummaries.map((creator) => [creator.key, creator.healthScore])
@@ -3193,16 +3208,44 @@ export default function CreatorIntelligencePage() {
     void navigator.clipboard.writeText(text);
   }
 
+  function buildManagerGroupedWhatsAppLines<T>(
+    items: T[],
+    getManager: (item: T) => string,
+    getCreatorName: (item: T) => string,
+    buildCreatorLines: (item: T) => string[]
+  ) {
+    const grouped = new Map<string, T[]>();
+
+    for (const item of items) {
+      const manager = getPlainManagerName(getManager(item) || "Unassigned") || "Unassigned";
+      grouped.set(manager, [...(grouped.get(manager) ?? []), item]);
+    }
+
+    return Array.from(grouped.entries())
+      .sort(([managerA], [managerB]) => managerA.localeCompare(managerB))
+      .map(([manager, managerItems]) =>
+        [
+          manager,
+          ...managerItems
+            .sort((a, b) => getCreatorName(a).localeCompare(getCreatorName(b)))
+            .map((item) => buildCreatorLines(item).join("\n")),
+        ].join("\n")
+      );
+  }
+
   function copyNewCreatorsText() {
     copyWhatsAppText(
       "New Aqua Creators",
       newCreators.length
-        ? newCreators.map((creator) =>
-            [
-              `💎 ${creator.username}`,
-              `• Days since joining: ${formatNumber(creator.daysSinceJoining)}`,
-              `• Diamonds: ${formatNumber(creator.diamonds)}`,
-            ].join("\n")
+        ? buildManagerGroupedWhatsAppLines(
+            newCreators,
+            (creator) => creator.managerLabel,
+            (creator) => creator.username,
+            (creator) => [
+              `- ${creator.username}`,
+              `  Days since joining: ${formatNumber(creator.daysSinceJoining)}`,
+              `  Diamonds: ${formatNumber(creator.diamonds)}`,
+            ]
           )
         : ["No new creators found for the current filters."]
     );
@@ -3212,13 +3255,16 @@ export default function CreatorIntelligencePage() {
     copyWhatsAppText(
       "High Potential Aqua Creators",
       hiddenPotentialCreators.length
-        ? hiddenPotentialCreators.map((creator) =>
-            [
-              `💎 ${creator.username}`,
-              `• Days since joining: ${formatNumber(creator.daysSinceJoining)}`,
-              `• Diamonds: ${formatNumber(creator.diamonds)}`,
-              `• DPH: ${formatNumber(creator.dph)}`,
-            ].join("\n")
+        ? buildManagerGroupedWhatsAppLines(
+            hiddenPotentialCreators,
+            (creator) => creator.managerLabel,
+            (creator) => creator.username,
+            (creator) => [
+              `- ${creator.username}`,
+              `  Days since joining: ${formatNumber(creator.daysSinceJoining)}`,
+              `  Diamonds: ${formatNumber(creator.diamonds)}`,
+              `  DPH: ${formatNumber(creator.dph)}`,
+            ]
           )
         : ["No hidden potential creators found for the current filters."]
     );
@@ -3229,12 +3275,15 @@ export default function CreatorIntelligencePage() {
     copyWhatsAppText(
       "Aqua Graduation Progress",
       graduationPaceCreators.length
-        ? graduationPaceCreators.map((creator) =>
-            [
-              `💎 ${creator.username}`,
-              `• Diamonds: ${formatNumber(creator.diamonds)}`,
-              `• Progress: ${formatNumber(creator.progressPercent)}%`,
-            ].join("\n")
+        ? buildManagerGroupedWhatsAppLines(
+            graduationPaceCreators,
+            (creator) => creator.manager,
+            (creator) => creator.username,
+            (creator) => [
+              `- ${creator.username}`,
+              `  Diamonds: ${formatNumber(creator.diamonds)}`,
+              `  Progress: ${formatPercent(creator.progressPercent)}`,
+            ]
           )
         : ["No creators are currently over 70% graduation pace for these filters."]
     );
@@ -3244,13 +3293,15 @@ export default function CreatorIntelligencePage() {
     copyWhatsAppText(
       "Aqua Creators Improving",
       improvingCreators.length
-        ? improvingCreators.map((item) =>
-            [
-              `${item.creator.username}`,
-              `Manager: ${getPlainManagerName(item.creator.managerLabel)}`,
-              `Health score: ${formatNumber(item.previousScore ?? 0)} to ${formatNumber(item.creator.healthScore)}`,
-              `Last 7 days increase: ${formatNumber(item.change ?? 0)} points`,
-            ].join("\n")
+        ? buildManagerGroupedWhatsAppLines(
+            improvingCreators,
+            (item) => item.creator.managerLabel,
+            (item) => item.creator.username,
+            (item) => [
+              `- ${item.creator.username}`,
+              `  Health score: ${formatNumber(item.previousScore ?? 0)} to ${formatNumber(item.creator.healthScore)}`,
+              `  Last 7 days increase: ${formatNumber(item.change ?? 0)} points`,
+            ]
           )
         : ["No improving creators found for the current filters."]
     );
@@ -3260,13 +3311,15 @@ export default function CreatorIntelligencePage() {
     copyWhatsAppText(
       "Aqua Creators Declining",
       notImprovingCreators.length
-        ? notImprovingCreators.map((item) =>
-            [
-              `${item.creator.username}`,
-              `Manager: ${getPlainManagerName(item.creator.managerLabel)}`,
-              `Health score: ${formatNumber(item.previousScore ?? 0)} to ${formatNumber(item.creator.healthScore)}`,
-              `Last 7 days drop: ${formatNumber(Math.abs(item.change ?? 0))} points`,
-            ].join("\n")
+        ? buildManagerGroupedWhatsAppLines(
+            notImprovingCreators,
+            (item) => item.creator.managerLabel,
+            (item) => item.creator.username,
+            (item) => [
+              `- ${item.creator.username}`,
+              `  Health score: ${formatNumber(item.previousScore ?? 0)} to ${formatNumber(item.creator.healthScore)}`,
+              `  Last 7 days drop: ${formatNumber(Math.abs(item.change ?? 0))} points`,
+            ]
           )
         : ["No declining creators found for the current filters."]
     );
@@ -4103,7 +4156,7 @@ export default function CreatorIntelligencePage() {
             <div>
               <h2 className="text-2xl font-black uppercase text-sky-950">Weekly Health Movement</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Latest uploaded week compared with the previous week. Uses the selected manager filter and excludes new creators.
+                Latest uploaded week compared with the previous week. Uses the selected manager filter and includes creators from day 4 onward.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -4296,7 +4349,7 @@ export default function CreatorIntelligencePage() {
               </p>
             </div>
             <p className="text-sm font-bold text-slate-500">
-              {formatNumber(matureFilteredCreators.length)} mature creators
+              {formatNumber(matureFilteredCreators.length)} scored creators
             </p>
           </div>
 
@@ -4498,7 +4551,7 @@ export default function CreatorIntelligencePage() {
               <div>
                 <h2 className="text-2xl font-black uppercase text-sky-900">New Creators</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Creators 14 days in or less are shown here instead of being placed into health buckets.
+                  Creators 14 days in or less are shown here. From day 4 onward they are also included in health scores.
                 </p>
               </div>
               <button
