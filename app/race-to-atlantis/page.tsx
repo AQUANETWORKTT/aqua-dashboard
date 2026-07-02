@@ -434,6 +434,7 @@ export default function RaceToAtlantisPage() {
   const [rows, setRows] = useState<CreatorStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [loggedInUsername, setLoggedInUsername] = useState("");
+  const [expandedCreatorKeys, setExpandedCreatorKeys] = useState<string[]>([]);
 
   useEffect(() => {
     async function loadRows() {
@@ -523,6 +524,14 @@ export default function RaceToAtlantisPage() {
     : null;
   const personalTrack = assignedEntry?.track || activeTrack;
   const personalName = assignedEntry?.creator.username || loggedInUsername || "Aqua Creator";
+
+  function toggleLeaderboardCreator(creatorKey: string) {
+    setExpandedCreatorKeys((currentKeys) =>
+      currentKeys.includes(creatorKey)
+        ? currentKeys.filter((key) => key !== creatorKey)
+        : [...currentKeys, creatorKey]
+    );
+  }
 
   return (
     <main className="race-page">
@@ -636,16 +645,28 @@ export default function RaceToAtlantisPage() {
 
             <div className="race-list">
               {leaderboard.map((creator, index) => {
+                const rowKey = `${activeTrack.id}-${creator.username}`;
                 const creatorTrack = activeTrack.id === "pro" ? getAssignedTrack(creator.username) : activeTrack;
                 const isYourLeaderboardCard =
                   assignedEntry &&
                   activeTrack.id === assignedEntry.track.id &&
                   usernameKey(creator.username) === usernameKey(assignedEntry.creator.username);
+                const isExpanded = expandedCreatorKeys.includes(rowKey);
 
                 return (
                   <article
-                    key={`${activeTrack.id}-${creator.username}`}
-                    className={`race-row ${isYourLeaderboardCard ? "leaderboard-personal-card" : ""}`}
+                    key={rowKey}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    onClick={() => toggleLeaderboardCreator(rowKey)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleLeaderboardCreator(rowKey);
+                      }
+                    }}
+                    className={`race-row ${isExpanded ? "expanded" : ""} ${isYourLeaderboardCard ? "leaderboard-personal-card" : ""}`}
                     style={
                       {
                         "--creator-track": creatorTrack.tone,
@@ -669,33 +690,34 @@ export default function RaceToAtlantisPage() {
                       <div className="progress-rail">
                         <div className="progress-fill" style={{ width: `${Math.round(creator.progress * 100)}%` }} />
                       </div>
-                      <div className="mini-stats">
-                        {activeTrack.requirements.map((requirement) => {
-                          const done = creator.stats[requirement.key] >= requirement.target;
-                          const statProgress = Math.min(creator.stats[requirement.key] / Math.max(requirement.target, 1), 1);
-                          return (
-                            <div
-                              key={requirement.key}
-                              className={done ? "mini-stat done" : "mini-stat"}
-                              style={{ "--stat-progress": `${Math.round(statProgress * 100)}%` } as React.CSSProperties}
-                            >
-                              <span className="stat-ring">{Math.round(statProgress * 100)}%</span>
-                              <span className="stat-copy">
-                                <em>{requirement.label}</em>
-                                <strong>{formatRequirementValue(creator.stats[requirement.key], requirement)}</strong>
-                                <small>Target {formatRequirementValue(requirement.target, requirement)}</small>
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      {isExpanded ? (
+                        <div className="mini-stats">
+                          {activeTrack.requirements.map((requirement) => {
+                            const done = creator.stats[requirement.key] >= requirement.target;
+                            const statProgress = Math.min(creator.stats[requirement.key] / Math.max(requirement.target, 1), 1);
+                            return (
+                              <div
+                                key={requirement.key}
+                                className={done ? "mini-stat done" : "mini-stat"}
+                                style={{ "--stat-progress": `${Math.round(statProgress * 100)}%` } as React.CSSProperties}
+                              >
+                                <span className="stat-ring">{Math.round(statProgress * 100)}%</span>
+                                <span className="stat-copy">
+                                  <em>{requirement.label}</em>
+                                  <strong>{formatRequirementValue(creator.stats[requirement.key], requirement)}</strong>
+                                  <small>Target {formatRequirementValue(requirement.target, requirement)}</small>
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="finish-box">
-                      <strong>
-                        {creator.completed}/{activeTrack.requirements.length}
-                      </strong>
-                      <span>targets</span>
+                      <strong>{Math.round(creator.progress * 100)}%</strong>
+                      <span>{creator.completed}/{activeTrack.requirements.length}</span>
                     </div>
+                    <div className="expand-box" aria-hidden="true">{isExpanded ? "v" : ">"}</div>
                   </article>
                 );
               })}
@@ -1226,13 +1248,26 @@ export default function RaceToAtlantisPage() {
         .race-row {
           position: relative;
           display: grid;
-          grid-template-columns: 54px 58px minmax(0, 1fr) 86px;
+          grid-template-columns: 54px 58px minmax(0, 1fr) 86px 34px;
           align-items: center;
           gap: 12px;
           padding: 12px;
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 18px;
           background: rgba(1, 6, 14, 0.72);
+          cursor: pointer;
+          transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+        }
+
+        .race-row:hover,
+        .race-row:focus-visible {
+          border-color: color-mix(in srgb, var(--creator-track, var(--track)) 54%, transparent);
+          background: rgba(1, 6, 14, 0.84);
+          outline: none;
+        }
+
+        .race-row.expanded {
+          align-items: start;
         }
 
         .creator-main {
@@ -1334,6 +1369,10 @@ export default function RaceToAtlantisPage() {
           background: rgba(255, 255, 255, 0.1);
         }
 
+        .race-row:not(.expanded) .progress-rail {
+          margin-bottom: 0;
+        }
+
         .progress-fill {
           position: relative;
           height: 100%;
@@ -1355,6 +1394,21 @@ export default function RaceToAtlantisPage() {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
+        }
+
+        .expand-box {
+          display: grid;
+          width: 32px;
+          height: 32px;
+          place-items: center;
+          border: 1px solid color-mix(in srgb, var(--creator-track, var(--track)) 54%, transparent);
+          border-radius: 999px;
+          color: var(--creator-track, var(--track));
+          font-size: 18px;
+          font-weight: 950;
+          line-height: 1;
+          background: rgba(0, 0, 0, 0.26);
+          box-shadow: 0 0 12px var(--creator-track-glow, var(--track-glow));
         }
 
         .mini-stat {
@@ -1591,12 +1645,11 @@ export default function RaceToAtlantisPage() {
           }
 
           .race-row {
-            grid-template-columns: 82px minmax(0, 1fr);
+            grid-template-columns: 82px minmax(0, 1fr) 46px;
             grid-template-areas:
-              "avatar title"
-              "progress progress"
-              "stats stats"
-              "finish finish";
+              "avatar title expand"
+              "progress progress progress"
+              "finish finish finish";
             gap: 12px;
             align-items: center;
             padding: 14px;
@@ -1605,6 +1658,14 @@ export default function RaceToAtlantisPage() {
               radial-gradient(circle at 0% 0%, var(--creator-track-glow, var(--track-glow)), transparent 34%),
               linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(0, 0, 0, 0.24)),
               rgba(1, 6, 14, 0.84);
+          }
+
+          .race-row.expanded {
+            grid-template-areas:
+              "avatar title expand"
+              "progress progress progress"
+              "stats stats stats"
+              "finish finish finish";
           }
 
           .race-row.leaderboard-personal-card {
@@ -1696,6 +1757,12 @@ export default function RaceToAtlantisPage() {
             grid-area: stats;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
+          }
+
+          .expand-box {
+            grid-area: expand;
+            align-self: center;
+            justify-self: end;
           }
 
           .mini-stat {

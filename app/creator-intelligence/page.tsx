@@ -1452,7 +1452,6 @@ function buildCreatorReportHtml({
   const weeklyLiveDays = weeklyPoints.filter((point) => point.liveHours > 0).length;
   const weeklyMatches = weeklyPoints.reduce((sum, point) => sum + point.matches, 0);
   const weeklyDph = weeklyHours > 0 ? weeklyDiamonds / weeklyHours : 0;
-  const maxDiamonds = Math.max(...weeklyPoints.map((point) => point.diamonds), 1);
   const averageSessionLength = weeklyLiveDays > 0 ? weeklyHours / weeklyLiveDays : weeklyHours;
   const bestDay = [...weeklyPoints]
     .sort((a, b) => b.diamonds - a.diamonds)[0];
@@ -1473,14 +1472,10 @@ function buildCreatorReportHtml({
     }
     main {
       width: 980px;
+      height: 1742px;
       margin: 0 auto;
-      display: grid;
-      gap: 24px;
-      background: #020817;
-    }
-    .report-page {
-      min-height: 1742px;
-      padding: 44px;
+      padding: 34px;
+      overflow: hidden;
       background:
         linear-gradient(180deg, rgba(14, 165, 233, .14), transparent 360px),
         radial-gradient(circle at 85% 0%, rgba(37, 99, 235, .28), transparent 280px),
@@ -1489,22 +1484,22 @@ function buildCreatorReportHtml({
     .hero {
       display: grid;
       grid-template-columns: 1fr auto;
-      gap: 36px;
+      gap: 28px;
       align-items: center;
-      min-height: 230px;
+      min-height: 190px;
       border: 1px solid rgba(125, 211, 252, .22);
       background: linear-gradient(135deg, rgba(14, 165, 233, .18), rgba(15, 23, 42, .72));
-      border-radius: 28px;
-      padding: 34px;
+      border-radius: 24px;
+      padding: 28px;
       box-shadow: 0 24px 80px rgba(2, 132, 199, .12);
     }
     .eyebrow { color: #38bdf8; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; }
-    h1 { font-family: Norwester, Impact, sans-serif; font-size: 68px; line-height: .9; margin: 14px 0 8px; color: white; letter-spacing: .02em; }
-    h2 { margin: 28px 0 14px; color: #bae6fd; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; }
+    h1 { font-family: Norwester, Impact, sans-serif; font-size: 58px; line-height: .9; margin: 10px 0 6px; color: white; letter-spacing: .02em; }
+    h2 { margin: 18px 0 10px; color: #bae6fd; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
     .meta { color: #8fb7d4; font-size: 14px; }
-    .logo { width: 230px; max-height: 150px; object-fit: contain; filter: drop-shadow(0 18px 28px rgba(56, 189, 248, .18)); }
-    .score { margin-top: 22px; display: inline-flex; align-items: baseline; gap: 8px; border: 1px solid rgba(56, 189, 248, .35); background: rgba(8, 47, 73, .62); border-radius: 18px; padding: 14px 18px; }
-    .score strong { font-size: 34px; color: #7dd3fc; }
+    .logo { width: 190px; max-height: 126px; object-fit: contain; filter: drop-shadow(0 18px 28px rgba(56, 189, 248, .18)); }
+    .score { margin-top: 16px; display: inline-flex; align-items: baseline; gap: 8px; border: 1px solid rgba(56, 189, 248, .35); background: rgba(8, 47, 73, .62); border-radius: 16px; padding: 11px 15px; }
+    .score strong { font-size: 30px; color: #7dd3fc; }
     .score.elite { border-color: rgba(192, 132, 252, .6); background: rgba(88, 28, 135, .5); }
     .score.elite strong { color: #d8b4fe; }
     .score.healthy { border-color: rgba(52, 211, 153, .6); background: rgba(6, 78, 59, .48); }
@@ -1515,55 +1510,42 @@ function buildCreatorReportHtml({
     .score.performance strong { color: #7dd3fc; }
     .score.quality { border-color: rgba(248, 113, 113, .65); background: rgba(127, 29, 29, .52); }
     .score.quality strong { color: #fca5a5; }
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px; }
-    .card { border: 1px solid rgba(125, 211, 252, .18); background: rgba(15, 23, 42, .86); border-radius: 18px; padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+    .card { border: 1px solid rgba(125, 211, 252, .18); background: rgba(15, 23, 42, .86); border-radius: 16px; padding: 13px; }
     .card .label { color: #8fb7d4; font-size: 12px; }
-    .card .value { margin-top: 10px; font-size: 28px; font-weight: 900; color: #38bdf8; }
+    .card .value { margin-top: 8px; font-size: 24px; font-weight: 900; color: #38bdf8; }
     .card.diamonds .value { color: #facc15; }
     .card.hours .value { color: #38bdf8; }
     .card.days .value { color: #34d399; }
     .card.battles .value { color: #f472b6; }
     .wide { border: 1px solid rgba(125, 211, 252, .18); background: rgba(15, 23, 42, .78); border-radius: 20px; padding: 18px; margin-top: 14px; }
-    .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
-    .day { border: 2px solid rgba(125, 211, 252, .28); background: linear-gradient(180deg, rgba(8, 47, 73, .72), rgba(2, 6, 23, .7)); border-radius: 20px; padding: 16px 12px; min-height: 178px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
-    .day .name { color: white; font-size: 17px; font-weight: 900; line-height: 1.15; }
-    .day .status { margin: 14px 0 10px; font-size: 40px; line-height: 1; }
-    .day .hours { color: #7dd3fc; font-size: 26px; font-weight: 900; margin-bottom: 8px; }
-    .day .small { color: #c6e3f7; font-size: 14px; font-weight: 700; line-height: 1.55; }
-    .tips { display: grid; gap: 12px; }
-    .tip { border-left: 5px solid #38bdf8; background: rgba(8, 47, 73, .48); border-radius: 16px; padding: 16px 18px; }
+    .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 9px; }
+    .day { border: 2px solid rgba(125, 211, 252, .28); background: linear-gradient(180deg, rgba(8, 47, 73, .72), rgba(2, 6, 23, .7)); border-radius: 16px; padding: 12px 9px; min-height: 132px; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+    .day .name { color: white; font-size: 14px; font-weight: 900; line-height: 1.15; }
+    .day .status { margin: 9px 0 6px; font-size: 31px; line-height: 1; }
+    .day .hours { color: #7dd3fc; font-size: 20px; font-weight: 900; margin-bottom: 5px; }
+    .day .small { color: #c6e3f7; font-size: 12px; font-weight: 700; line-height: 1.35; }
+    .tips { display: grid; gap: 9px; }
+    .tip { border-left: 5px solid #38bdf8; background: rgba(8, 47, 73, .48); border-radius: 14px; padding: 12px 14px; }
     .tip.good { border-left-color: #22c55e; background: rgba(6, 78, 59, .46); }
-    .tip strong { display: block; color: white; margin-bottom: 7px; font-size: 17px; }
-    .tip span { color: #b6d5e8; font-size: 14px; line-height: 1.45; }
+    .tip strong { display: block; color: white; margin-bottom: 5px; font-size: 15px; }
+    .tip span { color: #b6d5e8; font-size: 12px; line-height: 1.34; }
     .tier-card { border: 1px solid rgba(125, 211, 252, .22); background: linear-gradient(135deg, rgba(14, 165, 233, .14), rgba(15, 23, 42, .82)); border-radius: 20px; padding: 20px; margin-top: 14px; }
     .tier-card strong { display: block; color: white; font-size: 28px; margin-bottom: 6px; }
     .tier-card span { color: #bae6fd; font-size: 14px; line-height: 1.45; }
-    .target-card { border: 1px solid rgba(52, 211, 153, .34); background: rgba(6, 78, 59, .38); border-radius: 20px; padding: 20px; margin-top: 14px; }
-    .target-card strong { display: block; color: #bbf7d0; font-size: 19px; margin-bottom: 7px; }
-    .target-card span { color: #dcfce7; font-size: 15px; line-height: 1.5; }
-    .formula { border: 1px solid rgba(250, 204, 21, .58); background: linear-gradient(135deg, rgba(113, 63, 18, .72), rgba(15, 23, 42, .86)); border-radius: 20px; padding: 22px; font-size: 19px; font-weight: 900; color: #fef3c7; box-shadow: 0 0 30px rgba(250, 204, 21, .1); }
+    .formula { border: 1px solid rgba(250, 204, 21, .58); background: linear-gradient(135deg, rgba(113, 63, 18, .72), rgba(15, 23, 42, .86)); border-radius: 16px; padding: 14px 16px; font-size: 15px; font-weight: 900; color: #fef3c7; box-shadow: 0 0 30px rgba(250, 204, 21, .1); }
     .formula b { color: #facc15; }
-    .formula span { display: block; margin-top: 8px; color: #fde68a; font-size: 15px; }
+    .formula span { display: block; margin-top: 6px; color: #fde68a; font-size: 12px; }
     .score-table { width: 100%; border-collapse: collapse; border: 1px solid rgba(125, 211, 252, .18); background: rgba(15, 23, 42, .78); border-radius: 20px; overflow: hidden; }
-    .score-table th { color: #bae6fd; background: rgba(8, 47, 73, .82); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; text-align: left; padding: 12px; }
-    .score-table td { border-top: 1px solid rgba(125, 211, 252, .14); color: #d9efff; font-size: 14px; line-height: 1.45; padding: 12px; }
+    .score-table th { color: #bae6fd; background: rgba(8, 47, 73, .82); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; text-align: left; padding: 9px; }
+    .score-table td { border-top: 1px solid rgba(125, 211, 252, .14); color: #d9efff; font-size: 12px; line-height: 1.3; padding: 9px; }
     .score-table td:nth-child(2) { color: #7dd3fc; font-weight: 900; white-space: nowrap; }
     .score-table td:nth-child(3) { color: #facc15; font-weight: 900; white-space: nowrap; }
-    .diamond-chart { display: grid; grid-template-columns: 74px 1fr; gap: 14px; height: 250px; border: 1px solid rgba(125, 211, 252, .22); background: rgba(2, 6, 23, .52); border-radius: 20px; padding: 18px 18px 34px; }
-    .scale { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; height: 198px; color: #9ccce8; font-size: 12px; font-weight: 800; padding-top: 4px; }
-    .bars { position: relative; display: flex; align-items: end; gap: 12px; height: 198px; border-left: 2px solid rgba(148, 163, 184, .5); border-bottom: 2px solid rgba(148, 163, 184, .5); padding: 0 10px; background: repeating-linear-gradient(to top, rgba(148, 163, 184, .12), rgba(148, 163, 184, .12) 1px, transparent 1px, transparent 49px); }
-    .bar-wrap { flex: 1; height: 100%; position: relative; display: flex; align-items: end; justify-content: center; }
-    .bar { width: 72%; min-height: 3px; border-radius: 9px 9px 0 0; background: linear-gradient(180deg, #7dd3fc, #0284c7 55%, #1d4ed8); box-shadow: 0 0 18px rgba(56, 189, 248, .18); }
-    .bar-value { position: absolute; bottom: calc(var(--height) + 8px); color: white; font-size: 12px; font-weight: 900; white-space: nowrap; }
-    .bar-label { position: absolute; bottom: -27px; color: #bae6fd; font-size: 12px; font-weight: 900; }
-    footer { margin-top: 26px; color: #4f7895; font-size: 12px; text-align: center; }
+    footer { margin-top: 18px; color: #4f7895; font-size: 12px; text-align: center; }
     @media (max-width: 760px) {
-      main { width: 100%; }
-      .report-page { min-height: 0; padding: 24px; }
+      main { width: 100%; height: auto; padding: 24px; }
       .grid { grid-template-columns: repeat(2, 1fr); }
       .week { grid-template-columns: 1fr; }
-      .diamond-chart { grid-template-columns: 56px 1fr; overflow-x: auto; }
-      .bars { min-width: 620px; }
       .hero { grid-template-columns: 1fr; }
       .logo { width: 170px; }
       h1 { font-size: 44px; }
@@ -1572,7 +1554,6 @@ function buildCreatorReportHtml({
 </head>
 <body>
 <main>
-<section class="report-page">
   <section class="hero">
     <div>
       <div class="eyebrow">Weekly Performance Report</div>
@@ -1588,12 +1569,6 @@ function buildCreatorReportHtml({
     <div class="card hours"><div class="label">&#9201; Weekly Hours</div><div class="value">${formatHours(weeklyHours)}h</div></div>
     <div class="card days"><div class="label">&#9989; LIVE Days This Week</div><div class="value">${formatNumber(weeklyLiveDays)}</div></div>
     <div class="card battles"><div class="label">&#9876; Weekly Battles</div><div class="value">${formatNumber(weeklyMatches)}</div></div>
-  </section>
-
-  <h2>Weekly Targets</h2>
-  <section class="target-card">
-    <strong>Creator target: 5 live days and 20 live hours per week</strong>
-    <span>${getWeeklyTargetText(creator)}</span>
   </section>
 
   <h2>Health Score Points</h2>
@@ -1616,9 +1591,6 @@ function buildCreatorReportHtml({
       )
       .join("")}
   </section>
-</section>
-
-<section class="report-page">
 
   <h2>What You Did Well</h2>
   <section class="tips">
@@ -1641,29 +1613,7 @@ function buildCreatorReportHtml({
     <span>Average live day: ${formatHours(averageSessionLength)}h &bull; Weekly DPH: ${formatNumber(weeklyDph)} &bull; Best day: ${bestDay ? getFriendlyDate(bestDay.date) : "Not enough data"}</span>
   </section>
 
-  <h2>Diamonds This Week</h2>
-  <section class="diamond-chart">
-    <div class="scale">
-      <span>${formatNumber(maxDiamonds)}</span>
-      <span>${formatNumber(maxDiamonds / 2)}</span>
-      <span>0</span>
-    </div>
-    <div class="bars">
-      ${weeklyPoints
-        .map((point) => {
-          const height = Math.max(3, (point.diamonds / maxDiamonds) * 100);
-          return `<div class="bar-wrap">
-            <div class="bar-value" style="--height:${height}%">${formatNumber(point.diamonds)}</div>
-            <div class="bar" style="height:${height}%"></div>
-            <div class="bar-label">${String(point.date).slice(5)}</div>
-          </div>`;
-        })
-        .join("")}
-    </div>
-  </section>
-
   <footer>Keep pushing every live session.</footer>
-</section>
 </main>
 </body>
 </html>`;

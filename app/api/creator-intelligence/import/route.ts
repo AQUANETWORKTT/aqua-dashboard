@@ -68,6 +68,10 @@ function toNumber(value: unknown) {
   return Number.isFinite(num) ? num : 0;
 }
 
+function toInteger(value: unknown) {
+  return Math.round(toNumber(value));
+}
+
 function durationToHours(value: unknown) {
   const text = cleanText(value).toLowerCase();
   if (!text) return 0;
@@ -164,13 +168,13 @@ function getTextColumn(
   return value || null;
 }
 
-function getNumberColumn(
+function getIntegerColumn(
   row: unknown[],
   headerMap: Map<string, number>,
   possibleHeaders: string[],
   fallbackIndex: number
 ) {
-  return toNumber(getColumnByHeader(row, headerMap, possibleHeaders, fallbackIndex));
+  return toInteger(getColumnByHeader(row, headerMap, possibleHeaders, fallbackIndex));
 }
 
 function getDurationHoursColumn(
@@ -248,35 +252,35 @@ function parseWorkbook(buffer: ArrayBuffer, statDate: string): ParsedRow[] {
         4
       );
       const joinTime = getTextColumn(row, headerMap, ["join time", "join_time"], 5);
-      const daysSinceJoining = getNumberColumn(
+      const daysSinceJoining = getIntegerColumn(
         row,
         headerMap,
         ["days since joining", "days_since_joining"],
         6
       );
-      const diamonds = getNumberColumn(row, headerMap, ["diamonds"], 7);
+      const diamonds = getIntegerColumn(row, headerMap, ["diamonds"], 7);
       const liveDuration = cleanText(
         getColumnByHeader(row, headerMap, ["live duration", "live_duration"], 8)
       );
-      const validLiveDays = getNumberColumn(
+      const validLiveDays = getIntegerColumn(
         row,
         headerMap,
         ["valid go live days", "valid_live_days", "valid days"],
         9
       );
-      const newFollowers = getNumberColumn(
+      const newFollowers = getIntegerColumn(
         row,
         headerMap,
         ["new followers", "new_followers"],
         10
       );
-      const liveStreams = getNumberColumn(
+      const liveStreams = getIntegerColumn(
         row,
         headerMap,
         ["live streams", "live_streams"],
         11
       );
-      const matches = getNumberColumn(row, headerMap, ["matches"], 27);
+      const matches = getIntegerColumn(row, headerMap, ["matches"], 27);
       const followers = newFollowers;
       const graduationStatus = getTextColumn(
         row,
@@ -305,7 +309,7 @@ function parseWorkbook(buffer: ArrayBuffer, statDate: string): ParsedRow[] {
         live_streams: liveStreams,
         followers,
         days_since_joining: daysSinceJoining,
-        diamonds_last_month: getNumberColumn(row, headerMap, ["diamonds last month", "diamonds_last_month"], 12),
+        diamonds_last_month: getIntegerColumn(row, headerMap, ["diamonds last month", "diamonds_last_month"], 12),
         live_hours_last_month: getDurationHoursColumn(
           row,
           headerMap,
@@ -316,109 +320,109 @@ function parseWorkbook(buffer: ArrayBuffer, statDate: string): ParsedRow[] {
           ],
           13
         ),
-        valid_days_last_month: getNumberColumn(
+        valid_days_last_month: getIntegerColumn(
           row,
           headerMap,
           ["valid go live days last month", "valid_days_last_month"],
           14
         ),
-        followers_last_month: getNumberColumn(
+        followers_last_month: getIntegerColumn(
           row,
           headerMap,
           ["new followers last month", "followers_last_month"],
           15
         ),
-        live_streams_last_month: getNumberColumn(
+        live_streams_last_month: getIntegerColumn(
           row,
           headerMap,
           ["live streams last month", "live_streams_last_month"],
           16
         ),
-        diamonds_percentage_achieved: getNumberColumn(
+        diamonds_percentage_achieved: getIntegerColumn(
           row,
           headerMap,
           ["diamonds - percentage achieved", "diamonds percentage achieved"],
           17
         ),
-        live_hours_percentage_achieved: getNumberColumn(
+        live_hours_percentage_achieved: getIntegerColumn(
           row,
           headerMap,
           ["live duration - percentage achieved", "live duration percentage achieved"],
           18
         ),
-        valid_days_percentage_achieved: getNumberColumn(
+        valid_days_percentage_achieved: getIntegerColumn(
           row,
           headerMap,
           ["valid go live days - percentage achieved", "valid days percentage achieved"],
           19
         ),
-        followers_percentage_achieved: getNumberColumn(
+        followers_percentage_achieved: getIntegerColumn(
           row,
           headerMap,
           ["new followers - percentage achieved", "new followers percentage achieved"],
           20
         ),
-        live_streams_percentage_achieved: getNumberColumn(
+        live_streams_percentage_achieved: getIntegerColumn(
           row,
           headerMap,
           ["live streams - percentage achieved", "live streams percentage achieved"],
           21
         ),
-        diamonds_vs_last_month: getNumberColumn(
+        diamonds_vs_last_month: getIntegerColumn(
           row,
           headerMap,
           ["diamonds - vs. last month", "diamonds vs last month"],
           22
         ),
-        live_hours_vs_last_month: getNumberColumn(
+        live_hours_vs_last_month: getIntegerColumn(
           row,
           headerMap,
           ["live duration - vs. last month", "live duration vs last month"],
           23
         ),
-        valid_days_vs_last_month: getNumberColumn(
+        valid_days_vs_last_month: getIntegerColumn(
           row,
           headerMap,
           ["valid go live days - vs. last month", "valid days vs last month"],
           24
         ),
-        followers_vs_last_month: getNumberColumn(
+        followers_vs_last_month: getIntegerColumn(
           row,
           headerMap,
           ["new followers - vs. last month", "new followers vs last month"],
           25
         ),
-        live_streams_vs_last_month: getNumberColumn(
+        live_streams_vs_last_month: getIntegerColumn(
           row,
           headerMap,
           ["live streams - vs. last month", "live streams vs last month"],
           26
         ),
-        diamonds_from_matches: getNumberColumn(
+        diamonds_from_matches: getIntegerColumn(
           row,
           headerMap,
           ["diamonds from matches", "diamonds_from_matches"],
           28
         ),
-        new_live_creators: getNumberColumn(
+        new_live_creators: getIntegerColumn(
           row,
           headerMap,
           ["new live creators", "new_live_creators"],
           29
         ),
-        diamonds_from_multiguest: getNumberColumn(
+        diamonds_from_multiguest: getIntegerColumn(
           row,
           headerMap,
           ["diamonds from multi-guest", "diamonds_from_multiguest"],
           30
         ),
-        diamonds_from_multiguest_host: getNumberColumn(
+        diamonds_from_multiguest_host: getIntegerColumn(
           row,
           headerMap,
           ["diamonds from multi-guest (as host)", "diamonds_from_multiguest_host"],
           31
         ),
-        diamonds_from_multiguest_guest: getNumberColumn(
+        diamonds_from_multiguest_guest: getIntegerColumn(
           row,
           headerMap,
           ["diamonds from multi-guest (as guest)", "diamonds_from_multiguest_guest"],
@@ -426,21 +430,21 @@ function parseWorkbook(buffer: ArrayBuffer, statDate: string): ParsedRow[] {
         ),
         graduation_status: graduationStatus,
         tier_status: getTextColumn(row, headerMap, ["tier status", "tier_status"], 34),
-        new_fans: getNumberColumn(row, headerMap, ["new fans", "new_fans"], 35),
-        fan_club_diamonds: getNumberColumn(
+        new_fans: getIntegerColumn(row, headerMap, ["new fans", "new_fans"], 35),
+        fan_club_diamonds: getIntegerColumn(
           row,
           headerMap,
           ["fan club total diamonds", "fan_club_diamonds"],
           36
         ),
-        fan_contribution_percentage: getNumberColumn(
+        fan_contribution_percentage: getIntegerColumn(
           row,
           headerMap,
           ["fan contribution %", "fan_contribution_percentage"],
           37
         ),
-        total_fans: getNumberColumn(row, headerMap, ["total fans", "total_fans"], 38),
-        active_fans: getNumberColumn(
+        total_fans: getIntegerColumn(row, headerMap, ["total fans", "total_fans"], 38),
+        active_fans: getIntegerColumn(
           row,
           headerMap,
           ["active fans from fan club", "active_fans"],
