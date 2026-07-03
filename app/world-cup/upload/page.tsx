@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 
 type PreviewRow = {
@@ -43,6 +43,8 @@ export default function WorldCupUploadPage() {
   const [uploadDate, setUploadDate] = useState("");
   const [status, setStatus] = useState("");
   const [debugRows, setDebugRows] = useState<unknown[][]>([]);
+  const [selectedFileName, setSelectedFileName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const totalDiamonds = useMemo(
     () => rows.reduce((sum, row) => sum + row.diamonds, 0),
@@ -53,9 +55,11 @@ export default function WorldCupUploadPage() {
     setRows([]);
     setDebugRows([]);
     setStatus("");
+    setSelectedFileName(file.name);
 
     if (!uploadDate) {
       setStatus("Please select the World Cup date first.");
+      setSelectedFileName("");
       return;
     }
 
@@ -162,6 +166,14 @@ export default function WorldCupUploadPage() {
     }
   }
 
+  function removeSelectedFile() {
+    setRows([]);
+    setDebugRows([]);
+    setSelectedFileName("");
+    setStatus("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   return (
     <main className="min-h-dvh bg-[#02111f] px-4 py-8 text-white">
       <div className="mx-auto max-w-5xl rounded-[2rem] border border-cyan-200/15 bg-[#05263d] p-5 shadow-2xl shadow-cyan-950/60">
@@ -199,6 +211,7 @@ export default function WorldCupUploadPage() {
             </label>
 
             <input
+              ref={fileInputRef}
               type="file"
               accept=".xlsx,.xls,.csv"
               onChange={(e) => {
@@ -207,6 +220,15 @@ export default function WorldCupUploadPage() {
               }}
               className="w-full rounded-2xl border border-cyan-200/20 bg-[#02111f] px-4 py-3 font-bold text-white"
             />
+            {selectedFileName ? (
+              <button
+                type="button"
+                onClick={removeSelectedFile}
+                className="mt-3 w-full rounded-2xl border border-red-200/30 bg-red-500/10 px-4 py-3 text-xs font-black uppercase text-red-100"
+              >
+                Remove {selectedFileName}
+              </button>
+            ) : null}
           </div>
         </div>
 

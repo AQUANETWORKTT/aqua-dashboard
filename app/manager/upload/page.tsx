@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
 function getPointsFromImageCount(count: number) {
@@ -20,6 +20,7 @@ export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const user = localStorage.getItem("manager_username");
@@ -32,6 +33,18 @@ export default function UploadPage() {
     const selectedFiles = Array.from(e.target.files || []).slice(0, 6);
     setFiles(selectedFiles);
     setMessage("");
+  };
+
+  const removeFile = (indexToRemove: number) => {
+    setFiles((currentFiles) => currentFiles.filter((_, index) => index !== indexToRemove));
+    setMessage("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAllFiles = () => {
+    setFiles([]);
+    setMessage("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async () => {
@@ -152,6 +165,7 @@ export default function UploadPage() {
             <div className="manager-upload-title">Upload Images</div>
 
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               multiple
@@ -181,8 +195,24 @@ export default function UploadPage() {
                   </div>
 
                   <div className="manager-small">{file.name}</div>
+                  <button
+                    type="button"
+                    className="manager-link"
+                    onClick={() => removeFile(index)}
+                    disabled={submitting}
+                  >
+                    Remove
+                  </button>
                 </div>
               ))}
+              <button
+                type="button"
+                className="manager-button"
+                onClick={removeAllFiles}
+                disabled={submitting}
+              >
+                Remove All Files
+              </button>
             </div>
           ) : null}
 

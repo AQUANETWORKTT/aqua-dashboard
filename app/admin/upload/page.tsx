@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function AdminUploadPage() {
   const [password, setPassword] = useState("");
@@ -8,6 +8,13 @@ export default function AdminUploadPage() {
   const [creatorStatsFile, setCreatorStatsFile] = useState<File | null>(null);
   const [statsStatus, setStatsStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const creatorStatsInputRef = useRef<HTMLInputElement | null>(null);
+
+  function removeCreatorStatsFile() {
+    setCreatorStatsFile(null);
+    setStatsStatus(null);
+    if (creatorStatsInputRef.current) creatorStatsInputRef.current.value = "";
+  }
 
   async function handleStatsSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,8 +49,9 @@ export default function AdminUploadPage() {
       } else {
         setStatsStatus("❌ Unexpected server response.");
       }
-    } catch (err: any) {
-      setStatsStatus(`❌ ${err.message || "Upload failed."}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upload failed.";
+      setStatsStatus(`❌ ${message}`);
     } finally {
       setUploading(false);
     }
@@ -85,6 +93,7 @@ export default function AdminUploadPage() {
           <label className="admin-label">
             Creator Stats Excel
             <input
+              ref={creatorStatsInputRef}
               className="admin-input-file"
               type="file"
               accept=".xlsx,.xls"
@@ -94,6 +103,17 @@ export default function AdminUploadPage() {
               }
             />
           </label>
+
+          {creatorStatsFile ? (
+            <button
+              type="button"
+              className="admin-button"
+              onClick={removeCreatorStatsFile}
+              disabled={uploading}
+            >
+              Remove Attached File
+            </button>
+          ) : null}
 
           <p
             style={{
