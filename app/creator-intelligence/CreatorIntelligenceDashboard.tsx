@@ -3195,6 +3195,15 @@ export default function CreatorIntelligenceDashboard({
     void navigator.clipboard.writeText(text);
   }
 
+  function copyManagerTeamHealthText(managerSummary: ManagerHealthSummary) {
+    copyWhatsAppText(
+      `${managerSummary.manager} Creator Health Scores`,
+      [...managerSummary.creators]
+        .sort((a, b) => b.healthScore - a.healthScore)
+        .map((creator) => `${creator.username}: ${creator.healthScore}/100 (${creator.healthStatus})`)
+    );
+  }
+
   function buildManagerGroupedWhatsAppLines<T>(
     items: T[],
     getManager: (item: T) => string,
@@ -3668,6 +3677,13 @@ export default function CreatorIntelligenceDashboard({
                       className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:bg-slate-50"
                     >
                       Filter Page
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => copyManagerTeamHealthText(managerSummary)}
+                      className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-700 hover:bg-cyan-100"
+                    >
+                      Copy Health Scores
                     </button>
                     <button
                       type="button"
