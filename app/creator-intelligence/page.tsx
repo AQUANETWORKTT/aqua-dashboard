@@ -177,24 +177,13 @@ type ManagerHealthTrendPoint = {
   score: number;
 };
 
-const MONTHS = [
-  { value: "2026-01", label: "January 2026" },
-  { value: "2026-02", label: "February 2026" },
-  { value: "2026-03", label: "March 2026" },
-  { value: "2026-04", label: "April 2026" },
-  { value: "2026-05", label: "May 2026" },
-  { value: "2026-06", label: "June 2026" },
-  { value: "2026-07", label: "July 2026" },
-  { value: "2026-08", label: "August 2026" },
-  { value: "2026-09", label: "September 2026" },
-  { value: "2026-10", label: "October 2026" },
-  { value: "2026-11", label: "November 2026" },
-  { value: "2026-12", label: "December 2026" },
-];
-
 const GRADUATION_TARGET = 200000;
 const MINIMUM_TRACKER_DIAMONDS = 1000;
 const MANUAL_FOCUS_STORAGE_KEY = "creator-intelligence-manual-focus";
+const DATA_START_DATE = "2026-01-01";
+const AQUA_TABLE_START_DATE = "2026-06-19";
+const LEGACY_TABLE_END_DATE = "2026-06-18";
+const OPEN_ENDED_DATA_DATE = "2099-12-31";
 const CHART_METRICS: {
   key: ChartMetricKey;
   label: string;
@@ -230,21 +219,6 @@ function safeNumber(value: unknown) {
 
 function cleanText(value: unknown, fallback = "") {
   return String(value || fallback).trim();
-}
-
-function getLastDayForMonth(month: string) {
-  const [year, monthNumber] = month.split("-");
-  return new Date(Number(year), Number(monthNumber), 0).getDate();
-}
-
-function getPreviousMonthStart(month: string) {
-  const [year, monthNumber] = month.split("-").map(Number);
-  const date = new Date(year, monthNumber - 2, 1);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function getDayNumber(dateValue: string) {
-  return Number(String(dateValue).split("-")[2] || 1);
 }
 
 function formatNumber(value: number) {
@@ -746,7 +720,7 @@ function buildCreatorSummaries(rows: CreatorStat[], rollingRows: CreatorStat[] =
           .slice(-30),
         "monthly"
       );
-      const dailyPoints = sortedRows.map(getDailyPoint);
+      const dailyPoints = rollingCreatorRows.slice(-30).map(getDailyPoint);
       const base = {
         key,
         id: getText(latest, ["creator_id", "Creator ID"], key),
@@ -863,7 +837,7 @@ function buildInsights(creator: CreatorSummary) {
     insights.push("Creator has high hours but low diamonds per hour.");
   }
   if (followersChange < 0) insights.push("Followers are down compared with last month.");
-  if (!insights.length) insights.push("Creator performance is steady for the selected filters.");
+  if (!insights.length) insights.push("Creator performance is steady for the current filters.");
 
   return insights;
 }
@@ -881,7 +855,7 @@ function buildProfileInsights(
   points: CreatorDailyPoint[],
   range: "week" | "month"
 ) {
-  const label = range === "week" ? "Selected week" : "Selected month";
+  const label = range === "week" ? "Last 7 days" : "Last 30 days";
   const shortLiveDays = points.filter((point) => point.liveHours > 0 && point.liveHours < 1);
   const insights = [
     `${label}: ${formatNumber(stats.diamonds)} diamonds from ${formatHours(stats.liveHours)} live hours.`,
@@ -1234,8 +1208,8 @@ function buildManagerFocusDetail(creator: CreatorSummary) {
   if (creator.healthScore <= 0) {
     const monthlyLiveText =
       creator.liveHours > 0 || creator.liveStreams > 0
-        ? `There is some month-level live data (${formatHours(creator.liveHours)}h / ${formatNumber(creator.liveStreams)} streams), but nothing useful in the current weekly health window.`
-        : "There is no useful live data in the selected month.";
+        ? `There is some recent live data (${formatHours(creator.liveHours)}h / ${formatNumber(creator.liveStreams)} streams), but nothing useful in the current weekly health window.`
+        : "There is no useful live data in the latest 7-day window.";
 
     return [
       `Immediate reach-out needed: ${creator.username} has a 0 health score because they have not been going live, so there is no performance data to work with.`,
@@ -2140,15 +2114,18 @@ function downloadManagerReport(
   const lastSevenDiamonds = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenDiamonds(creator), 0);
   const lastSevenHours = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenHours(creator), 0);
   const lastSevenBattles = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenMatches(creator), 0);
-  const monthDiamonds = managerSummary.creators.reduce((sum, creator) => sum + creator.diamonds, 0);
-  const monthHours = managerSummary.creators.reduce((sum, creator) => sum + creator.liveHours, 0);
-  const monthBattles = managerSummary.creators.reduce((sum, creator) => sum + creator.matches, 0);
-  const latestCreatorDate = managerSummary.creators
-    .map((creator) => creator.latestDate)
-    .sort((a, b) => b.localeCompare(a))[0];
-  const monthLabel = latestCreatorDate
-    ? new Date(`${latestCreatorDate.slice(0, 7)}-01T00:00:00`).toLocaleDateString("en-GB", { month: "long" })
-    : "Month";
+  const lastThirtyDiamonds = managerSummary.creators.reduce(
+    (sum, creator) => sum + creator.dailyPoints.reduce((pointSum, point) => pointSum + point.diamonds, 0),
+    0
+  );
+  const lastThirtyHours = managerSummary.creators.reduce(
+    (sum, creator) => sum + creator.dailyPoints.reduce((pointSum, point) => pointSum + point.liveHours, 0),
+    0
+  );
+  const lastThirtyBattles = managerSummary.creators.reduce(
+    (sum, creator) => sum + creator.dailyPoints.reduce((pointSum, point) => pointSum + point.matches, 0),
+    0
+  );
   const averageDph = lastSevenHours > 0 ? lastSevenDiamonds / lastSevenHours : 0;
   const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
   const html = `<!doctype html>
@@ -2250,11 +2227,11 @@ function downloadManagerReport(
       </div>
     </div>
     <div class="summary-section">
-      <h2 class="summary-title">${monthLabel} Month To Date</h2>
+      <h2 class="summary-title">Last 30 Days</h2>
       <div class="section-cards">
-        <div class="card"><div class="label">${monthLabel} Diamonds</div><div class="value">${formatNumber(monthDiamonds)}</div></div>
-        <div class="card"><div class="label">${monthLabel} Hours</div><div class="value">${formatHours(monthHours)}h</div></div>
-        <div class="card"><div class="label">${monthLabel} Battles</div><div class="value">${formatNumber(monthBattles)}</div></div>
+        <div class="card"><div class="label">Last 30 Diamonds</div><div class="value">${formatNumber(lastThirtyDiamonds)}</div></div>
+        <div class="card"><div class="label">Last 30 Hours</div><div class="value">${formatHours(lastThirtyHours)}h</div></div>
+        <div class="card"><div class="label">Last 30 Battles</div><div class="value">${formatNumber(lastThirtyBattles)}</div></div>
       </div>
     </div>
   </section>
@@ -2391,9 +2368,9 @@ function downloadManagerReport(
       <th>Last 7 Battles</th>
       <th>Last 7 DPH</th>
       <th>Last 7 Diamonds</th>
-      <th>${monthLabel} Hours</th>
-      <th>${monthLabel} Battles</th>
-      <th>${monthLabel} Diamonds</th>
+      <th>Last 30 Hours</th>
+      <th>Last 30 Battles</th>
+      <th>Last 30 Diamonds</th>
     </tr>
     ${managerSummary.creators
       .map((creator) => {
@@ -2407,6 +2384,9 @@ function downloadManagerReport(
         const creatorLastSevenMatches = getLastSevenMatches(creator);
         const creatorLastSevenDiamonds = getLastSevenDiamonds(creator);
         const creatorLastSevenDph = getLastSevenDph(creator);
+        const creatorLastThirtyHours = creator.dailyPoints.reduce((sum, point) => sum + point.liveHours, 0);
+        const creatorLastThirtyMatches = creator.dailyPoints.reduce((sum, point) => sum + point.matches, 0);
+        const creatorLastThirtyDiamonds = creator.dailyPoints.reduce((sum, point) => sum + point.diamonds, 0);
         const opportunity = getTopHealthScoreOpportunity(creator);
 
         return `<tr>
@@ -2420,9 +2400,9 @@ function downloadManagerReport(
           <td>${formatNumber(creatorLastSevenMatches)}</td>
           <td>${formatNumber(creatorLastSevenDph)}</td>
           <td>${formatNumber(creatorLastSevenDiamonds)}</td>
-          <td>${formatHours(creator.liveHours)}h</td>
-          <td>${formatNumber(creator.matches)}</td>
-          <td>${formatNumber(creator.diamonds)}</td>
+          <td>${formatHours(creatorLastThirtyHours)}h</td>
+          <td>${formatNumber(creatorLastThirtyMatches)}</td>
+          <td>${formatNumber(creatorLastThirtyDiamonds)}</td>
         </tr>
         <tr class="creator-action-row">
           <td colspan="13">
@@ -2456,9 +2436,6 @@ function downloadManagerReport(
 }
 
 export default function CreatorIntelligencePage() {
-  const [month, setMonth] = useState("2026-06");
-  const [startDay, setStartDay] = useState(1);
-  const [endDay, setEndDay] = useState(getLastDayForMonth("2026-06"));
   const [manager, setManager] = useState("All Managers");
   const [graduationStatus, setGraduationStatus] = useState("All Graduation");
   const [tierStatus, setTierStatus] = useState("All Tiers");
@@ -2488,12 +2465,6 @@ export default function CreatorIntelligencePage() {
     "liveHours",
     "matches",
   ]);
-
-  const lastDay = getLastDayForMonth(month);
-  const dayOptions = useMemo(
-    () => Array.from({ length: lastDay }, (_, index) => index + 1),
-    [lastDay]
-  );
 
   useEffect(() => {
     window.localStorage.setItem(MANUAL_FOCUS_STORAGE_KEY, JSON.stringify(manualFocusCreatorKeys));
@@ -2528,23 +2499,12 @@ export default function CreatorIntelligencePage() {
 
     async function loadData() {
       setLoading(true);
-      const startDate = getPreviousMonthStart(month);
-      const endDate = `${month}-${String(getLastDayForMonth(month)).padStart(2, "0")}`;
-      const aquaTableStartDate = "2026-06-19";
-      const legacyTableEndDate = "2026-06-18";
 
       try {
-        const requests: Promise<CreatorStat[]>[] = [];
-
-        if (startDate <= legacyTableEndDate) {
-          requests.push(fetchRows("creator_daily_stats", startDate, endDate < legacyTableEndDate ? endDate : legacyTableEndDate));
-        }
-
-        if (endDate >= aquaTableStartDate) {
-          requests.push(fetchRows("aqua_daily_stats", startDate > aquaTableStartDate ? startDate : aquaTableStartDate, endDate));
-        }
-
-        const batches = await Promise.all(requests);
+        const batches = await Promise.all([
+          fetchRows("creator_daily_stats", DATA_START_DATE, LEGACY_TABLE_END_DATE),
+          fetchRows("aqua_daily_stats", AQUA_TABLE_START_DATE, OPEN_ENDED_DATA_DATE),
+        ]);
         setRows(batches.flat());
       } catch (error) {
         console.error(error);
@@ -2555,38 +2515,38 @@ export default function CreatorIntelligencePage() {
     }
 
     loadData();
-  }, [month]);
+  }, []);
 
-  const selectedEndDate = `${month}-${String(endDay).padStart(2, "0")}`;
-  const rowsThroughSelectedEnd = useMemo(
-    () => rows.filter((row) => row.stat_date <= selectedEndDate),
-    [rows, selectedEndDate]
-  );
-  const rollingUploadedDates = useMemo(
+  const uploadedDates = useMemo(
     () =>
-      Array.from(new Set(rowsThroughSelectedEnd.map((row) => row.stat_date)))
+      Array.from(new Set(rows.map((row) => row.stat_date)))
         .sort((a, b) => a.localeCompare(b)),
-    [rowsThroughSelectedEnd]
+    [rows]
   );
+  const latestUploadedDate = uploadedDates[uploadedDates.length - 1] || "";
   const rollingSevenDateSet = useMemo(
-    () => new Set(rollingUploadedDates.slice(-7)),
-    [rollingUploadedDates]
+    () => new Set(uploadedDates.slice(-7)),
+    [uploadedDates]
   );
-  const dateRangeRows = useMemo(
-    () => rowsThroughSelectedEnd.filter((row) => rollingSevenDateSet.has(row.stat_date)),
-    [rollingSevenDateSet, rowsThroughSelectedEnd]
+  const rollingThirtyDateSet = useMemo(
+    () => new Set(uploadedDates.slice(-30)),
+    [uploadedDates]
+  );
+  const lastSevenRows = useMemo(
+    () => rows.filter((row) => rollingSevenDateSet.has(row.stat_date)),
+    [rollingSevenDateSet, rows]
+  );
+  const lastThirtyRows = useMemo(
+    () => rows.filter((row) => rollingThirtyDateSet.has(row.stat_date)),
+    [rollingThirtyDateSet, rows]
   );
 
   const allSummaries = useMemo(
-    () => buildCreatorSummaries(dateRangeRows, rowsThroughSelectedEnd),
-    [dateRangeRows, rowsThroughSelectedEnd]
+    () => buildCreatorSummaries(lastSevenRows, lastThirtyRows),
+    [lastSevenRows, lastThirtyRows]
   );
-  const aquaRows = useMemo(() => dateRangeRows.filter(isAquaRow), [dateRangeRows]);
-  const rollingAquaRows = useMemo(() => rowsThroughSelectedEnd.filter(isAquaRow), [rowsThroughSelectedEnd]);
-  const currentMonthAquaRows = useMemo(
-    () => rowsThroughSelectedEnd.filter((row) => isAquaRow(row) && row.stat_date.startsWith(`${month}-`)),
-    [month, rowsThroughSelectedEnd]
-  );
+  const aquaRows = useMemo(() => lastSevenRows.filter(isAquaRow), [lastSevenRows]);
+  const rollingAquaRows = useMemo(() => lastThirtyRows.filter(isAquaRow), [lastThirtyRows]);
   const latestAquaDate = useMemo(() => {
     const dates = aquaRows.map((row) => row.stat_date).sort((a, b) => a.localeCompare(b));
     return dates[dates.length - 1] || "";
@@ -2734,7 +2694,7 @@ export default function CreatorIntelligencePage() {
     () =>
       managerHealthSummaries
         .map((managerSummary) => {
-          const trend = buildManagerHealthTrend(rowsThroughSelectedEnd, managerSummary);
+          const trend = buildManagerHealthTrend(lastThirtyRows, managerSummary);
           const first = trend[0]?.score ?? 0;
           const latest = trend[trend.length - 1]?.score ?? 0;
           const change = trend.length > 1 ? latest - first : 0;
@@ -2774,7 +2734,7 @@ export default function CreatorIntelligencePage() {
           };
         })
         .sort((a, b) => b.weekPercentChange - a.weekPercentChange),
-    [managerHealthSummaries, rowsThroughSelectedEnd]
+    [lastThirtyRows, managerHealthSummaries]
   );
 
   const newCreators = useMemo(
@@ -3003,24 +2963,23 @@ export default function CreatorIntelligencePage() {
     [managerHealthSummaries, weeklyHealthComparison]
   );
 
-  const latestGraduationUploadDay = useMemo(() => {
-    const uploadedDays = currentMonthAquaRows
+  const latestGraduationUploadCount = useMemo(() => {
+    const uploadedDatesWithActivity = Array.from(new Set(rollingAquaRows
       .filter(
         (row) =>
           getNumber(row, ["diamonds", "Diamonds"]) > 0 ||
           getDurationHours(row, ["live_hours", "LIVE duration"]) > 0 ||
           getNumber(row, ["matches", "Matches"]) > 0
       )
-      .map((row) => getDayNumber(row.stat_date))
-      .filter((day) => day > 0);
+      .map((row) => row.stat_date)));
 
-    return uploadedDays.length ? Math.min(Math.max(...uploadedDays), lastDay) : Math.min(endDay, lastDay);
-  }, [currentMonthAquaRows, endDay, lastDay]);
+    return uploadedDatesWithActivity.length;
+  }, [rollingAquaRows]);
 
   const graduationTrackerRows = useMemo<GraduationTrackerRow[]>(() => {
-    const currentMonthDay = Math.min(latestGraduationUploadDay, lastDay);
-    const targetToDate = (GRADUATION_TARGET / lastDay) * currentMonthDay;
-    const remainingDays = Math.max(lastDay - currentMonthDay, 0);
+    const activeThirtyDayCount = Math.min(latestGraduationUploadCount, 30);
+    const targetToDate = (GRADUATION_TARGET / 30) * activeThirtyDayCount;
+    const remainingDays = Math.max(30 - activeThirtyDayCount, 0);
 
     return filteredCreators
       .filter(
@@ -3075,7 +3034,7 @@ export default function CreatorIntelligencePage() {
 
         return b.progressPercent - a.progressPercent;
       });
-  }, [filteredCreators, lastDay, latestGraduationUploadDay]);
+  }, [filteredCreators, latestGraduationUploadCount]);
 
   const groupedCreators = useMemo(
     () => {
@@ -3359,59 +3318,10 @@ export default function CreatorIntelligencePage() {
 
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800">
-            This page is locked to Aqua creators. It keeps historic Aqua data from the combined table up to 18 June 2026, then uses Aqua-only uploads from 19 June 2026 onward.
+            This page is locked to Aqua creators and always uses the latest uploaded data: last 7 days for weekly stats, last 30 days for trends and 30-day scores.
+            {latestUploadedDate ? ` Latest upload: ${latestUploadedDate}.` : ""}
           </div>
-          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <label className="text-xs font-bold uppercase text-slate-500">
-              Month
-              <select
-                value={month}
-                onChange={(event) => {
-                  const nextMonth = event.target.value;
-                  setMonth(nextMonth);
-                  setStartDay(1);
-                  setEndDay(getLastDayForMonth(nextMonth));
-                }}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-950"
-              >
-                {MONTHS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="text-xs font-bold uppercase text-slate-500">
-              Start
-              <select
-                value={startDay}
-                onChange={(event) => setStartDay(Number(event.target.value))}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-950"
-              >
-                {dayOptions.map((day) => (
-                  <option key={day} value={day}>
-                    Day {day}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="text-xs font-bold uppercase text-slate-500">
-              End
-              <select
-                value={endDay}
-                onChange={(event) => setEndDay(Number(event.target.value))}
-                className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-950"
-              >
-                {dayOptions.map((day) => (
-                  <option key={day} value={day}>
-                    Day {day}
-                  </option>
-                ))}
-              </select>
-            </label>
-
+          <div className="grid gap-3 md:grid-cols-3">
             <label className="text-xs font-bold uppercase text-slate-500">
               Manager
               <select
@@ -3706,7 +3616,7 @@ export default function CreatorIntelligencePage() {
                             : 0,
                           managerGrowthSummaries.find(
                             (item) => item.managerSummary.manager === managerSummary.manager
-                          )?.trend || buildManagerHealthTrend(rowsThroughSelectedEnd, managerSummary)
+                          )?.trend || buildManagerHealthTrend(lastThirtyRows, managerSummary)
                         )
                       }
                       className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100"
@@ -4014,7 +3924,7 @@ export default function CreatorIntelligencePage() {
                         : "text-slate-500 hover:bg-white hover:text-slate-900"
                     }`}
                   >
-                    {range}
+                    {range === "week" ? "Last 7 days" : "Last 30 days"}
                   </button>
                 ))}
               </div>
@@ -4428,7 +4338,7 @@ export default function CreatorIntelligencePage() {
             <div>
               <h2 className="text-2xl font-black uppercase text-sky-950">Aqua Graduation Tracker</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Tracks eligible Aqua creators towards {formatNumber(GRADUATION_TARGET)} diamonds. Pace is measured against the latest uploaded day.
+                Tracks eligible Aqua creators towards {formatNumber(GRADUATION_TARGET)} diamonds across the latest 30 uploaded days.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -4440,8 +4350,7 @@ export default function CreatorIntelligencePage() {
                 Copy WhatsApp Text
               </button>
               <div className="rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800">
-                Target pace day {latestGraduationUploadDay}:{" "}
-                {formatNumber((GRADUATION_TARGET / lastDay) * Math.min(latestGraduationUploadDay, lastDay))}
+                30-day target pace: {formatNumber((GRADUATION_TARGET / 30) * Math.min(latestGraduationUploadCount, 30))}
               </div>
             </div>
           </div>
