@@ -361,6 +361,33 @@ function getTikTokUsername(url: string) {
   return match ? match[1].toLowerCase() : "";
 }
 
+function getBattleParts(row: string) {
+  return row.split(/\t+/).map((part) => part.trim());
+}
+
+function getPastedBattleDate(parts: string[]) {
+  return formatDate(parts[0] || "");
+}
+
+function getPastedBattleNames(parts: string[]) {
+  const creatorFromUrl = getTikTokUsername(parts[4] || "");
+  const creatorFromName = String(parts[1] || "").replace("@", "").trim().toLowerCase();
+  const opponentFromUrl = getTikTokUsername(parts[6] || "");
+
+  return {
+    name1Raw: creatorFromUrl || creatorFromName,
+    name2Raw: opponentFromUrl,
+  };
+}
+
+function getPastedBattleTime(parts: string[]) {
+  return formatTime(parts[7] || parts[5] || "");
+}
+
+function getPastedBattleManager(parts: string[]) {
+  return formatDate(parts[2] || BRAND.manager);
+}
+
 function cleanFileName(value: string) {
   return value
     .replaceAll(" ", "-")
@@ -1266,19 +1293,17 @@ export default function BattleGeneratorPage() {
   }
 
   async function parseSingleBattleRow(row: string) {
-  const parts = row.split(/\t+/);
+  const parts = getBattleParts(row);
 
   const selectedDate =
-    singleBattle.date || massDate || formatDateFromParts(singleDay, singleMonth);
+    singleBattle.date ||
+    massDate ||
+    formatDateFromParts(singleDay, singleMonth) ||
+    getPastedBattleDate(parts);
 
-  const name1Raw =
-    getTikTokUsername(parts[3] || "") ||
-    String(parts[0] || "").replace("@", "").trim().toLowerCase();
-
-  const name2Raw = getTikTokUsername(parts[5] || "");
-
-  const time = formatTime(parts[6] || parts[4] || "");
-  const manager = formatDate(parts[1] || BRAND.manager);
+  const { name1Raw, name2Raw } = getPastedBattleNames(parts);
+  const time = getPastedBattleTime(parts);
+  const manager = getPastedBattleManager(parts);
 
   const image1 = await fetchTikTokAvatar(name1Raw);
   const image2 = await fetchTikTokAvatar(name2Raw);
@@ -1296,23 +1321,17 @@ export default function BattleGeneratorPage() {
 }
 
   async function parseMassBattleRow(row: string, selectedDate: string) {
-    const parts = row.split(/\t+/);
-
-    const name1Raw =
-      getTikTokUsername(parts[3] || "") ||
-      String(parts[0] || "").replace("@", "").trim().toLowerCase();
-
-    const name2Raw = getTikTokUsername(parts[5] || "");
-
-    const time = formatTime(parts[6] || parts[4] || "");
-    const manager = formatDate(parts[1] || BRAND.manager);
+    const parts = getBattleParts(row);
+    const { name1Raw, name2Raw } = getPastedBattleNames(parts);
+    const time = getPastedBattleTime(parts);
+    const manager = getPastedBattleManager(parts);
 
     const image1 = await fetchTikTokAvatar(name1Raw);
     const image2 = await fetchTikTokAvatar(name2Raw);
 
     return {
       id: makeId(),
-      date: selectedDate,
+      date: selectedDate || getPastedBattleDate(parts),
       manager,
       name1: formatName(name1Raw),
       name2: formatName(name2Raw),
@@ -1341,17 +1360,17 @@ export default function BattleGeneratorPage() {
   }
 
   async function readRows() {
-    if (!massDate) {
-      alert("Please select a date for the mass posters first.");
-      return;
-    }
-
-    setLoading(true);
-
     const rows = paste
       .split("\n")
       .map((row) => row.trim())
       .filter((row) => row.length > 0);
+
+    if (!massDate && rows.some((row) => !getPastedBattleDate(getBattleParts(row)))) {
+      alert("Please select a date or include a date in every pasted battle row.");
+      return;
+    }
+
+    setLoading(true);
 
     const parsed: Battle[] = [];
 
@@ -2770,8 +2789,9 @@ function renderText(
                 </p>
 
                 <p className="text-white/50 text-xs mt-2">
-                  Format: creator username, manager, creator link, opponent
-                  link, second time. Select the date above first.
+                  Format: date, creator, manager, range, creator link,
+                  creator time, opponent link, battle time, agency, confirmed.
+                  The selected date overrides pasted row dates.
                 </p>
               </div>
 
