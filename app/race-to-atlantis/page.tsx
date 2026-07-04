@@ -53,6 +53,8 @@ type CreatorProgress = {
 };
 
 const RACE_MONTH_KEY = "2026-07";
+const RACE_MONTH_START = `${RACE_MONTH_KEY}-01`;
+const RACE_MONTH_END = `${RACE_MONTH_KEY}-31`;
 
 const GOLD_CREATORS = [
   "dylanjinks",
@@ -388,7 +390,12 @@ function CreatorAvatar({ username }: { username: string }) {
   );
 }
 
-function buildCreatorProgress(rows: CreatorStat[], track: TrackConfig, username: string): CreatorProgress {
+function buildCreatorProgress(
+  rows: CreatorStat[],
+  track: TrackConfig,
+  username: string,
+  newFansByCreator: Record<string, number>
+): CreatorProgress {
   const key = usernameKey(username);
   const creatorRows = rows.filter((row) => usernameKey(getUsername(row)) === key);
   const emptyStats: Record<TrackRequirement["key"], number> = {
@@ -412,6 +419,7 @@ function buildCreatorProgress(rows: CreatorStat[], track: TrackConfig, username:
     },
     emptyStats
   );
+  statValues.newFans = newFansByCreator[key] ?? statValues.newFans;
 
   const completed = track.requirements.filter((requirement) => statValues[requirement.key] >= requirement.target).length;
   const progress =
@@ -432,6 +440,7 @@ function buildCreatorProgress(rows: CreatorStat[], track: TrackConfig, username:
 export default function RaceToAtlantisPage() {
   const [activeTrackId, setActiveTrackId] = useState<TrackId>("bronze");
   const [rows, setRows] = useState<CreatorStat[]>([]);
+  const [newFansByCreator, setNewFansByCreator] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [loggedInUsername, setLoggedInUsername] = useState("");
   const [expandedCreatorKeys, setExpandedCreatorKeys] = useState<string[]>([]);
@@ -465,7 +474,54 @@ export default function RaceToAtlantisPage() {
         from += pageSize;
       }
 
+      const latestFanRows = new Map<string, { statDate: string; newFans: number }>();
+      let fanFrom = 0;
+      let hasMoreFanRows = true;
+
+      while (hasMoreFanRows) {
+        const { data, error } = await submissionsSupabase
+          .from("aqua_daily_stats")
+          .select("stat_date,creator_username,new_fans")
+          .gte("stat_date", RACE_MONTH_START)
+          .lte("stat_date", RACE_MONTH_END)
+          .order("stat_date", { ascending: true })
+          .range(fanFrom, fanFrom + pageSize - 1);
+
+        if (error) {
+          console.error(error);
+          break;
+        }
+
+        const batch = (data || []) as CreatorStat[];
+
+        for (const row of batch) {
+          const key = usernameKey(getUsername(row));
+          if (!key) continue;
+
+          const statDate = cleanText(row.stat_date);
+          const current = latestFanRows.get(key);
+
+          if (!current || statDate >= current.statDate) {
+            latestFanRows.set(key, {
+              statDate,
+              newFans: getNumber(row, ["new_fans", "New fans", "fans"]),
+            });
+          }
+        }
+
+        hasMoreFanRows = batch.length === pageSize;
+        fanFrom += pageSize;
+      }
+
       setRows(allRows);
+      setNewFansByCreator(
+        Object.fromEntries(
+          Array.from(latestFanRows.entries()).map(([key, value]) => [
+            key,
+            value.newFans,
+          ])
+        )
+      );
       setLoading(false);
     }
 
@@ -495,10 +551,10 @@ export default function RaceToAtlantisPage() {
         ...track.creators,
         ...(track.id === "bronze" || track.id === "pro" ? newBronzeCreators : []),
       ])
-        .map((username) => buildCreatorProgress(rows, track, username))
+        .map((username) => buildCreatorProgress(rows, track, username, newFansByCreator))
         .sort((a, b) => b.progress - a.progress),
     }));
-  }, [newBronzeCreators, rows]);
+  }, [newBronzeCreators, newFansByCreator, rows]);
 
   const leaderboard = useMemo(() => {
     return trackLeaderboards.find((trackData) => trackData.track.id === activeTrack.id)?.creators || [];
