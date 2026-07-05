@@ -77,6 +77,26 @@ type CreatorDailyPoint = {
 
 type ChartMetricKey = "diamonds" | "liveHours" | "validDays" | "matches" | "newFollowers" | "dph" | "healthScore";
 
+type TeamPosterElement = {
+  id: string;
+  kind: "avatar" | "username" | "diamonds" | "text";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  value: string;
+  imageUrl?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  color?: string;
+  fontWeight?: number;
+};
+
+type TeamPosterTemplate = {
+  backgroundUrl: string;
+  elements: TeamPosterElement[];
+};
+
 type CreatorSummary = {
   key: string;
   id: string;
@@ -180,6 +200,9 @@ type ManagerHealthTrendPoint = {
 const GRADUATION_TARGET = 200000;
 const MINIMUM_TRACKER_DIAMONDS = 1000;
 const MANUAL_FOCUS_STORAGE_KEY = "creator-intelligence-manual-focus";
+const TEAM_POSTER_TEMPLATE_STORAGE_KEY = "aqua-blank-poster-builder-template-v1";
+const TEAM_POSTER_WIDTH = 1024;
+const TEAM_POSTER_HEIGHT = 1536;
 const DATA_START_DATE = "2026-01-01";
 const AQUA_TABLE_START_DATE = "2026-06-19";
 const LEGACY_TABLE_END_DATE = "2026-06-18";
@@ -1436,6 +1459,131 @@ function getFriendlyDate(dateValue: string) {
   });
 }
 
+function getYesterdayDateKey() {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatCompactDiamonds(value: number) {
+  if (value >= 1000000) {
+    const millions = value / 1000000;
+    return `${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M`;
+  }
+  if (value >= 1000) {
+    const thousands = value / 1000;
+    return `${thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(1)}K`;
+  }
+  return value.toLocaleString("en-GB");
+}
+
+function getDefaultTeamPosterTemplate(): TeamPosterTemplate {
+  const elements: TeamPosterElement[] = [];
+  const startY = 455;
+  const rowGap = 103;
+
+  for (let index = 0; index < 10; index += 1) {
+    const rowY = startY + index * rowGap;
+    elements.push({
+      id: `avatar-${index + 1}`,
+      kind: "avatar",
+      x: 145,
+      y: rowY,
+      width: 92,
+      height: 92,
+      value: `Creator ${index + 1} Avatar`,
+    });
+    elements.push({
+      id: `username-${index + 1}`,
+      kind: "username",
+      x: 275,
+      y: rowY + 15,
+      width: 430,
+      height: 58,
+      value: `CREATOR ${index + 1}`,
+      fontFamily: "Luckiest Guy",
+      fontSize: 42,
+      color: "#FFFFFF",
+      fontWeight: 900,
+    });
+    elements.push({
+      id: `diamonds-${index + 1}`,
+      kind: "diamonds",
+      x: 725,
+      y: rowY + 15,
+      width: 210,
+      height: 58,
+      value: `DIAMONDS ${index + 1}`,
+      fontFamily: "Luckiest Guy",
+      fontSize: 42,
+      color: "#5CEEFF",
+      fontWeight: 900,
+    });
+  }
+
+  return { backgroundUrl: "", elements };
+}
+
+function normalizeTeamPosterTemplate(input: Partial<TeamPosterTemplate> | null): TeamPosterTemplate {
+  const base = getDefaultTeamPosterTemplate();
+  const incomingElements = Array.isArray(input?.elements) ? input.elements : [];
+  const byId = new Map(incomingElements.map((element) => [element.id, element]));
+
+  return {
+    backgroundUrl: input?.backgroundUrl || "",
+    elements: base.elements.map((element) => ({
+      ...element,
+      ...(byId.get(element.id) || {}),
+    })),
+  };
+}
+
+function getSavedTeamPosterTemplate() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const saved = window.localStorage.getItem(TEAM_POSTER_TEMPLATE_STORAGE_KEY);
+    if (!saved) return null;
+    return normalizeTeamPosterTemplate(JSON.parse(saved) as TeamPosterTemplate);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchTikTokAvatarForPoster(username: string) {
+  const cleanUsername = username.replace("@", "").trim().toLowerCase();
+  if (!cleanUsername) return "";
+
+  const refreshKey = Date.now();
+
+  try {
+    const res = await fetch("/api/tiktok-avatar-v2", {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+      body: JSON.stringify({
+        username: cleanUsername,
+        forceRefresh: true,
+        refresh: refreshKey,
+      }),
+    });
+
+    const json = await res.json();
+    if (!json.avatar) return "";
+
+    return `/api/tiktok-avatar-image?url=${encodeURIComponent(json.avatar)}&refresh=${refreshKey}`;
+  } catch {
+    return "";
+  }
+}
+
 function buildWeeklyReportRows(creator: CreatorSummary) {
   return creator.dailyPoints.slice(-7).map((point) => ({
     date: getFriendlyDate(point.date),
@@ -2073,6 +2221,86 @@ async function renderCreatorReportToPngBlob(html: string) {
     return blob;
   } finally {
     iframe.remove();
+  }
+}
+
+async function renderTeamPosterToPngBlob(template: TeamPosterTemplate) {
+  const host = document.createElement("div");
+  host.style.position = "fixed";
+  host.style.left = "-10000px";
+  host.style.top = "0";
+  host.style.width = `${TEAM_POSTER_WIDTH}px`;
+  host.style.height = `${TEAM_POSTER_HEIGHT}px`;
+  host.style.overflow = "hidden";
+  host.style.background = "#000000";
+
+  const poster = document.createElement("div");
+  poster.style.position = "relative";
+  poster.style.width = `${TEAM_POSTER_WIDTH}px`;
+  poster.style.height = `${TEAM_POSTER_HEIGHT}px`;
+  poster.style.overflow = "hidden";
+  poster.style.backgroundColor = "#000000";
+  poster.style.backgroundImage = template.backgroundUrl
+    ? `url("${template.backgroundUrl}")`
+    : "linear-gradient(180deg, #020617 0%, #052234 55%, #020617 100%)";
+  poster.style.backgroundSize = "cover";
+  poster.style.backgroundPosition = "center";
+
+  for (const element of template.elements) {
+    const item = document.createElement("div");
+    item.style.position = "absolute";
+    item.style.left = `${element.x}px`;
+    item.style.top = `${element.y}px`;
+    item.style.width = `${element.width}px`;
+    item.style.height = `${element.height}px`;
+    item.style.display = "flex";
+    item.style.alignItems = "center";
+    item.style.justifyContent = "center";
+    item.style.overflow = "hidden";
+
+    if (element.kind === "avatar") {
+      item.style.borderRadius = "999px";
+      if (element.imageUrl) {
+        const image = document.createElement("img");
+        image.src = element.imageUrl;
+        image.alt = "";
+        image.style.width = "100%";
+        image.style.height = "100%";
+        image.style.objectFit = "cover";
+        item.appendChild(image);
+      }
+    } else {
+      item.textContent = element.value || "";
+      item.style.color = element.color || "#5CEEFF";
+      item.style.fontFamily = element.fontFamily || "Luckiest Guy";
+      item.style.fontSize = `${element.fontSize || 42}px`;
+      item.style.fontWeight = String(element.fontWeight || 900);
+      item.style.textAlign = "center";
+      item.style.textTransform = "uppercase";
+      item.style.textShadow = "3px 3px 0 #000";
+      item.style.whiteSpace = "nowrap";
+    }
+
+    poster.appendChild(item);
+  }
+
+  host.appendChild(poster);
+  document.body.appendChild(host);
+
+  try {
+    await waitForReportAssets(document);
+    const blob = await toBlob(poster, {
+      cacheBust: true,
+      pixelRatio: 1,
+      width: TEAM_POSTER_WIDTH,
+      height: TEAM_POSTER_HEIGHT,
+      backgroundColor: "#000000",
+    });
+
+    if (!blob) throw new Error("Could not render team poster.");
+    return blob;
+  } finally {
+    host.remove();
   }
 }
 
@@ -3345,6 +3573,83 @@ export default function CreatorIntelligenceDashboard({
     );
   }
 
+  async function downloadYesterdayDiamondsReport() {
+    const yesterdayDate = getYesterdayDateKey();
+    const selectedTeamLabel = normalizedLockedManager
+      ? lockedManagerDisplayName
+      : activeManager;
+    const savedTemplate = getSavedTeamPosterTemplate();
+
+    if (!savedTemplate) {
+      alert("Save a Team Poster Builder template in the battle generator first.");
+      return;
+    }
+
+    const yesterdayRows = rows
+      .filter((row) => row.stat_date === yesterdayDate && isAquaRow(row))
+      .filter((row) => {
+        if (activeManager === "All Managers") return true;
+        const rowManager = getManagerLabel(
+          getText(row, ["creator_network_manager", "Creator Network manager", "manager_email"], ""),
+          getText(row, ["team", "group_name", "Group"], "")
+        );
+        return rowManager === activeManager;
+      })
+      .sort((a, b) => getNumber(b, ["diamonds", "Diamonds"]) - getNumber(a, ["diamonds", "Diamonds"]))
+      .slice(0, 10);
+
+    if (!yesterdayRows.length) {
+      alert(
+        `No Aqua rows found for ${yesterdayDate}${
+          selectedTeamLabel === "All Managers" ? "" : ` in ${selectedTeamLabel}`
+        }.`
+      );
+      return;
+    }
+
+    const rowsWithAvatars = await Promise.all(
+      yesterdayRows.map(async (row) => {
+        const username = getUsername(row).replace("@", "").trim().toLowerCase();
+        const avatar = await fetchTikTokAvatarForPoster(username);
+        return {
+          username,
+          avatar,
+          diamonds: getNumber(row, ["diamonds", "Diamonds"]),
+        };
+      })
+    );
+
+    const filledTemplate: TeamPosterTemplate = {
+      ...savedTemplate,
+      elements: savedTemplate.elements.map((element) => {
+        const match = element.id.match(/^(avatar|username|diamonds)-(\d+)$/);
+        if (!match) return element;
+
+        const row = rowsWithAvatars[Number(match[2]) - 1];
+        if (!row) {
+          if (element.kind === "avatar") return { ...element, imageUrl: "" };
+          return { ...element, value: "" };
+        }
+
+        if (element.kind === "avatar") {
+          return { ...element, imageUrl: row.avatar, value: row.username };
+        }
+        if (element.kind === "username") {
+          return { ...element, value: row.username.toUpperCase() };
+        }
+        if (element.kind === "diamonds") {
+          return { ...element, value: formatCompactDiamonds(row.diamonds) };
+        }
+        return element;
+      }),
+    };
+
+    const blob = await renderTeamPosterToPngBlob(filledTemplate);
+    const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+    const safeTeamName = selectedTeamLabel.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    saveAs(blob, `aqua-yesterday-diamonds-${safeTeamName}-${yesterdayDate}-${timestamp}.png`);
+  }
+
   function toggleChartMetric(metric: ChartMetricKey) {
     setSelectedChartMetrics((current) => {
       if (current.includes(metric)) {
@@ -3467,6 +3772,31 @@ export default function CreatorIntelligenceDashboard({
                 ))}
               </select>
             </label>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-wide text-sky-700">
+                  Yesterday's Diamonds
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Downloads yesterday's uploaded Aqua rows for{" "}
+                  <span className="font-black text-slate-700">
+                    {normalizedLockedManager ? lockedManagerDisplayName : activeManager}
+                  </span>
+                  .
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={downloadYesterdayDiamondsReport}
+                className="rounded-xl bg-sky-500 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-sm transition hover:bg-sky-400"
+              >
+                Download Yesterday's Diamonds
+              </button>
+            </div>
           </div>
         </section>
 

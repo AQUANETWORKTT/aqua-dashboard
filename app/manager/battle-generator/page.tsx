@@ -60,7 +60,7 @@ type PosterTemplateRow = {
 
 type BlankTemplateElement = {
   id: string;
-  kind: "avatar" | "text";
+  kind: "avatar" | "username" | "diamonds" | "text";
   x: number;
   y: number;
   width: number;
@@ -78,8 +78,18 @@ type BlankTemplateJson = {
   elements: BlankTemplateElement[];
 };
 
+type TeamDiamondRow = {
+  creator_username?: string | null;
+  "Creator's username"?: string | null;
+  team?: string | null;
+  group_name?: string | null;
+  diamonds?: number | string | null;
+};
+
 const POSTER_WIDTH = 1080;
 const POSTER_HEIGHT = 1920;
+const TEAM_POSTER_WIDTH = 1024;
+const TEAM_POSTER_HEIGHT = 1536;
 
 const ELEMENT_LABELS: Record<PosterElementKey, string> = {
   avatar1: "Avatar 1",
@@ -382,37 +392,86 @@ function getTikTokUsername(url: string) {
   return match ? match[1].toLowerCase() : "";
 }
 
+function getYesterdayDateKey() {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getTeamDiamondUsername(row: TeamDiamondRow) {
+  return String(row.creator_username || row["Creator's username"] || "")
+    .replace("@", "")
+    .trim()
+    .toLowerCase();
+}
+
+function getTeamDiamondTeam(row: TeamDiamondRow) {
+  return String(row.team || row.group_name || "Aqua").trim() || "Aqua";
+}
+
+function getTeamDiamondValue(row: TeamDiamondRow) {
+  const raw = row.diamonds ?? 0;
+  if (typeof raw === "number") return raw;
+  return Number(String(raw).replace(/[^\d.-]/g, "")) || 0;
+}
+
+function formatCompactDiamonds(value: number) {
+  if (value >= 1000000) {
+    const millions = value / 1000000;
+    return `${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M`;
+  }
+  if (value >= 1000) {
+    const thousands = value / 1000;
+    return `${thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(1)}K`;
+  }
+  return value.toLocaleString("en-GB");
+}
+
 function createBlankBuilderTemplate(): BlankTemplateJson {
   const elements: BlankTemplateElement[] = [];
-  const leftX = 120;
-  const rightX = 610;
-  const startY = 150;
-  const rowGap = 330;
+  const startY = 455;
+  const rowGap = 103;
 
   for (let index = 0; index < 10; index += 1) {
-    const columnX = index % 2 === 0 ? leftX : rightX;
-    const rowY = startY + Math.floor(index / 2) * rowGap;
+    const rowY = startY + index * rowGap;
 
     elements.push({
       id: `avatar-${index + 1}`,
       kind: "avatar",
-      x: columnX,
+      x: 145,
       y: rowY,
-      width: 250,
-      height: 250,
-      value: `Avatar ${index + 1}`,
+      width: 92,
+      height: 92,
+      value: `Creator ${index + 1} Avatar`,
     });
 
     elements.push({
-      id: `number-${index + 1}`,
-      kind: "text",
-      x: columnX,
-      y: rowY + 260,
-      width: 250,
-      height: 62,
-      value: `${index + 1}`,
+      id: `username-${index + 1}`,
+      kind: "username",
+      x: 275,
+      y: rowY + 15,
+      width: 430,
+      height: 58,
+      value: `CREATOR ${index + 1}`,
       fontFamily: "Luckiest Guy",
-      fontSize: 52,
+      fontSize: 42,
+      color: "#FFFFFF",
+      fontWeight: 900,
+    });
+
+    elements.push({
+      id: `diamonds-${index + 1}`,
+      kind: "diamonds",
+      x: 725,
+      y: rowY + 15,
+      width: 210,
+      height: 58,
+      value: `DIAMONDS ${index + 1}`,
+      fontFamily: "Luckiest Guy",
+      fontSize: 42,
       color: "#5CEEFF",
       fontWeight: 900,
     });
@@ -422,6 +481,25 @@ function createBlankBuilderTemplate(): BlankTemplateJson {
     backgroundUrl: "",
     elements,
   };
+}
+
+function normalizeBlankBuilderTemplate(input: BlankTemplateJson): BlankTemplateJson {
+  const base = createBlankBuilderTemplate();
+  const byId = new Map(input.elements.map((element) => [element.id, element]));
+
+  return {
+    backgroundUrl: input.backgroundUrl || "",
+    elements: base.elements.map((element) => ({
+      ...element,
+      ...(byId.get(element.id) || {}),
+    })),
+  };
+}
+
+function getBlankCreatorSlotLabel(elementId: string) {
+  const match = elementId.match(/^(avatar|username|diamonds)-(\d+)$/);
+  if (!match) return "Custom";
+  return `Creator ${match[2]}`;
 }
 
 function getBattleParts(row: string) {
@@ -628,7 +706,10 @@ export default function BattleGeneratorPage() {
     createBlankBuilderTemplate()
   );
   const [selectedBlankElementId, setSelectedBlankElementId] = useState("avatar-1");
-  const [blankTemplateStatus, setBlankTemplateStatus] = useState("Blank builder ready.");
+  const [blankTemplateStatus, setBlankTemplateStatus] = useState("Team poster builder ready.");
+  const [blankTeam, setBlankTeam] = useState("All Teams");
+  const [blankTeamOptions, setBlankTeamOptions] = useState<string[]>(["All Teams"]);
+  const [blankTeamLoading, setBlankTeamLoading] = useState(false);
 
   const selectedBattle = battles.find((b) => b.id === selectedId) || null;
 
@@ -1138,10 +1219,10 @@ export default function BattleGeneratorPage() {
             y: 440,
             width: 260,
             height: 70,
-            value: `${nextNumber}`,
+            value: kind === "username" ? `USERNAME ${nextNumber}` : `${nextNumber}`,
             fontFamily: "Luckiest Guy",
-            fontSize: 54,
-            color: "#5CEEFF",
+            fontSize: kind === "username" ? 38 : 54,
+            color: kind === "username" ? "#FFFFFF" : "#5CEEFF",
             fontWeight: 900,
           };
 
@@ -1150,7 +1231,7 @@ export default function BattleGeneratorPage() {
       elements: [...prev.elements, nextElement],
     }));
     setSelectedBlankElementId(id);
-    setBlankTemplateStatus(`Added ${kind === "avatar" ? "avatar" : "text box"}.`);
+    setBlankTemplateStatus(`Added ${kind === "avatar" ? "avatar" : kind === "username" ? "username" : "text box"}.`);
   }
 
   function removeSelectedBlankTemplateElement() {
@@ -1232,8 +1313,8 @@ export default function BattleGeneratorPage() {
     const blob = await htmlToImage.toBlob(node, {
       cacheBust: true,
       pixelRatio: 1,
-      width: POSTER_WIDTH,
-      height: POSTER_HEIGHT,
+      width: TEAM_POSTER_WIDTH,
+      height: TEAM_POSTER_HEIGHT,
       backgroundColor: "#000000",
       style: {
         transform: "none",
@@ -1243,6 +1324,145 @@ export default function BattleGeneratorPage() {
 
     if (!blob) return;
     saveAs(blob, `blank-template-${Date.now()}.png`);
+  }
+
+  async function loadBlankTeamOptions() {
+    const supabase = getPosterSupabaseClient();
+    if (!supabase) return;
+
+    setBlankTeamLoading(true);
+    try {
+      const yesterdayDate = getYesterdayDateKey();
+      const { data, error } = await supabase
+        .from("aqua_daily_stats")
+        .select("team,group_name")
+        .eq("stat_date", yesterdayDate);
+
+      if (error) throw error;
+
+      const teams = Array.from(
+        new Set(
+          ((data || []) as TeamDiamondRow[])
+            .map(getTeamDiamondTeam)
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b));
+      setBlankTeamOptions(["All Teams", ...teams]);
+      if (blankTeam !== "All Teams" && !teams.includes(blankTeam)) {
+        setBlankTeam("All Teams");
+      }
+    } catch (error) {
+      console.error("TEAM OPTIONS LOAD ERROR:", error);
+      setBlankTemplateStatus("Could not load yesterday's team list.");
+    } finally {
+      setBlankTeamLoading(false);
+    }
+  }
+
+  async function getYesterdayTeamDiamondRows() {
+    const supabase = getPosterSupabaseClient();
+    if (!supabase) return [];
+
+    const yesterdayDate = getYesterdayDateKey();
+    const { data, error } = await supabase
+      .from("aqua_daily_stats")
+      .select("creator_username,team,group_name,diamonds")
+      .eq("stat_date", yesterdayDate);
+
+    if (error) throw error;
+
+    return ((data || []) as TeamDiamondRow[])
+      .filter((row) => {
+        if (blankTeam === "All Teams") return true;
+        return getTeamDiamondTeam(row) === blankTeam;
+      })
+      .filter((row) => getTeamDiamondUsername(row))
+      .sort((a, b) => getTeamDiamondValue(b) - getTeamDiamondValue(a))
+      .slice(0, 10);
+  }
+
+  async function fillBlankTemplateFromYesterdayTeam() {
+    setBlankTemplateStatus("Loading yesterday's team diamonds...");
+
+    try {
+      const teamRows = await getYesterdayTeamDiamondRows();
+      if (!teamRows.length) {
+        setBlankTemplateStatus(`No rows found for ${blankTeam} yesterday.`);
+        return false;
+      }
+
+      const rowsWithAvatars = await Promise.all(
+        teamRows.map(async (row) => {
+          const username = getTeamDiamondUsername(row);
+          const avatar = await fetchTikTokAvatar(username);
+          return {
+            username,
+            avatar,
+            diamonds: getTeamDiamondValue(row),
+          };
+        })
+      );
+
+      setBlankTemplate((prev) => {
+        const next = normalizeBlankBuilderTemplate(prev);
+        return {
+          ...next,
+          elements: next.elements.map((element) => {
+            const match = element.id.match(/^(avatar|username|diamonds)-(\d+)$/);
+            if (!match) return element;
+
+            const slotIndex = Number(match[2]) - 1;
+            const row = rowsWithAvatars[slotIndex];
+            if (!row) {
+              if (element.kind === "avatar") return { ...element, imageUrl: "" };
+              return { ...element, value: "" };
+            }
+
+            if (element.kind === "avatar") {
+              return {
+                ...element,
+                imageUrl: row.avatar,
+                value: row.username,
+              };
+            }
+
+            if (element.kind === "username") {
+              return {
+                ...element,
+                value: row.username.toUpperCase(),
+              };
+            }
+
+            if (element.kind === "diamonds") {
+              return {
+                ...element,
+                value: formatCompactDiamonds(row.diamonds),
+              };
+            }
+
+            return element;
+          }),
+        };
+      });
+
+      setBlankTemplateStatus(
+        `Filled Creator 1 to Creator ${rowsWithAvatars.length} by yesterday's diamond order for ${blankTeam}.`
+      );
+      return true;
+    } catch (error) {
+      console.error("YESTERDAY TEAM TEMPLATE ERROR:", error);
+      setBlankTemplateStatus("Could not fill yesterday's team diamonds.");
+      return false;
+    }
+  }
+
+  async function downloadYesterdayTeamPoster() {
+    const filled = await fillBlankTemplateFromYesterdayTeam();
+    if (!filled) return;
+
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    await downloadBlankTemplatePoster();
   }
 
   useEffect(() => {
@@ -1256,15 +1476,20 @@ export default function BattleGeneratorPage() {
     if (!saved) return;
 
     try {
-      const parsed = JSON.parse(saved) as BlankTemplateJson;
+      const parsed = normalizeBlankBuilderTemplate(JSON.parse(saved) as BlankTemplateJson);
       if (!Array.isArray(parsed.elements)) return;
       setBlankTemplate(parsed);
       setSelectedBlankElementId(parsed.elements[0]?.id || "");
-      setBlankTemplateStatus("Saved blank template loaded.");
+      setBlankTemplateStatus("Saved team poster template loaded.");
     } catch {
-      setBlankTemplateStatus("Blank builder ready.");
+      setBlankTemplateStatus("Team poster builder ready.");
     }
   }, []);
+
+  useEffect(() => {
+    if (activeMode !== "blank") return;
+    loadBlankTeamOptions();
+  }, [activeMode]);
 
   useEffect(() => {
     if (!editMode) return;
@@ -2756,21 +2981,21 @@ function renderText(
     );
   }
 
-  function BlankTemplateCanvas({ scale = 0.46 }: { scale?: number }) {
+  function BlankTemplateCanvas({ scale = 0.42 }: { scale?: number }) {
     return (
       <div
         className="mx-auto overflow-hidden rounded-xl border border-cyan-300/20 bg-black shadow-2xl shadow-cyan-950/40"
         style={{
-          width: POSTER_WIDTH * scale,
-          height: POSTER_HEIGHT * scale,
+          width: TEAM_POSTER_WIDTH * scale,
+          height: TEAM_POSTER_HEIGHT * scale,
         }}
       >
         <div
           ref={blankTemplateRef}
           className="relative overflow-hidden bg-black"
           style={{
-            width: POSTER_WIDTH,
-            height: POSTER_HEIGHT,
+            width: TEAM_POSTER_WIDTH,
+            height: TEAM_POSTER_HEIGHT,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
             backgroundImage: blankTemplate.backgroundUrl
@@ -2787,6 +3012,7 @@ function renderText(
               <Rnd
                 key={element.id}
                 bounds="parent"
+                scale={scale}
                 size={{ width: element.width, height: element.height }}
                 position={{ x: element.x, y: element.y }}
                 onDragStop={(_, data) =>
@@ -2856,12 +3082,12 @@ function renderText(
     const avatarInputId = `blank-avatar-${stableId}`;
 
     return (
-      <div className="grid grid-cols-1 xl:grid-cols-[430px_1fr] gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-6 items-start">
         <section className="space-y-5">
           <div className="bg-black/35 border border-cyan-300/25 rounded-xl p-5 space-y-4">
             <div>
-              <h2 className="text-cyan-300 font-black uppercase tracking-widest">
-                Blank Template Builder
+            <h2 className="text-cyan-300 font-black uppercase tracking-widest">
+                Team Poster Builder
               </h2>
               <p className="text-white/45 text-sm mt-2">
                 10 avatars and 10 number boxes, with no day or battle text.
@@ -2879,10 +3105,18 @@ function renderText(
 
               <button
                 type="button"
-                onClick={() => addBlankTemplateElement("text")}
+                onClick={() => addBlankTemplateElement("username")}
                 className="bg-cyan-300 hover:bg-cyan-200 transition text-black font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs"
               >
-                Add Text Box
+                Add Username
+              </button>
+
+              <button
+                type="button"
+                onClick={() => addBlankTemplateElement("diamonds")}
+                className="bg-cyan-300 hover:bg-cyan-200 transition text-black font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs"
+              >
+                Add Diamonds
               </button>
 
               <label
@@ -2928,6 +3162,59 @@ function renderText(
             <p className="text-white/45 text-xs">{blankTemplateStatus}</p>
           </div>
 
+          <div className="bg-black/35 border border-yellow-300/20 rounded-xl p-5 space-y-4">
+            <div>
+              <h3 className="text-yellow-300 font-black uppercase tracking-widest text-sm">
+                Auto Fill Team
+              </h3>
+              <p className="mt-2 text-sm text-white/45">
+                Pulls yesterday's Aqua diamonds, sorts by diamonds, then fills the first 10 slots.
+              </p>
+            </div>
+
+            <label className="block">
+              <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">
+                Team
+              </p>
+              <select
+                value={blankTeam}
+                onChange={(event) => setBlankTeam(event.target.value)}
+                className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-yellow-300"
+              >
+                {blankTeamOptions.map((team) => (
+                  <option key={team}>{team}</option>
+                ))}
+              </select>
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={loadBlankTeamOptions}
+                disabled={blankTeamLoading}
+                className="bg-black/40 hover:border-yellow-300 disabled:opacity-50 text-white border border-white/20 font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs transition"
+              >
+                {blankTeamLoading ? "Loading..." : "Refresh Teams"}
+              </button>
+
+              <button
+                type="button"
+                onClick={fillBlankTemplateFromYesterdayTeam}
+                className="bg-yellow-300 hover:bg-yellow-200 transition text-black font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs"
+              >
+                Fill Preview
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={downloadYesterdayTeamPoster}
+              className="w-full bg-green-400 hover:bg-green-300 transition text-black font-black px-4 py-4 rounded-lg uppercase tracking-widest"
+            >
+              Download Yesterday Team Poster
+            </button>
+          </div>
+
           <div className="bg-black/35 border border-white/15 rounded-xl p-5 space-y-4">
             <h3 className="text-cyan-300 font-black uppercase tracking-widest text-sm">
               Selected Item
@@ -2937,17 +3224,32 @@ function renderText(
               <>
                 <div className="bg-black/30 border border-white/10 rounded-lg p-3">
                   <p className="text-white/45 text-xs uppercase tracking-widest font-black">
-                    Type
+                    Slot
                   </p>
-                  <p className="text-white font-black mt-1 uppercase">
-                    {selectedElement.kind === "avatar" ? "Avatar" : "Text Box"}
+                  <p className="text-cyan-300 font-black mt-1 uppercase">
+                    {getBlankCreatorSlotLabel(selectedElement.id)}
                   </p>
                 </div>
 
-                {selectedElement.kind === "text" ? (
+                <div className="bg-black/30 border border-white/10 rounded-lg p-3">
+                  <p className="text-white/45 text-xs uppercase tracking-widest font-black">
+                    Slot Item
+                  </p>
+                  <p className="text-white font-black mt-1 uppercase">
+                    {selectedElement.kind === "avatar"
+                      ? "Avatar"
+                      : selectedElement.kind === "username"
+                        ? "Username"
+                        : selectedElement.kind === "diamonds"
+                          ? "Diamonds"
+                          : "Text Box"}
+                  </p>
+                </div>
+
+                {selectedElement.kind !== "avatar" ? (
                   <>
                     <TextInput
-                      label="Number / Text"
+                      label={selectedElement.kind === "username" ? "Username" : selectedElement.kind === "diamonds" ? "Diamonds" : "Text"}
                       value={selectedElement.value}
                       placeholder="1"
                       onChange={(value) =>
@@ -3089,7 +3391,7 @@ function renderText(
                   : "bg-black/40 text-white border border-white/20 hover:border-cyan-300"
               }`}
             >
-              Blank Template
+              Team Poster Builder
             </button>
           </div>
         </div>
