@@ -3778,10 +3778,10 @@ export default function CreatorIntelligenceDashboard({
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-wide text-sky-700">
-                  Yesterday's Diamonds
+                  Yesterday&apos;s Diamonds
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
-                  Downloads yesterday's uploaded Aqua rows for{" "}
+                  Downloads your saved Team Poster Builder template filled with yesterday&apos;s Aqua diamonds for{" "}
                   <span className="font-black text-slate-700">
                     {normalizedLockedManager ? lockedManagerDisplayName : activeManager}
                   </span>
@@ -3794,7 +3794,7 @@ export default function CreatorIntelligenceDashboard({
                 onClick={downloadYesterdayDiamondsReport}
                 className="rounded-xl bg-sky-500 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-sm transition hover:bg-sky-400"
               >
-                Download Yesterday's Diamonds
+                Download Yesterday&apos;s Diamonds
               </button>
             </div>
           </div>

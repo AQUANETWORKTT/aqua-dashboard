@@ -83,6 +83,9 @@ type TeamDiamondRow = {
   "Creator's username"?: string | null;
   team?: string | null;
   group_name?: string | null;
+  manager_email?: string | null;
+  creator_network_manager?: string | null;
+  "Creator Network manager"?: string | null;
   diamonds?: number | string | null;
 };
 
@@ -130,6 +133,23 @@ const TEXT_ELEMENT_KEYS: PosterElementKey[] = ["username1", "username2", "date"]
 const DEFAULT_TEMPLATE_STORAGE_KEY = "aqua-battle-generator-default-template-id";
 const DEFAULT_TEMPLATE_SETTING_KEY = "poster-template-default-aqua";
 const BLANK_TEMPLATE_STORAGE_KEY = "aqua-blank-poster-builder-template-v1";
+const DEFAULT_AQUA_TEAM_OPTIONS = [
+  "Team James",
+  "Team Alfie",
+  "Team Dylan",
+  "Team Jay",
+  "Team Ellie",
+  "Team Lewis",
+  "Team Vitaly",
+  "Team Callum",
+  "Team Harry",
+  "Team Millie",
+  "Team Jade",
+  "Team Teddie",
+  "Team Ellie B",
+  "Team Chris",
+  "Team Luke",
+];
 
 const DEFAULT_TEMPLATE_JSON: PosterTemplateJson = {
   backgroundUrl: "",
@@ -408,8 +428,51 @@ function getTeamDiamondUsername(row: TeamDiamondRow) {
     .toLowerCase();
 }
 
+function titleCaseTeamName(value: string) {
+  return value
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function getTeamDiamondManagerLabel(row: TeamDiamondRow) {
+  const raw = String(
+    row.creator_network_manager ||
+      row["Creator Network manager"] ||
+      row.manager_email ||
+      ""
+  )
+    .replace(/\[|\]/g, "")
+    .replace(/\(mailto:|\)/g, "")
+    .trim()
+    .toLowerCase();
+
+  if (!raw) return "";
+
+  if (raw.includes("@")) {
+    const localPart = raw.split("@")[0];
+    const namePart = localPart
+      .replace(/_?(aqua|respawn|paradise|strive)?agency$/i, "")
+      .replace(/respawn\d*$/i, "")
+      .replace(/jb$/i, "");
+    return `Team ${titleCaseTeamName(namePart)}`;
+  }
+
+  return `Team ${titleCaseTeamName(raw)}`;
+}
+
 function getTeamDiamondTeam(row: TeamDiamondRow) {
-  return String(row.team || row.group_name || "Aqua").trim() || "Aqua";
+  const managerLabel = getTeamDiamondManagerLabel(row);
+  if (managerLabel) return managerLabel;
+
+  const groupLabel = String(row.group_name || "").trim();
+  if (groupLabel.toLowerCase().startsWith("team ")) return groupLabel;
+
+  const teamLabel = String(row.team || "").trim();
+  if (teamLabel && teamLabel.toLowerCase() !== "aqua") return teamLabel;
+
+  return groupLabel || teamLabel || "Aqua";
 }
 
 function getTeamDiamondValue(row: TeamDiamondRow) {
@@ -1327,24 +1390,45 @@ export default function BattleGeneratorPage() {
   }
 
   async function loadBlankTeamOptions() {
+    setBlankTeamOptions(["All Teams", ...DEFAULT_AQUA_TEAM_OPTIONS]);
     const supabase = getPosterSupabaseClient();
     if (!supabase) return;
 
     setBlankTeamLoading(true);
     try {
       const yesterdayDate = getYesterdayDateKey();
-      const { data, error } = await supabase
+      const { data: uploadedRows, error } = await supabase
         .from("aqua_daily_stats")
-        .select("team,group_name")
+        .select("team,group_name,manager_email,creator_network_manager")
         .eq("stat_date", yesterdayDate);
 
       if (error) throw error;
 
+      let data = uploadedRows;
+
+      if (!data || data.length === 0) {
+        const { data: latestRows, error: latestError } = await supabase
+          .from("aqua_daily_stats")
+          .select("team,group_name,manager_email,creator_network_manager,stat_date")
+          .order("stat_date", { ascending: false })
+          .limit(1000);
+
+        if (latestError) throw latestError;
+
+        const latestDate = latestRows?.[0]?.stat_date;
+        data = latestDate
+          ? latestRows.filter((row) => row.stat_date === latestDate)
+          : [];
+      }
+
       const teams = Array.from(
         new Set(
-          ((data || []) as TeamDiamondRow[])
+          [
+            ...DEFAULT_AQUA_TEAM_OPTIONS,
+            ...((data || []) as TeamDiamondRow[])
             .map(getTeamDiamondTeam)
-            .filter(Boolean)
+            .filter(Boolean),
+          ]
         )
       ).sort((a, b) => a.localeCompare(b));
       setBlankTeamOptions(["All Teams", ...teams]);
@@ -1364,12 +1448,29 @@ export default function BattleGeneratorPage() {
     if (!supabase) return [];
 
     const yesterdayDate = getYesterdayDateKey();
-    const { data, error } = await supabase
+    const { data: uploadedRows, error } = await supabase
       .from("aqua_daily_stats")
-      .select("creator_username,team,group_name,diamonds")
+      .select("creator_username,team,group_name,manager_email,creator_network_manager,diamonds")
       .eq("stat_date", yesterdayDate);
 
     if (error) throw error;
+
+    let data = uploadedRows;
+
+    if (!data || data.length === 0) {
+      const { data: latestRows, error: latestError } = await supabase
+        .from("aqua_daily_stats")
+        .select("creator_username,team,group_name,manager_email,creator_network_manager,diamonds,stat_date")
+        .order("stat_date", { ascending: false })
+        .limit(1000);
+
+      if (latestError) throw latestError;
+
+      const latestDate = latestRows?.[0]?.stat_date;
+      data = latestDate
+        ? latestRows.filter((row) => row.stat_date === latestDate)
+        : [];
+    }
 
     return ((data || []) as TeamDiamondRow[])
       .filter((row) => {
@@ -1463,6 +1564,21 @@ export default function BattleGeneratorPage() {
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     await downloadBlankTemplatePoster();
+  }
+
+  function updateAllBlankTextFonts(fontFamily: string) {
+    setBlankTemplate((prev) => ({
+      ...prev,
+      elements: prev.elements.map((element) =>
+        element.kind === "avatar"
+          ? element
+          : {
+              ...element,
+              fontFamily,
+            }
+      ),
+    }));
+    setBlankTemplateStatus(`Text font changed to ${fontFamily}. Press Save Template to keep it.`);
   }
 
   useEffect(() => {
@@ -3159,6 +3275,26 @@ function renderText(
               onChange={handleBlankBackgroundUpload}
             />
 
+            <label className="block">
+              <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">
+                Text Font
+              </p>
+              <select
+                value={
+                  blankTemplate.elements.find((element) => element.kind !== "avatar")?.fontFamily ||
+                  "Luckiest Guy"
+                }
+                onChange={(e) => updateAllBlankTextFonts(e.target.value)}
+                className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-yellow-300"
+              >
+                {FONT_OPTIONS.map((font) => (
+                  <option key={font} value={font}>
+                    {font}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <p className="text-white/45 text-xs">{blankTemplateStatus}</p>
           </div>
 
@@ -3168,7 +3304,7 @@ function renderText(
                 Auto Fill Team
               </h3>
               <p className="mt-2 text-sm text-white/45">
-                Pulls yesterday's Aqua diamonds, sorts by diamonds, then fills the first 10 slots.
+                Pulls yesterday&apos;s Aqua diamonds, sorts by diamonds, then fills the first 10 slots.
               </p>
             </div>
 
@@ -3258,6 +3394,27 @@ function renderText(
                     />
 
                     <div className="grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">
+                          Font
+                        </p>
+                        <select
+                          value={selectedElement.fontFamily || "Luckiest Guy"}
+                          onChange={(e) =>
+                            updateBlankTemplateElement(selectedElement.id, {
+                              fontFamily: e.target.value,
+                            })
+                          }
+                          className="w-full bg-black/45 border border-white/15 text-white p-3 rounded-lg outline-none focus:border-yellow-300"
+                        >
+                          {FONT_OPTIONS.map((font) => (
+                            <option key={font} value={font}>
+                              {font}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
                       <TextInput
                         label="Font Size"
                         value={String(selectedElement.fontSize || 52)}
