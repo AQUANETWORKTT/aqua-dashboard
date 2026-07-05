@@ -19,7 +19,7 @@ type Battle = {
   image2: string;
 };
 
-type Mode = "single" | "mass";
+type Mode = "single" | "mass" | "blank";
 
 type PosterElementKey = "avatar1" | "avatar2" | "username1" | "username2" | "date";
 
@@ -56,6 +56,26 @@ type PosterTemplateRow = {
   name: string;
   background_url: string | null;
   template_json: PosterTemplateJson;
+};
+
+type BlankTemplateElement = {
+  id: string;
+  kind: "avatar" | "text";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  value: string;
+  imageUrl?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  color?: string;
+  fontWeight?: number;
+};
+
+type BlankTemplateJson = {
+  backgroundUrl: string;
+  elements: BlankTemplateElement[];
 };
 
 const POSTER_WIDTH = 1080;
@@ -99,6 +119,7 @@ const FONT_OPTIONS = [
 const TEXT_ELEMENT_KEYS: PosterElementKey[] = ["username1", "username2", "date"];
 const DEFAULT_TEMPLATE_STORAGE_KEY = "aqua-battle-generator-default-template-id";
 const DEFAULT_TEMPLATE_SETTING_KEY = "poster-template-default-aqua";
+const BLANK_TEMPLATE_STORAGE_KEY = "aqua-blank-poster-builder-template-v1";
 
 const DEFAULT_TEMPLATE_JSON: PosterTemplateJson = {
   backgroundUrl: "",
@@ -361,6 +382,48 @@ function getTikTokUsername(url: string) {
   return match ? match[1].toLowerCase() : "";
 }
 
+function createBlankBuilderTemplate(): BlankTemplateJson {
+  const elements: BlankTemplateElement[] = [];
+  const leftX = 120;
+  const rightX = 610;
+  const startY = 150;
+  const rowGap = 330;
+
+  for (let index = 0; index < 10; index += 1) {
+    const columnX = index % 2 === 0 ? leftX : rightX;
+    const rowY = startY + Math.floor(index / 2) * rowGap;
+
+    elements.push({
+      id: `avatar-${index + 1}`,
+      kind: "avatar",
+      x: columnX,
+      y: rowY,
+      width: 250,
+      height: 250,
+      value: `Avatar ${index + 1}`,
+    });
+
+    elements.push({
+      id: `number-${index + 1}`,
+      kind: "text",
+      x: columnX,
+      y: rowY + 260,
+      width: 250,
+      height: 62,
+      value: `${index + 1}`,
+      fontFamily: "Luckiest Guy",
+      fontSize: 52,
+      color: "#5CEEFF",
+      fontWeight: 900,
+    });
+  }
+
+  return {
+    backgroundUrl: "",
+    elements,
+  };
+}
+
 function getBattleParts(row: string) {
   return row.split(/\t+/).map((part) => part.trim());
 }
@@ -527,6 +590,7 @@ function TimeSelect({
 export default function BattleGeneratorPage() {
   const stableId = useId().replaceAll(":", "");
   const posterRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const blankTemplateRef = useRef<HTMLDivElement | null>(null);
 
   const [activeMode, setActiveMode] = useState<Mode>("single");
 
@@ -560,6 +624,11 @@ export default function BattleGeneratorPage() {
   const [templateStatus, setTemplateStatus] = useState("Not saved yet");
   const [undoStack, setUndoStack] = useState<PosterTemplateJson[]>([]);
   const [redoStack, setRedoStack] = useState<PosterTemplateJson[]>([]);
+  const [blankTemplate, setBlankTemplate] = useState<BlankTemplateJson>(() =>
+    createBlankBuilderTemplate()
+  );
+  const [selectedBlankElementId, setSelectedBlankElementId] = useState("avatar-1");
+  const [blankTemplateStatus, setBlankTemplateStatus] = useState("Blank builder ready.");
 
   const selectedBattle = battles.find((b) => b.id === selectedId) || null;
 
@@ -1035,8 +1104,166 @@ export default function BattleGeneratorPage() {
     setTemplateStatus("Background uploaded. Press Save to attach it to this template.");
   }
 
+  function updateBlankTemplateElement(
+    id: string,
+    changes: Partial<BlankTemplateElement>
+  ) {
+    setBlankTemplate((prev) => ({
+      ...prev,
+      elements: prev.elements.map((element) =>
+        element.id === id ? { ...element, ...changes } : element
+      ),
+    }));
+  }
+
+  function addBlankTemplateElement(kind: BlankTemplateElement["kind"]) {
+    const nextNumber =
+      blankTemplate.elements.filter((element) => element.kind === kind).length + 1;
+    const id = `${kind}-${Date.now()}`;
+    const nextElement: BlankTemplateElement =
+      kind === "avatar"
+        ? {
+            id,
+            kind,
+            x: 160,
+            y: 160,
+            width: 250,
+            height: 250,
+            value: `Avatar ${nextNumber}`,
+          }
+        : {
+            id,
+            kind,
+            x: 170,
+            y: 440,
+            width: 260,
+            height: 70,
+            value: `${nextNumber}`,
+            fontFamily: "Luckiest Guy",
+            fontSize: 54,
+            color: "#5CEEFF",
+            fontWeight: 900,
+          };
+
+    setBlankTemplate((prev) => ({
+      ...prev,
+      elements: [...prev.elements, nextElement],
+    }));
+    setSelectedBlankElementId(id);
+    setBlankTemplateStatus(`Added ${kind === "avatar" ? "avatar" : "text box"}.`);
+  }
+
+  function removeSelectedBlankTemplateElement() {
+    setBlankTemplate((prev) => {
+      const remaining = prev.elements.filter(
+        (element) => element.id !== selectedBlankElementId
+      );
+      const nextSelected = remaining[0]?.id || "";
+      setSelectedBlankElementId(nextSelected);
+      return {
+        ...prev,
+        elements: remaining,
+      };
+    });
+    setBlankTemplateStatus("Selected item removed.");
+  }
+
+  function saveBlankTemplate() {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      BLANK_TEMPLATE_STORAGE_KEY,
+      JSON.stringify(blankTemplate)
+    );
+    setBlankTemplateStatus("Blank template saved in this browser.");
+  }
+
+  function resetBlankTemplate() {
+    const nextTemplate = createBlankBuilderTemplate();
+    setBlankTemplate(nextTemplate);
+    setSelectedBlankElementId(nextTemplate.elements[0]?.id || "");
+    setBlankTemplateStatus("Blank template reset.");
+  }
+
+  function handleBlankBackgroundUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload a PNG or JPG image.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setBlankTemplate((prev) => ({
+        ...prev,
+        backgroundUrl: String(reader.result || ""),
+      }));
+      setBlankTemplateStatus("Background added. Press Save Template to keep it.");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function handleBlankAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload a PNG or JPG image.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateBlankTemplateElement(selectedBlankElementId, {
+        imageUrl: String(reader.result || ""),
+      });
+      setBlankTemplateStatus("Avatar image added.");
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function downloadBlankTemplatePoster() {
+    const node = blankTemplateRef.current;
+    if (!node) return;
+
+    const blob = await htmlToImage.toBlob(node, {
+      cacheBust: true,
+      pixelRatio: 1,
+      width: POSTER_WIDTH,
+      height: POSTER_HEIGHT,
+      backgroundColor: "#000000",
+      style: {
+        transform: "none",
+        transformOrigin: "top left",
+      },
+    });
+
+    if (!blob) return;
+    saveAs(blob, `blank-template-${Date.now()}.png`);
+  }
+
   useEffect(() => {
     loadPosterTemplates();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const saved = window.localStorage.getItem(BLANK_TEMPLATE_STORAGE_KEY);
+    if (!saved) return;
+
+    try {
+      const parsed = JSON.parse(saved) as BlankTemplateJson;
+      if (!Array.isArray(parsed.elements)) return;
+      setBlankTemplate(parsed);
+      setSelectedBlankElementId(parsed.elements[0]?.id || "");
+      setBlankTemplateStatus("Saved blank template loaded.");
+    } catch {
+      setBlankTemplateStatus("Blank builder ready.");
+    }
   }, []);
 
   useEffect(() => {
@@ -2529,6 +2756,272 @@ function renderText(
     );
   }
 
+  function BlankTemplateCanvas({ scale = 0.46 }: { scale?: number }) {
+    return (
+      <div
+        className="mx-auto overflow-hidden rounded-xl border border-cyan-300/20 bg-black shadow-2xl shadow-cyan-950/40"
+        style={{
+          width: POSTER_WIDTH * scale,
+          height: POSTER_HEIGHT * scale,
+        }}
+      >
+        <div
+          ref={blankTemplateRef}
+          className="relative overflow-hidden bg-black"
+          style={{
+            width: POSTER_WIDTH,
+            height: POSTER_HEIGHT,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            backgroundImage: blankTemplate.backgroundUrl
+              ? `url(${blankTemplate.backgroundUrl})`
+              : "linear-gradient(180deg, #020617 0%, #052234 55%, #020617 100%)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          {blankTemplate.elements.map((element) => {
+            const selected = element.id === selectedBlankElementId;
+
+            return (
+              <Rnd
+                key={element.id}
+                bounds="parent"
+                size={{ width: element.width, height: element.height }}
+                position={{ x: element.x, y: element.y }}
+                onDragStop={(_, data) =>
+                  updateBlankTemplateElement(element.id, {
+                    x: Math.round(data.x),
+                    y: Math.round(data.y),
+                  })
+                }
+                onResizeStop={(_, __, ref, ___, position) =>
+                  updateBlankTemplateElement(element.id, {
+                    x: Math.round(position.x),
+                    y: Math.round(position.y),
+                    width: Math.round(ref.offsetWidth),
+                    height: Math.round(ref.offsetHeight),
+                  })
+                }
+                onMouseDown={() => setSelectedBlankElementId(element.id)}
+                className={`group ${selected ? "z-20" : "z-10"}`}
+              >
+                {element.kind === "avatar" ? (
+                  <div
+                    className={`h-full w-full rounded-full border-4 ${
+                      selected ? "border-yellow-300" : "border-cyan-300/60"
+                    } bg-black/45 overflow-hidden flex items-center justify-center`}
+                  >
+                    {element.imageUrl ? (
+                      <img
+                        src={element.imageUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-cyan-100/70 text-4xl font-black">
+                        +
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className={`h-full w-full flex items-center justify-center rounded-lg border-2 bg-black/45 px-3 text-center ${
+                      selected ? "border-yellow-300" : "border-cyan-300/50"
+                    }`}
+                    style={{
+                      color: element.color || "#5CEEFF",
+                      fontFamily: element.fontFamily || "Luckiest Guy",
+                      fontSize: element.fontSize || 52,
+                      fontWeight: element.fontWeight || 900,
+                      textShadow: "3px 3px 0 #000",
+                    }}
+                  >
+                    {element.value || "0"}
+                  </div>
+                )}
+              </Rnd>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  function BlankTemplateBuilder() {
+    const selectedElement = blankTemplate.elements.find(
+      (element) => element.id === selectedBlankElementId
+    );
+    const backgroundInputId = `blank-background-${stableId}`;
+    const avatarInputId = `blank-avatar-${stableId}`;
+
+    return (
+      <div className="grid grid-cols-1 xl:grid-cols-[430px_1fr] gap-8 items-start">
+        <section className="space-y-5">
+          <div className="bg-black/35 border border-cyan-300/25 rounded-xl p-5 space-y-4">
+            <div>
+              <h2 className="text-cyan-300 font-black uppercase tracking-widest">
+                Blank Template Builder
+              </h2>
+              <p className="text-white/45 text-sm mt-2">
+                10 avatars and 10 number boxes, with no day or battle text.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => addBlankTemplateElement("avatar")}
+                className="bg-cyan-300 hover:bg-cyan-200 transition text-black font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs"
+              >
+                Add Avatar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => addBlankTemplateElement("text")}
+                className="bg-cyan-300 hover:bg-cyan-200 transition text-black font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs"
+              >
+                Add Text Box
+              </button>
+
+              <label
+                htmlFor={backgroundInputId}
+                className="text-center cursor-pointer bg-black/40 hover:border-cyan-300 text-white border border-white/20 font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs transition"
+              >
+                Background
+              </label>
+
+              <button
+                type="button"
+                onClick={saveBlankTemplate}
+                className="bg-yellow-300 hover:bg-yellow-200 transition text-black font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs"
+              >
+                Save Template
+              </button>
+
+              <button
+                type="button"
+                onClick={downloadBlankTemplatePoster}
+                className="bg-green-400 hover:bg-green-300 transition text-black font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs"
+              >
+                Download PNG
+              </button>
+
+              <button
+                type="button"
+                onClick={resetBlankTemplate}
+                className="bg-white/10 hover:bg-white/20 transition text-white font-black px-3 py-4 rounded-lg uppercase tracking-widest text-xs border border-white/20"
+              >
+                Reset
+              </button>
+            </div>
+
+            <input
+              id={backgroundInputId}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleBlankBackgroundUpload}
+            />
+
+            <p className="text-white/45 text-xs">{blankTemplateStatus}</p>
+          </div>
+
+          <div className="bg-black/35 border border-white/15 rounded-xl p-5 space-y-4">
+            <h3 className="text-cyan-300 font-black uppercase tracking-widest text-sm">
+              Selected Item
+            </h3>
+
+            {selectedElement ? (
+              <>
+                <div className="bg-black/30 border border-white/10 rounded-lg p-3">
+                  <p className="text-white/45 text-xs uppercase tracking-widest font-black">
+                    Type
+                  </p>
+                  <p className="text-white font-black mt-1 uppercase">
+                    {selectedElement.kind === "avatar" ? "Avatar" : "Text Box"}
+                  </p>
+                </div>
+
+                {selectedElement.kind === "text" ? (
+                  <>
+                    <TextInput
+                      label="Number / Text"
+                      value={selectedElement.value}
+                      placeholder="1"
+                      onChange={(value) =>
+                        updateBlankTemplateElement(selectedElement.id, { value })
+                      }
+                    />
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <TextInput
+                        label="Font Size"
+                        value={String(selectedElement.fontSize || 52)}
+                        placeholder="52"
+                        onChange={(value) =>
+                          updateBlankTemplateElement(selectedElement.id, {
+                            fontSize: Number(value) || 52,
+                          })
+                        }
+                      />
+
+                      <label className="block">
+                        <p className="text-white/55 text-xs font-black uppercase tracking-widest mb-2">
+                          Colour
+                        </p>
+                        <input
+                          type="color"
+                          value={selectedElement.color || "#5CEEFF"}
+                          onChange={(e) =>
+                            updateBlankTemplateElement(selectedElement.id, {
+                              color: e.target.value,
+                            })
+                          }
+                          className="h-[46px] w-full rounded-lg border border-white/15 bg-black/45 p-1"
+                        />
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <label
+                      htmlFor={avatarInputId}
+                      className="block text-center cursor-pointer bg-cyan-300 hover:bg-cyan-200 transition text-black font-black px-4 py-4 rounded-lg uppercase tracking-widest text-xs"
+                    >
+                      Upload Avatar
+                    </label>
+
+                    <input
+                      id={avatarInputId}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleBlankAvatarUpload}
+                    />
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={removeSelectedBlankTemplateElement}
+                  className="w-full bg-red-500/90 hover:bg-red-400 text-white font-black px-4 py-4 rounded-lg uppercase tracking-widest transition"
+                >
+                  Remove Item
+                </button>
+              </>
+            ) : (
+              <p className="text-white/45 text-sm">Select an item on the poster.</p>
+            )}
+          </div>
+        </section>
+
+        <section>{BlankTemplateCanvas({})}</section>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#080806] text-white p-8">
       <div className="max-w-[1700px] mx-auto space-y-6">
@@ -2562,7 +3055,7 @@ function renderText(
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
               type="button"
               onClick={() => setActiveMode("single")}
@@ -2585,6 +3078,18 @@ function renderText(
               }`}
             >
               Mass Poster Generator
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveMode("blank")}
+              className={`px-5 py-4 rounded-lg font-black uppercase tracking-widest transition ${
+                activeMode === "blank"
+                  ? "bg-cyan-300 text-black"
+                  : "bg-black/40 text-white border border-white/20 hover:border-cyan-300"
+              }`}
+            >
+              Blank Template
             </button>
           </div>
         </div>
@@ -2803,6 +3308,7 @@ function renderText(
             </section>
           </div>
         )}
+        {activeMode === "blank" && BlankTemplateBuilder()}
           </>
         )}
       </div>
