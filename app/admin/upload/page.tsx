@@ -126,7 +126,7 @@ export default function AdminUploadPage() {
           >
             Required columns include Creator ID, Creator&apos;s username,
             Creator Network manager, Diamonds, LIVE duration, Valid go LIVE
-            days, New followers, LIVE streams, Matches, and Diamonds from
+            days, New followers, New fans, LIVE streams, Matches, and Diamonds from
             matches.
           </p>
 

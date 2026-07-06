@@ -164,6 +164,7 @@ function parseCreatorStatsFile(buffer: Buffer, statsDate: string) {
         getValue(row, ["Valid go LIVE days", "Valid live days"])
       ),
       new_followers: parseNumber(getValue(row, ["New followers"])),
+      new_fans: parseNumber(getValue(row, ["New fans", "New fans from fan club", "new_fans"])),
       live_streams: parseNumber(getValue(row, ["LIVE streams", "Live streams"])),
       matches: parseNumber(getValue(row, ["Matches"])),
       diamonds_from_matches: parseNumber(getValue(row, ["Diamonds from matches"])),
