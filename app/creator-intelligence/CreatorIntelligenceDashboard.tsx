@@ -183,6 +183,7 @@ type ManagerHealthSummary = {
   totalCreators: number;
   matureCreators: number;
   newCreators: number;
+  trialCreators: number;
   averageScore: number;
   thirtyDayAverageScore: number;
   elite: number;
@@ -470,7 +471,7 @@ function isManagerMatch(managerField: string, managerUsername: string) {
 }
 
 function isTeamHealthScoreCreator(creator: Pick<CreatorSummary, "daysSinceJoining">) {
-  return creator.daysSinceJoining > 3;
+  return creator.daysSinceJoining > 7;
 }
 
 function getCreatorMetaLine(creator: Pick<CreatorSummary, "agency" | "group" | "managerLabel">) {
@@ -1958,12 +1959,9 @@ function AgencyHealthTrendChart({ points }: { points: AgencyHealthTrendPoint[] }
         <div>
           <h3 className="text-xl font-black uppercase text-sky-900">Aqua Health Score Trend</h3>
           <p className="text-sm text-slate-500">
-            Average Aqua health score for creators from day 4 onward.
+            Average Aqua health score for creators from day 8 onward.
           </p>
         </div>
-        <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
-          {points.length ? `${formatNumber(points[points.length - 1].score)}/100 latest` : "No trend yet"}
-        </span>
       </div>
 
       <div className="overflow-x-auto">
@@ -2964,6 +2962,7 @@ export default function CreatorIntelligenceDashboard({
           totalCreators: creators.length,
           matureCreators: matureCreators.length,
           newCreators: creators.filter((creator) => creator.isNewCreator).length,
+          trialCreators: creators.filter((creator) => creator.daysSinceJoining <= 7).length,
           averageScore,
           thirtyDayAverageScore,
           elite: matureCreators.filter((creator) => creator.healthStatus === "Elite").length,
@@ -3440,6 +3439,24 @@ export default function CreatorIntelligenceDashboard({
     );
   }
 
+
+  function copyManagerSizeLeaderboardText() {
+    copyWhatsAppText(
+      "Aqua Manager Health Leaderboard",
+      [...managerHealthSummaries]
+        .sort((a, b) => b.totalCreators - a.totalCreators || a.manager.localeCompare(b.manager))
+        .map((managerSummary, index) =>
+          [
+            `${index + 1}. ${getPlainManagerName(managerSummary.manager)}`,
+            `Creators: ${formatNumber(managerSummary.totalCreators)}`,
+            `Scored creators: ${formatNumber(managerSummary.matureCreators)} (day 8+)`,
+            `Trial creators: ${formatNumber(managerSummary.trialCreators)} (days 1-7)`,
+            `7-day health score: ${formatNumber(managerSummary.averageScore)}/100`,
+            `30-day health score: ${formatNumber(managerSummary.thirtyDayAverageScore)}/100`,
+          ].join("\n")
+        )
+    );
+  }
   function buildManagerGroupedWhatsAppLines<T>(
     items: T[],
     getManager: (item: T) => string,
@@ -3908,12 +3925,21 @@ export default function CreatorIntelligenceDashboard({
             <div>
               <h2 className="text-3xl font-black uppercase text-sky-900">Manager Team Health</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Team average by manager, with new creators counted separately from scored creators.
+                Team average by manager. Creators only count into health scores from day 8 onwards.
               </p>
             </div>
-            <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
-              {formatNumber(managerHealthSummaries.length)} managers
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={copyManagerSizeLeaderboardText}
+                className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-700 hover:bg-cyan-100"
+              >
+                Copy Size Leaderboard
+              </button>
+              <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-black text-sky-700">
+                {formatNumber(managerHealthSummaries.length)} managers
+              </span>
+            </div>
           </div>
 
           <div className="grid gap-3">
@@ -3935,7 +3961,7 @@ export default function CreatorIntelligenceDashboard({
                       <p className="mt-1 text-xs font-bold text-slate-500">
                         {formatNumber(managerSummary.totalCreators)} creators /{" "}
                         {formatNumber(managerSummary.matureCreators)} scored /{" "}
-                        {formatNumber(managerSummary.newCreators)} new
+                        {formatNumber(managerSummary.trialCreators)} trial
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-wrap justify-end gap-2">
@@ -3970,7 +3996,7 @@ export default function CreatorIntelligenceDashboard({
                       />
                     </div>
                     <p className="mt-2 text-xs font-bold text-slate-500">
-                      Team average across scored creators
+                      Team average across scored creators from day 8 onwards
                     </p>
                   </div>
 
@@ -4851,7 +4877,7 @@ export default function CreatorIntelligenceDashboard({
               <div>
                 <h2 className="text-2xl font-black uppercase text-sky-900">New Creators</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Creators 14 days in or less are shown here. From day 4 onward they are also included in health scores.
+                  Creators 14 days in or less are shown here. From day 8 onward they are also included in health scores.
                 </p>
               </div>
               <button
