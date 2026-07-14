@@ -2309,12 +2309,12 @@ function getHealthPosterTone(status: HealthStatus) {
     return { label: "ELITE", color: "#c084fc", border: "#a855f7", icon: "◆" };
   }
   if (status === "Healthy") {
-    return { label: "HIGH QUALITY", color: "#5ceeff", border: "#06b6d4", icon: "◆" };
+    return { label: "ABOVE AVERAGE", color: "#5ceeff", border: "#06b6d4", icon: "◆" };
   }
   if (status === "Needs Attention") {
-    return { label: "GOOD QUALITY", color: "#facc15", border: "#eab308", icon: "◆" };
+    return { label: "AVERAGE", color: "#facc15", border: "#eab308", icon: "◆" };
   }
-  return { label: "LOW QUALITY", color: "#ff4d3d", border: "#ef4444", icon: "◆" };
+  return { label: "NEEDS IMPROVEMENT", color: "#ff4d3d", border: "#ef4444", icon: "◆" };
 }
 
 async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSummary) {
@@ -2326,9 +2326,9 @@ async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSumm
   const lastSevenHours = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenHours(creator), 0);
   const qualityItems = [
     { label: "ELITE", range: "85-100", count: managerSummary.elite, color: "#c084fc", border: "#a855f7" },
-    { label: "HIGH QUALITY", range: "70-84", count: managerSummary.healthy, color: "#5ceeff", border: "#06b6d4" },
-    { label: "GOOD QUALITY", range: "50-69", count: managerSummary.needsAttention, color: "#facc15", border: "#eab308" },
-    { label: "LOW QUALITY", range: "<=49", count: lowQualityCount, color: "#ff4d3d", border: "#ef4444" },
+    { label: "ABOVE AVERAGE", range: "70-84", count: managerSummary.healthy, color: "#5ceeff", border: "#06b6d4" },
+    { label: "AVERAGE", range: "50-69", count: managerSummary.needsAttention, color: "#facc15", border: "#eab308" },
+    { label: "NEEDS IMPROVEMENT", range: "<=49", count: lowQualityCount, color: "#ff4d3d", border: "#ef4444" },
   ];
   const qualityRows = qualityItems
     .map(
@@ -2350,7 +2350,7 @@ async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSumm
           <div style="text-align:center;color:#f8fafc;font-size:23px;font-weight:950;text-shadow:0 0 10px ${tone.color};">${index + 1}</div>
           <div style="overflow:hidden;padding-right:12px;color:#f8fafc;font-size:22px;font-weight:950;white-space:nowrap;text-overflow:ellipsis;text-shadow:2px 2px 0 #000;">${escapeHtml(creator.username)}</div>
           <div style="color:${tone.color};font-size:27px;font-weight:950;text-align:center;text-shadow:0 0 12px ${tone.color};">${formatNumber(creator.healthScore)} <span style="font-size:14px;color:#f8fafc;">/100</span></div>
-          <div style="display:flex;align-items:center;gap:8px;overflow:hidden;padding-right:8px;color:${tone.color};font-size:17px;font-weight:950;white-space:nowrap;text-shadow:0 0 10px ${tone.color};"><span style="font-size:19px;">*</span>${tone.label}</div>
+          <div style="display:flex;align-items:center;gap:7px;overflow:hidden;padding-right:8px;color:${tone.color};font-size:15px;font-weight:950;white-space:nowrap;text-shadow:0 0 10px ${tone.color};"><span style="font-size:18px;">*</span>${tone.label}</div>
         </div>
       `;
     })
@@ -2396,7 +2396,7 @@ async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSumm
         <div style="display:grid;grid-template-columns:54px 1fr 144px 214px;align-items:center;height:42px;border:2px solid #38bdf8;background:linear-gradient(90deg,rgba(15,23,42,.97),rgba(8,47,73,.86));box-shadow:0 0 24px #38bdf855 inset;color:#f8fafc;text-transform:uppercase;font-size:16px;font-weight:950;letter-spacing:2px;">
           <div style="text-align:center;">#</div>
           <div>Creator</div>
-          <div style="text-align:center;">Health Score</div>
+          <div style="text-align:center;">Score</div>
           <div>Quality</div>
         </div>
         ${rows || `<div style="border:2px solid #38bdf8;border-top:0;background:rgba(2,6,23,.9);padding:28px;text-align:center;font-size:28px;font-weight:950;">No scored creators yet.</div>`}
