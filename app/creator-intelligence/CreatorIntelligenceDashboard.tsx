@@ -456,6 +456,14 @@ function getManagerLabel(value: string, groupValue = "") {
   return "Unassigned";
 }
 
+function getPosterManagerNameFontSize(manager: string) {
+  const length = getPlainManagerName(manager).length;
+  if (length > 30) return 38;
+  if (length > 24) return 46;
+  if (length > 18) return 54;
+  return 64;
+}
+
 function getPlainManagerName(managerLabel: string) {
   return managerLabel.replace(/^Team\s+/i, "");
 }
@@ -2375,7 +2383,7 @@ async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSumm
 
       <div style="position:relative;z-index:1;text-align:center;">
         <img src="/aqua-logo.png" style="height:58px;width:auto;object-fit:contain;filter:drop-shadow(0 0 16px #38bdf8);" />
-        <div style="margin-top:4px;font-size:64px;font-weight:950;letter-spacing:0;text-transform:uppercase;line-height:.92;color:#f8fafc;text-shadow:0 0 18px #38bdf8,4px 5px 0 #00111f;">${escapeHtml(getPlainManagerName(managerSummary.manager))}</div>
+        <div style="margin-top:4px;font-size:${getPosterManagerNameFontSize(managerSummary.manager)}px;font-weight:950;letter-spacing:0;text-transform:uppercase;line-height:.92;color:#f8fafc;text-shadow:0 0 18px #38bdf8,4px 5px 0 #00111f;">${escapeHtml(getPlainManagerName(managerSummary.manager))}</div>
         <div style="margin-top:8px;font-size:23px;font-weight:950;letter-spacing:7px;color:#f8fafc;text-transform:uppercase;text-shadow:0 0 12px #38bdf8;">Creator Health Scores</div>
       </div>
 
@@ -4161,11 +4169,11 @@ export default function CreatorIntelligenceDashboard({
                     <div className="flex shrink-0 flex-wrap justify-end gap-2">
                       <span
                         className={`rounded-full border px-3 py-1 text-sm font-black ${
-                          managerSummary.averageScore >= 70
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          managerSummary.averageScore >= 75
+                            ? "border-amber-200 bg-amber-50 text-amber-700"
                             : managerSummary.averageScore >= 50
-                              ? "border-orange-200 bg-orange-50 text-orange-700"
-                              : "border-red-200 bg-red-50 text-red-700"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : "border-yellow-200 bg-yellow-50 text-yellow-700"
                         }`}
                       >
                         7-day {formatNumber(managerSummary.averageScore)}/100
@@ -4180,11 +4188,11 @@ export default function CreatorIntelligenceDashboard({
                     <div className="h-3 overflow-hidden rounded-full bg-white">
                       <div
                         className={`h-full ${
-                          managerSummary.averageScore >= 70
-                            ? "bg-emerald-500"
+                          managerSummary.averageScore >= 75
+                            ? "bg-amber-500"
                             : managerSummary.averageScore >= 50
-                              ? "bg-orange-500"
-                              : "bg-red-500"
+                              ? "bg-emerald-500"
+                              : "bg-yellow-500"
                         }`}
                         style={{ width: `${scoreWidth}%` }}
                       />
