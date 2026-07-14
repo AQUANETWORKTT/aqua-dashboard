@@ -205,6 +205,8 @@ const MANUAL_FOCUS_STORAGE_KEY = "creator-intelligence-manual-focus";
 const TEAM_POSTER_TEMPLATE_STORAGE_KEY = "aqua-blank-poster-builder-template-v1";
 const TEAM_POSTER_WIDTH = 1024;
 const TEAM_POSTER_HEIGHT = 1536;
+const TEAM_HEALTH_POSTER_WIDTH = 1000;
+const TEAM_HEALTH_POSTER_HEIGHT = 1500;
 const DATA_START_DATE = "2026-01-01";
 const AQUA_TABLE_START_DATE = "2026-06-19";
 const LEGACY_TABLE_END_DATE = "2026-06-18";
@@ -2303,6 +2305,154 @@ async function renderTeamPosterToPngBlob(template: TeamPosterTemplate) {
   }
 }
 
+function getHealthPosterTone(status: HealthStatus) {
+  if (status === "Elite") {
+    return { label: "ELITE", color: "#c084fc", border: "#a855f7", icon: "◆" };
+  }
+  if (status === "Healthy") {
+    return { label: "HIGH QUALITY", color: "#5ceeff", border: "#06b6d4", icon: "◆" };
+  }
+  if (status === "Needs Attention") {
+    return { label: "GOOD QUALITY", color: "#facc15", border: "#eab308", icon: "◆" };
+  }
+  return { label: "LOW QUALITY", color: "#ff4d3d", border: "#ef4444", icon: "◆" };
+}
+
+function renderQualityRow(label: string, range: string, count: number, color: string, border: string) {
+  return `
+    <div style="display:grid;grid-template-columns:54px 1fr 66px;align-items:center;border:2px solid ${border};background:linear-gradient(90deg,rgba(2,6,23,.92),rgba(15,23,42,.74));box-shadow:0 0 24px ${border}55 inset;">
+      <div style="display:flex;align-items:center;justify-content:center;color:${color};font-size:31px;text-shadow:0 0 16px ${color};">◆</div>
+      <div style="padding:12px 8px 11px 0;font-weight:950;color:${color};font-size:25px;line-height:1;text-shadow:0 0 12px ${color}99;">${label} <span style="font-size:18px;color:#f8fafc;">${range}</span></div>
+      <div style="padding-right:18px;text-align:right;color:${color};font-size:44px;font-weight:950;line-height:1;text-shadow:0 0 14px ${color};">${formatNumber(count)}</div>
+    </div>
+  `;
+}
+
+async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSummary) {
+  const scoredCreators = [...managerSummary.creators]
+    .filter(isTeamHealthScoreCreator)
+    .sort((a, b) => b.healthScore - a.healthScore);
+  const topCreators = scoredCreators.slice(0, 20);
+  const reportDate = new Date().toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const lowQualityCount = managerSummary.lowPerformance + managerSummary.lowQuality;
+  const lastSevenDiamonds = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenDiamonds(creator), 0);
+  const lastSevenHours = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenHours(creator), 0);
+  const qualityRows = [
+    renderQualityRow("ELITE", "(85-100)", managerSummary.elite, "#c084fc", "#a855f7"),
+    renderQualityRow("HIGH QUALITY", "(70-84)", managerSummary.healthy, "#5ceeff", "#06b6d4"),
+    renderQualityRow("GOOD QUALITY", "(50-69)", managerSummary.needsAttention, "#facc15", "#eab308"),
+    renderQualityRow("LOW QUALITY", "(<=49)", lowQualityCount, "#ff4d3d", "#ef4444"),
+  ].join("");
+
+  const rows = topCreators
+    .map((creator, index) => {
+      const tone = getHealthPosterTone(creator.healthStatus);
+      return `
+        <div style="display:grid;grid-template-columns:82px 1fr 180px 238px;align-items:center;min-height:48px;border-left:2px solid ${tone.border};border-right:2px solid ${tone.border};border-bottom:1px solid ${tone.border}99;background:linear-gradient(90deg,rgba(2,6,23,.92),rgba(15,23,42,.82));box-shadow:0 0 18px ${tone.border}44 inset;">
+          <div style="text-align:center;color:#f8fafc;font-size:28px;font-weight:950;text-shadow:0 0 10px ${tone.color};">${index + 1}</div>
+          <div style="overflow:hidden;padding-right:12px;color:#f8fafc;font-size:25px;font-weight:950;white-space:nowrap;text-overflow:ellipsis;text-shadow:2px 2px 0 #000;">${escapeHtml(creator.username)}</div>
+          <div style="color:${tone.color};font-size:31px;font-weight:950;text-align:center;text-shadow:0 0 12px ${tone.color};">${formatNumber(creator.healthScore)} <span style="font-size:17px;color:#f8fafc;">/100</span></div>
+          <div style="display:flex;align-items:center;gap:10px;color:${tone.color};font-size:20px;font-weight:950;text-shadow:0 0 10px ${tone.color};"><span style="font-size:23px;">${tone.icon}</span>${tone.label}</div>
+        </div>
+      `;
+    })
+    .join("");
+
+  const posterHtml = `
+    <div style="position:relative;width:${TEAM_HEALTH_POSTER_WIDTH}px;height:${TEAM_HEALTH_POSTER_HEIGHT}px;overflow:hidden;background:
+      radial-gradient(circle at 50% 0%, rgba(14,165,233,.44), transparent 24%),
+      radial-gradient(circle at 0% 18%, rgba(56,189,248,.3), transparent 28%),
+      radial-gradient(circle at 100% 22%, rgba(56,189,248,.28), transparent 27%),
+      linear-gradient(180deg,#020617 0%,#041827 48%,#020617 100%);
+      color:#f8fafc;font-family:Arial,Helvetica,sans-serif;">
+      <div style="position:absolute;inset:18px;border:2px solid rgba(56,189,248,.72);box-shadow:0 0 32px rgba(56,189,248,.8),0 0 90px rgba(14,165,233,.35) inset;"></div>
+      <div style="position:absolute;left:-120px;right:-120px;top:120px;height:110px;border-top:6px solid rgba(56,189,248,.85);border-radius:50%;filter:drop-shadow(0 0 18px #38bdf8);transform:rotate(-7deg);"></div>
+      <div style="position:absolute;left:-120px;right:-120px;bottom:92px;height:130px;border-bottom:6px solid rgba(56,189,248,.85);border-radius:50%;filter:drop-shadow(0 0 18px #38bdf8);transform:rotate(7deg);"></div>
+
+      <div style="position:absolute;left:40px;right:40px;top:28px;text-align:center;">
+        <img src="/aqua-logo.png" style="height:104px;width:auto;object-fit:contain;filter:drop-shadow(0 0 18px #38bdf8);" />
+        <div style="font-size:78px;font-weight:950;letter-spacing:0;text-transform:uppercase;line-height:.95;color:#f8fafc;text-shadow:0 0 18px #38bdf8,4px 5px 0 #00111f;">${escapeHtml(getPlainManagerName(managerSummary.manager))}</div>
+        <div style="margin-top:12px;font-size:30px;font-weight:950;letter-spacing:8px;color:#f8fafc;text-transform:uppercase;text-shadow:0 0 12px #38bdf8;">Creator Health Scores</div>
+      </div>
+
+      <div style="position:absolute;left:40px;right:40px;top:236px;display:grid;grid-template-columns:1.35fr .95fr;gap:22px;">
+        <div style="border:3px solid #38bdf8;background:rgba(2,6,23,.9);box-shadow:0 0 32px #38bdf899 inset,0 0 26px #38bdf855;padding:23px;text-align:center;">
+          <div style="font-size:25px;font-weight:950;text-transform:uppercase;letter-spacing:4px;color:#f8fafc;">Team Average Health Score</div>
+          <div style="display:flex;align-items:flex-end;justify-content:center;margin-top:12px;">
+            <span style="font-size:124px;font-weight:950;line-height:.86;color:#e0f2fe;text-shadow:0 0 28px #38bdf8,4px 5px 0 #00111f;">${formatNumber(managerSummary.averageScore)}</span>
+            <span style="padding-bottom:15px;font-size:36px;font-weight:950;color:#f8fafc;">/100</span>
+          </div>
+          <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-weight:900;">
+            <div style="border:1px solid #38bdf8;padding:9px;color:#5ceeff;">${formatNumber(managerSummary.matureCreators)} scored</div>
+            <div style="border:1px solid #38bdf8;padding:9px;color:#5ceeff;">${formatNumber(lastSevenDiamonds)} diamonds</div>
+            <div style="border:1px solid #38bdf8;padding:9px;color:#5ceeff;">${formatHours(lastSevenHours)}h live</div>
+          </div>
+        </div>
+        <div>
+          <div style="border:2px solid #38bdf8;background:rgba(2,6,23,.92);padding:12px;text-align:center;font-size:26px;font-weight:950;text-transform:uppercase;letter-spacing:2px;">Quality Breakdown</div>
+          ${qualityRows}
+        </div>
+      </div>
+
+      <div style="position:absolute;left:32px;right:32px;top:520px;">
+        <div style="display:grid;grid-template-columns:82px 1fr 180px 238px;align-items:center;border:2px solid #38bdf8;background:linear-gradient(90deg,rgba(15,23,42,.95),rgba(8,47,73,.84));box-shadow:0 0 24px #38bdf855 inset;color:#f8fafc;text-transform:uppercase;font-size:20px;font-weight:950;letter-spacing:2px;">
+          <div style="padding:13px;text-align:center;">#</div>
+          <div>Creator</div>
+          <div style="text-align:center;">Health Score</div>
+          <div>Quality</div>
+        </div>
+        ${rows || `<div style="border:2px solid #38bdf8;border-top:0;background:rgba(2,6,23,.9);padding:28px;text-align:center;font-size:28px;font-weight:950;">No scored creators yet.</div>`}
+      </div>
+
+      <div style="position:absolute;left:42px;right:42px;bottom:44px;display:grid;grid-template-columns:1fr auto 1fr;gap:22px;align-items:center;">
+        <div style="border:2px solid #38bdf8;background:rgba(2,6,23,.86);padding:16px;min-height:92px;">
+          <div style="font-size:20px;font-weight:950;color:#5ceeff;text-transform:uppercase;">Focus Areas</div>
+          <div style="margin-top:8px;font-size:18px;line-height:1.24;color:#f8fafc;">Improve low quality creators into good quality. Build weekly consistency and daily activity.</div>
+        </div>
+        <div style="width:136px;text-align:center;">
+          <img src="/aqua-logo.png" style="width:132px;height:auto;filter:drop-shadow(0 0 16px #38bdf8);" />
+        </div>
+        <div style="border:2px solid #38bdf8;background:rgba(2,6,23,.86);padding:16px;min-height:92px;">
+          <div style="font-size:20px;font-weight:950;color:#5ceeff;text-transform:uppercase;">Our Goal</div>
+          <div style="margin-top:8px;font-size:18px;line-height:1.24;color:#f8fafc;">Stronger health. Stronger growth. Stronger team results.</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:0;right:0;bottom:14px;text-align:center;color:#f8fafc;font-size:17px;font-weight:900;letter-spacing:8px;text-transform:uppercase;">${escapeHtml(reportDate)} . Health today . Growth tomorrow . Results together</div>
+    </div>
+  `;
+
+  const host = document.createElement("div");
+  host.style.position = "fixed";
+  host.style.left = "-10000px";
+  host.style.top = "0";
+  host.style.width = `${TEAM_HEALTH_POSTER_WIDTH}px`;
+  host.style.height = `${TEAM_HEALTH_POSTER_HEIGHT}px`;
+  host.innerHTML = posterHtml;
+  document.body.appendChild(host);
+
+  try {
+    await waitForReportAssets(document);
+    const poster = host.firstElementChild as HTMLElement | null;
+    if (!poster) throw new Error("Could not create team health poster.");
+    const blob = await toBlob(poster, {
+      cacheBust: true,
+      pixelRatio: 1,
+      width: TEAM_HEALTH_POSTER_WIDTH,
+      height: TEAM_HEALTH_POSTER_HEIGHT,
+      backgroundColor: "#020617",
+    });
+
+    if (!blob) throw new Error("Could not render team health poster.");
+    return blob;
+  } finally {
+    host.remove();
+  }
+}
+
 async function downloadReport(creator: CreatorSummary, reportType: "creator" | "internal") {
   const finalHtml = buildReportHtml(creator, reportType);
   const blob =
@@ -3247,6 +3397,11 @@ export default function CreatorIntelligenceDashboard({
       }),
     [managerHealthSummaries, weeklyHealthComparison]
   );
+  const activeManagerSummary = useMemo(() => {
+    if (normalizedLockedManager) return managerHealthSummaries[0] || null;
+    if (activeManager === "All Managers") return null;
+    return managerHealthSummaries.find((item) => item.manager === activeManager) || null;
+  }, [activeManager, managerHealthSummaries, normalizedLockedManager]);
 
   const latestGraduationUploadCount = useMemo(() => {
     const uploadedDatesWithActivity = Array.from(new Set(rollingAquaRows
@@ -3594,7 +3749,7 @@ export default function CreatorIntelligenceDashboard({
   async function downloadYesterdayDiamondsReport() {
     const yesterdayDate = getYesterdayDateKey();
     const selectedTeamLabel = normalizedLockedManager
-      ? lockedManagerDisplayName
+      ? activeManagerSummary?.manager || `Team ${lockedManagerDisplayName}`
       : activeManager;
     const savedTemplate = getSavedTeamPosterTemplate();
 
@@ -3606,10 +3761,15 @@ export default function CreatorIntelligenceDashboard({
     const yesterdayRows = rows
       .filter((row) => row.stat_date === yesterdayDate && isAquaRow(row))
       .filter((row) => {
+        const rowManagerRaw = getText(row, ["creator_network_manager", "Creator Network manager", "manager_email"], "");
+        const rowGroup = getText(row, ["team", "group_name", "Group"], "");
+        if (normalizedLockedManager) {
+          return isManagerMatch(`${rowManagerRaw} ${getManagerLabel(rowManagerRaw, rowGroup)}`, normalizedLockedManager);
+        }
         if (activeManager === "All Managers") return true;
         const rowManager = getManagerLabel(
-          getText(row, ["creator_network_manager", "Creator Network manager", "manager_email"], ""),
-          getText(row, ["team", "group_name", "Group"], "")
+          rowManagerRaw,
+          rowGroup
         );
         return rowManager === activeManager;
       })
@@ -3666,6 +3826,25 @@ export default function CreatorIntelligenceDashboard({
     const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
     const safeTeamName = selectedTeamLabel.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     saveAs(blob, `aqua-yesterday-diamonds-${safeTeamName}-${yesterdayDate}-${timestamp}.png`);
+  }
+
+  async function downloadTeamHealthScorePng(managerSummary?: ManagerHealthSummary | null) {
+    const summary = managerSummary || activeManagerSummary;
+
+    if (!summary) {
+      alert("Select a single manager/team first, then download the team health score report.");
+      return;
+    }
+
+    if (!summary.matureCreators) {
+      alert(`${summary.manager} has no scored creators yet. Creators count into this report from day 8 onwards.`);
+      return;
+    }
+
+    const blob = await renderTeamHealthPosterToPngBlob(summary);
+    const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
+    const safeTeamName = summary.manager.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    saveAs(blob, `aqua-team-health-score-${safeTeamName}-${timestamp}.png`);
   }
 
   function toggleChartMetric(metric: ChartMetricKey) {
@@ -3792,7 +3971,34 @@ export default function CreatorIntelligenceDashboard({
             </label>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50 p-4">
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide text-cyan-700">
+                    Team Health Score Report
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Downloads an Aqua-style PNG for{" "}
+                    <span className="font-black text-slate-700">
+                      {activeManagerSummary?.manager || (normalizedLockedManager ? lockedManagerDisplayName : "the selected team")}
+                    </span>
+                    .
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => void downloadTeamHealthScorePng()}
+                  className="rounded-xl bg-cyan-500 px-5 py-3 text-sm font-black uppercase tracking-wide text-white shadow-sm transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  disabled={!activeManagerSummary}
+                >
+                  Download Health Score
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs font-black uppercase tracking-wide text-sky-700">
@@ -3814,6 +4020,7 @@ export default function CreatorIntelligenceDashboard({
               >
                 Download Yesterday&apos;s Diamonds
               </button>
+            </div>
             </div>
           </div>
         </section>
@@ -4048,6 +4255,13 @@ export default function CreatorIntelligenceDashboard({
                       className="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-700 hover:bg-cyan-100"
                     >
                       Copy Health Scores
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void downloadTeamHealthScorePng(managerSummary)}
+                      className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-black text-sky-700 hover:bg-sky-100"
+                    >
+                      Download Health PNG
                     </button>
                     <button
                       type="button"
