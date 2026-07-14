@@ -668,6 +668,14 @@ function statusClasses(status: HealthStatus) {
   return "border-red-200 bg-red-50 text-red-700";
 }
 
+function getHealthStatusLabel(status: HealthStatus | "All Health") {
+  if (status === "All Health") return "All Health";
+  if (status === "Elite") return "Elite";
+  if (status === "Healthy") return "Above Average";
+  if (status === "Needs Attention") return "Average";
+  return "Needs Improvement";
+}
+
 function getCreatorTags(creator: {
   healthWindowDays: number;
   oneHourDays: number;
@@ -1109,9 +1117,7 @@ function reportToneClass(status: HealthStatus) {
 }
 
 function getCreatorReportScoreLabel(status: HealthStatus) {
-  if (status === "Elite") return "Elite";
-  if (status === "Healthy") return "High Quality";
-  return "";
+  return getHealthStatusLabel(status);
 }
 
 function buildScoreImprovementTips(creator: CreatorSummary) {
@@ -2071,7 +2077,7 @@ function buildReportHtml(creator: CreatorSummary, reportType: "creator" | "inter
       "Weekly performance",
       reportType === "creator"
         ? `${creator.healthScore}/100`
-        : `${creator.healthScore}/100 ${creator.healthStatus}`,
+        : `${creator.healthScore}/100 ${getHealthStatusLabel(creator.healthStatus)}`,
     ],
     ["Weekly target", getWeeklyTargetText(creator)],
     ["Weekly diamonds", formatNumber(weeklyDiamonds)],
@@ -2640,10 +2646,10 @@ function downloadManagerReport(
   <h2>Team Mix</h2>
   <section class="grid">
     <div class="card"><div class="label">Elite</div><div class="value elite-value">${formatNumber(managerSummary.elite)}</div></div>
-    <div class="card"><div class="label">Healthy</div><div class="value good">${formatNumber(managerSummary.healthy)}</div></div>
-    <div class="card"><div class="label">Needs Attention</div><div class="value warn">${formatNumber(managerSummary.needsAttention)}</div></div>
-    <div class="card"><div class="label">Low Performance</div><div class="value performance-value">${formatNumber(managerSummary.lowPerformance)}</div></div>
-    <div class="card"><div class="label">Low Quality</div><div class="value bad">${formatNumber(managerSummary.lowQuality)}</div></div>
+    <div class="card"><div class="label">Above Average</div><div class="value good">${formatNumber(managerSummary.healthy)}</div></div>
+    <div class="card"><div class="label">Average</div><div class="value warn">${formatNumber(managerSummary.needsAttention)}</div></div>
+    <div class="card"><div class="label">Needs Improvement</div><div class="value performance-value">${formatNumber(managerSummary.lowPerformance)}</div></div>
+    <div class="card"><div class="label">Needs Improvement</div><div class="value bad">${formatNumber(managerSummary.lowQuality)}</div></div>
   </section>
 
   <h2>Manager Action Summary</h2>
@@ -2787,7 +2793,7 @@ function downloadManagerReport(
 
         return `<tr>
           <td><strong>${escapeHtml(creator.username)}</strong><br><span class="muted">${escapeHtml(creator.tierStatus)}</span></td>
-          <td><span class="pill ${statusClass}">${escapeHtml(creator.healthStatus)}</span></td>
+          <td><span class="pill ${statusClass}">${escapeHtml(getHealthStatusLabel(creator.healthStatus))}</span></td>
           <td>${formatNumber(creator.healthScore)}/100</td>
           <td>${formatNumber(creator.monthlyHealthScore)}/100</td>
           <td>${contribution}</td>
@@ -3459,10 +3465,10 @@ export default function CreatorIntelligenceDashboard({
   const groupedCreators = useMemo(
     () => {
       const coreGroups = [
-        { title: "Low Performance", status: "Low Performance" as HealthStatus, creators: matureFilteredCreators.filter((creator) => creator.healthStatus === "Low Performance") },
-        { title: "Low Quality", status: "Low Quality" as HealthStatus, creators: matureFilteredCreators.filter((creator) => creator.healthStatus === "Low Quality") },
-        { title: "Needs Attention", status: "Needs Attention" as HealthStatus, creators: matureFilteredCreators.filter((creator) => creator.healthStatus === "Needs Attention") },
-        { title: "Healthy", status: "Healthy" as HealthStatus, creators: matureFilteredCreators.filter((creator) => creator.healthStatus === "Healthy") },
+        { title: "Needs Improvement", status: "Low Performance" as HealthStatus, creators: matureFilteredCreators.filter((creator) => creator.healthStatus === "Low Performance") },
+        { title: "Needs Improvement", status: "Low Quality" as HealthStatus, creators: matureFilteredCreators.filter((creator) => creator.healthStatus === "Low Quality") },
+        { title: "Average", status: "Needs Attention" as HealthStatus, creators: matureFilteredCreators.filter((creator) => creator.healthStatus === "Needs Attention") },
+        { title: "Above Average", status: "Healthy" as HealthStatus, creators: matureFilteredCreators.filter((creator) => creator.healthStatus === "Healthy") },
         { title: "Elite", status: "Elite" as HealthStatus, creators: matureFilteredCreators.filter((creator) => creator.healthStatus === "Elite") },
       ];
 
@@ -3560,9 +3566,9 @@ export default function CreatorIntelligenceDashboard({
 
   function getCopiedHealthQualityLabel(creator: CreatorSummary) {
     if (creator.healthStatus === "Elite" || creator.healthScore >= 85) return "Elite";
-    if (creator.healthScore <= 50) return "Low Quality";
-    if (creator.healthStatus === "Healthy" || creator.healthScore >= 70) return "High Quality";
-    return "Good Quality";
+    if (creator.healthStatus === "Healthy" || creator.healthScore >= 70) return "Above Average";
+    if (creator.healthScore >= 50) return "Average";
+    return "Needs Improvement";
   }
 
   function copyManagerTeamHealthText(managerSummary: ManagerHealthSummary) {
@@ -3907,7 +3913,9 @@ export default function CreatorIntelligenceDashboard({
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-950"
               >
                 {["All Health", "Elite", "Healthy", "Needs Attention", "Low Performance", "Low Quality"].map((item) => (
-                  <option key={item}>{item}</option>
+                  <option key={item} value={item}>
+                    {getHealthStatusLabel(item as HealthStatus | "All Health")}
+                  </option>
                 ))}
               </select>
             </label>
@@ -4016,10 +4024,9 @@ export default function CreatorIntelligenceDashboard({
             }
           />
           <MetricCard label="Average 30-day health score" value={`${formatNumber(totals.averageThirtyDayHealth)}/100`} />
-          <MetricCard label="Low performance creators" value={formatNumber(totals.lowPerformance)} />
-          <MetricCard label="Low quality creators" value={formatNumber(totals.lowQuality)} />
-          <MetricCard label="Needs attention" value={formatNumber(totals.needsAttention)} />
-          <MetricCard label="Healthy creators" value={formatNumber(totals.healthy)} />
+          <MetricCard label="Needs improvement creators" value={formatNumber(totals.lowPerformance + totals.lowQuality)} />
+          <MetricCard label="Average creators" value={formatNumber(totals.needsAttention)} />
+          <MetricCard label="Above average creators" value={formatNumber(totals.healthy)} />
           <MetricCard label="Elite creators" value={formatNumber(totals.elite)} />
           <MetricCard label="New creators" value={formatNumber(totals.newCreators)} />
           <MetricCard label="Average DPH (diamonds per hour)" value={formatNumber(totals.averageDph)} />
@@ -4194,19 +4201,19 @@ export default function CreatorIntelligenceDashboard({
                     </div>
                     <div className="rounded-xl bg-emerald-50 p-2 font-bold text-emerald-700">
                       <p>{formatNumber(managerSummary.healthy)}</p>
-                      <p className="mt-1 text-[10px] uppercase">Healthy</p>
+                      <p className="mt-1 text-[10px] uppercase">Above Avg</p>
                     </div>
                     <div className="rounded-xl bg-orange-50 p-2 font-bold text-orange-700">
                       <p>{formatNumber(managerSummary.needsAttention)}</p>
-                      <p className="mt-1 text-[10px] uppercase">Attention</p>
+                      <p className="mt-1 text-[10px] uppercase">Average</p>
                     </div>
                     <div className="rounded-xl bg-sky-50 p-2 font-bold text-sky-700">
                       <p>{formatNumber(managerSummary.lowPerformance)}</p>
-                      <p className="mt-1 text-[10px] uppercase">Low Perf</p>
+                      <p className="mt-1 text-[10px] uppercase">Improve</p>
                     </div>
                     <div className="rounded-xl bg-red-50 p-2 font-bold text-red-700">
                       <p>{formatNumber(managerSummary.lowQuality)}</p>
-                      <p className="mt-1 text-[10px] uppercase">Low Qual</p>
+                      <p className="mt-1 text-[10px] uppercase">Improve</p>
                     </div>
                   </div>
 
@@ -4283,7 +4290,7 @@ export default function CreatorIntelligenceDashboard({
                         >
                           <span>
                             <span className="block font-black text-slate-950">{creator.username}</span>
-                            <span className="block text-xs text-slate-500">{creator.healthStatus}</span>
+                            <span className="block text-xs text-slate-500">{getHealthStatusLabel(creator.healthStatus)}</span>
                           </span>
                           <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusClasses(creator.healthStatus)}`}>
                             {creator.healthScore}/100
@@ -4478,7 +4485,7 @@ export default function CreatorIntelligenceDashboard({
               <div>
                 <h2 className="text-3xl font-black uppercase text-sky-900">Manager Focus Queue</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Uses the selected manager filter. Priority order is the top 10% most fixable Low Quality creators, then Low Performance, Needs Attention, and Healthy.
+                Uses the selected manager filter. Priority order is the top 10% most fixable Needs Improvement creators, then Average and Above Average creators.
                 </p>
               </div>
               <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-black text-orange-700">
@@ -4501,7 +4508,7 @@ export default function CreatorIntelligenceDashboard({
                       <p className="mt-1 text-xs text-slate-500">{getCreatorMetaLine(creator)}</p>
                     </div>
                     <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusClasses(creator.healthStatus)}`}>
-                      {creator.healthStatus} {creator.healthScore}/100
+                      {getHealthStatusLabel(creator.healthStatus)} {creator.healthScore}/100
                     </span>
                   </div>
                   <p className="mt-2 text-xs font-bold text-slate-500">
@@ -4539,14 +4546,14 @@ export default function CreatorIntelligenceDashboard({
                     selectedCreator.healthStatus
                   )}`}
                 >
-                  Weekly performance {selectedCreator.healthScore}/100 {selectedCreator.healthStatus}
+                  Weekly performance {selectedCreator.healthScore}/100 {getHealthStatusLabel(selectedCreator.healthStatus)}
                 </span>
                 <span
                   className={`w-fit rounded-full border px-4 py-2 text-sm font-black ${statusClasses(
                     selectedCreator.monthlyHealthStatus
                   )}`}
                 >
-                  30-day performance {selectedCreator.monthlyHealthScore}/100 {selectedCreator.monthlyHealthStatus}
+                  30-day performance {selectedCreator.monthlyHealthScore}/100 {getHealthStatusLabel(selectedCreator.monthlyHealthStatus)}
                 </span>
               </div>
             </div>
@@ -4822,9 +4829,9 @@ export default function CreatorIntelligenceDashboard({
         <section className="mb-6 rounded-3xl border border-red-100 bg-white p-5 shadow-sm">
           <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-2xl font-black uppercase text-red-700">Low Quality List</h2>
+              <h2 className="text-2xl font-black uppercase text-red-700">Needs Improvement List</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Below 50 score and under 5,000 diamonds. The highest-scoring 10% are surfaced in the manager focus queue because they are closest to being moved up.
+                Below 50 score. The highest-scoring 10% are surfaced in the manager focus queue because they are closest to moving up.
               </p>
             </div>
             <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-black text-red-700">
@@ -4855,7 +4862,7 @@ export default function CreatorIntelligenceDashboard({
             </div>
             {!lowQualityCreators.length ? (
               <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                No Low Quality creators in these filters.
+                No Needs Improvement creators in these filters.
               </p>
             ) : null}
           </div>
@@ -4866,7 +4873,7 @@ export default function CreatorIntelligenceDashboard({
             <div>
               <h2 className="text-2xl font-black uppercase text-sky-950">Health Tracker</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Last seven uploaded days. Below 50 with 5,000+ diamonds is Low Performance; below 50 under 5,000 diamonds is Low Quality.
+                Last seven uploaded days. Below 50 is Needs Improvement, 50-69 is Average, 70-84 is Above Average, and 85+ is Elite.
               </p>
             </div>
             <p className="text-sm font-bold text-slate-500">
@@ -4891,7 +4898,7 @@ export default function CreatorIntelligenceDashboard({
                   }`}
                 >
                   <span className={`rounded-full border px-3 py-1 text-xs font-black ${statusClasses(status)}`}>
-                    {status}
+                    {getHealthStatusLabel(status)}
                   </span>
                   <p className="mt-4 text-4xl font-black text-slate-950">{formatNumber(count)}</p>
                   <p className="mt-1 text-xs font-bold uppercase text-slate-400">Creators</p>
@@ -5198,7 +5205,7 @@ export default function CreatorIntelligenceDashboard({
                     label="Weekly performance"
                     value={`${selectedCreator.healthScore}/100`}
                   />
-                  <MetricCard label="Status" value={selectedCreator.healthStatus} />
+                  <MetricCard label="Status" value={getHealthStatusLabel(selectedCreator.healthStatus)} />
                   <MetricCard label="Last 7 diamonds" value={formatNumber(getLastSevenDiamonds(selectedCreator))} />
                   <MetricCard label="Last 7 hours" value={formatHours(getLastSevenHours(selectedCreator))} />
                   <MetricCard label="Last 7 battles" value={formatNumber(getLastSevenMatches(selectedCreator))} />
