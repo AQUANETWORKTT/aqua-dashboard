@@ -39,12 +39,8 @@ export default function ManagerLayout({
                 Portal
               </Link>
 
-              <Link href="/manager/leaderboard" className="manager-link">
-                Leaderboard
-              </Link>
-
-              <Link href="/manager/upload" className="manager-link">
-                Upload
+              <Link href="/manager/managers" className="manager-link">
+                Managers
               </Link>
 
               <Link href="/manager/battle-generator" className="manager-link">

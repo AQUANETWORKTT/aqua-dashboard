@@ -128,21 +128,19 @@ function ProfileImage({ username }: { username: string | null }) {
 export default function CreatorInsightsPage() {
   const router = useRouter();
 
-  const [checkedAccess, setCheckedAccess] = useState(false);
+  const [checkedAccess] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("manager_admin_access") === "true";
+  });
   const [creators, setCreators] = useState<CreatorStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("high-potential");
 
   useEffect(() => {
-    const hasAccess = localStorage.getItem("manager_admin_access");
-
-    if (hasAccess !== "true") {
+    if (!checkedAccess) {
       router.push("/manager/admin");
-      return;
     }
-
-    setCheckedAccess(true);
-  }, [router]);
+  }, [checkedAccess, router]);
 
   useEffect(() => {
     async function loadCreators() {
@@ -380,14 +378,6 @@ export default function CreatorInsightsPage() {
         </div>
 
         <div className="insights-actions">
-          <button
-            type="button"
-            className="insights-button"
-            onClick={() => router.push("/manager/admin/review")}
-          >
-            Back to Review
-          </button>
-
           <select
             className="insights-select"
             value={filter}

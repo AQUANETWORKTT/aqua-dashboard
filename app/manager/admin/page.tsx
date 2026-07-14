@@ -24,7 +24,7 @@ export default function ManagerAdminAccessPage() {
     }
 
     localStorage.setItem("manager_admin_access", "true");
-    router.push("/manager/admin/review");
+    router.push("/manager/admin/creator-insights");
   };
 
   return (
