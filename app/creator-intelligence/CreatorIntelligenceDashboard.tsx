@@ -2317,86 +2317,83 @@ function getHealthPosterTone(status: HealthStatus) {
   return { label: "LOW QUALITY", color: "#ff4d3d", border: "#ef4444", icon: "◆" };
 }
 
-function renderQualityRow(label: string, range: string, count: number, color: string, border: string) {
-  return `
-    <div style="display:grid;grid-template-columns:38px 1fr 54px;align-items:center;min-height:43px;border:2px solid ${border};background:linear-gradient(90deg,rgba(2,6,23,.94),rgba(15,23,42,.8));box-shadow:0 0 20px ${border}55 inset;">
-      <div style="display:flex;align-items:center;justify-content:center;color:${color};font-size:24px;text-shadow:0 0 14px ${color};">◆</div>
-      <div style="padding:8px 6px 8px 0;font-weight:950;color:${color};font-size:21px;line-height:1;text-shadow:0 0 10px ${color}99;">${label}<br><span style="font-size:14px;color:#f8fafc;">${range}</span></div>
-      <div style="padding-right:13px;text-align:right;color:${color};font-size:35px;font-weight:950;line-height:1;text-shadow:0 0 13px ${color};">${formatNumber(count)}</div>
-    </div>
-  `;
-}
-
 async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSummary) {
   const scoredCreators = [...managerSummary.creators]
     .filter(isTeamHealthScoreCreator)
     .sort((a, b) => b.healthScore - a.healthScore);
-  const rowHeight = 46;
-  const tableTop = 420;
-  const bottomPadding = 34;
-  const posterHeight = Math.max(760, tableTop + 44 + Math.max(scoredCreators.length, 1) * rowHeight + bottomPadding);
   const lowQualityCount = managerSummary.lowPerformance + managerSummary.lowQuality;
   const lastSevenDiamonds = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenDiamonds(creator), 0);
   const lastSevenHours = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenHours(creator), 0);
-  const qualityRows = [
-    renderQualityRow("ELITE", "(85-100)", managerSummary.elite, "#c084fc", "#a855f7"),
-    renderQualityRow("HIGH QUALITY", "(70-84)", managerSummary.healthy, "#5ceeff", "#06b6d4"),
-    renderQualityRow("GOOD QUALITY", "(50-69)", managerSummary.needsAttention, "#facc15", "#eab308"),
-    renderQualityRow("LOW QUALITY", "(<=49)", lowQualityCount, "#ff4d3d", "#ef4444"),
-  ].join("");
+  const qualityItems = [
+    { label: "ELITE", range: "85-100", count: managerSummary.elite, color: "#c084fc", border: "#a855f7" },
+    { label: "HIGH QUALITY", range: "70-84", count: managerSummary.healthy, color: "#5ceeff", border: "#06b6d4" },
+    { label: "GOOD QUALITY", range: "50-69", count: managerSummary.needsAttention, color: "#facc15", border: "#eab308" },
+    { label: "LOW QUALITY", range: "<=49", count: lowQualityCount, color: "#ff4d3d", border: "#ef4444" },
+  ];
+  const qualityRows = qualityItems
+    .map(
+      (item) => `
+        <div style="display:grid;grid-template-columns:32px 1fr 52px;align-items:center;min-height:42px;border:2px solid ${item.border};background:linear-gradient(90deg,rgba(2,6,23,.96),rgba(15,23,42,.84));box-shadow:0 0 18px ${item.border}55 inset;">
+          <div style="text-align:center;color:${item.color};font-size:23px;font-weight:950;text-shadow:0 0 12px ${item.color};">*</div>
+          <div style="min-width:0;color:${item.color};font-size:18px;font-weight:950;line-height:1.05;text-shadow:0 0 10px ${item.color}99;">${item.label}<br><span style="font-size:13px;color:#f8fafc;">(${item.range})</span></div>
+          <div style="padding-right:12px;text-align:right;color:${item.color};font-size:32px;font-weight:950;line-height:1;text-shadow:0 0 12px ${item.color};">${formatNumber(item.count)}</div>
+        </div>
+      `
+    )
+    .join("");
 
   const rows = scoredCreators
     .map((creator, index) => {
       const tone = getHealthPosterTone(creator.healthStatus);
       return `
-        <div style="display:grid;grid-template-columns:62px 1fr 150px 230px;align-items:center;height:${rowHeight}px;border-left:2px solid ${tone.border};border-right:2px solid ${tone.border};border-bottom:1px solid ${tone.border}99;background:linear-gradient(90deg,rgba(2,6,23,.94),rgba(15,23,42,.86));box-shadow:0 0 18px ${tone.border}3d inset;">
-          <div style="text-align:center;color:#f8fafc;font-size:25px;font-weight:950;text-shadow:0 0 10px ${tone.color};">${index + 1}</div>
-          <div style="overflow:hidden;padding-right:12px;color:#f8fafc;font-size:23px;font-weight:950;white-space:nowrap;text-overflow:ellipsis;text-shadow:2px 2px 0 #000;">${escapeHtml(creator.username)}</div>
-          <div style="color:${tone.color};font-size:29px;font-weight:950;text-align:center;text-shadow:0 0 12px ${tone.color};">${formatNumber(creator.healthScore)} <span style="font-size:15px;color:#f8fafc;">/100</span></div>
-          <div style="display:flex;align-items:center;gap:9px;overflow:hidden;padding-right:10px;color:${tone.color};font-size:18px;font-weight:950;white-space:nowrap;text-shadow:0 0 10px ${tone.color};"><span style="font-size:22px;">${tone.icon}</span>${tone.label}</div>
+        <div style="display:grid;grid-template-columns:54px 1fr 144px 214px;align-items:center;height:44px;border-left:2px solid ${tone.border};border-right:2px solid ${tone.border};border-bottom:1px solid ${tone.border}99;background:linear-gradient(90deg,rgba(2,6,23,.94),rgba(15,23,42,.86));box-shadow:0 0 18px ${tone.border}3d inset;">
+          <div style="text-align:center;color:#f8fafc;font-size:23px;font-weight:950;text-shadow:0 0 10px ${tone.color};">${index + 1}</div>
+          <div style="overflow:hidden;padding-right:12px;color:#f8fafc;font-size:22px;font-weight:950;white-space:nowrap;text-overflow:ellipsis;text-shadow:2px 2px 0 #000;">${escapeHtml(creator.username)}</div>
+          <div style="color:${tone.color};font-size:27px;font-weight:950;text-align:center;text-shadow:0 0 12px ${tone.color};">${formatNumber(creator.healthScore)} <span style="font-size:14px;color:#f8fafc;">/100</span></div>
+          <div style="display:flex;align-items:center;gap:8px;overflow:hidden;padding-right:8px;color:${tone.color};font-size:17px;font-weight:950;white-space:nowrap;text-shadow:0 0 10px ${tone.color};"><span style="font-size:19px;">*</span>${tone.label}</div>
         </div>
       `;
     })
     .join("");
 
   const posterHtml = `
-    <div style="position:relative;width:${TEAM_HEALTH_POSTER_WIDTH}px;height:${posterHeight}px;overflow:hidden;background:
+    <div style="position:relative;width:${TEAM_HEALTH_POSTER_WIDTH}px;min-height:720px;overflow:hidden;box-sizing:border-box;padding:26px 28px 34px;background:
       radial-gradient(circle at 50% 0%, rgba(14,165,233,.44), transparent 24%),
       radial-gradient(circle at 0% 18%, rgba(56,189,248,.3), transparent 28%),
       radial-gradient(circle at 100% 22%, rgba(56,189,248,.28), transparent 27%),
       linear-gradient(180deg,#020617 0%,#041827 48%,#020617 100%);
       color:#f8fafc;font-family:Arial,Helvetica,sans-serif;">
       <div style="position:absolute;inset:18px;border:2px solid rgba(56,189,248,.72);box-shadow:0 0 32px rgba(56,189,248,.8),0 0 90px rgba(14,165,233,.35) inset;"></div>
-      <div style="position:absolute;left:-120px;right:-120px;top:92px;height:110px;border-top:5px solid rgba(56,189,248,.76);border-radius:50%;filter:drop-shadow(0 0 16px #38bdf8);transform:rotate(-7deg);"></div>
-      <div style="position:absolute;left:-120px;right:-120px;bottom:28px;height:90px;border-bottom:4px solid rgba(56,189,248,.58);border-radius:50%;filter:drop-shadow(0 0 14px #38bdf8);transform:rotate(5deg);"></div>
+      <div style="position:absolute;left:-120px;right:-120px;top:88px;height:110px;border-top:5px solid rgba(56,189,248,.62);border-radius:50%;filter:drop-shadow(0 0 16px #38bdf8);transform:rotate(-7deg);"></div>
+      <div style="position:absolute;left:-120px;right:-120px;bottom:20px;height:90px;border-bottom:4px solid rgba(56,189,248,.46);border-radius:50%;filter:drop-shadow(0 0 14px #38bdf8);transform:rotate(5deg);"></div>
 
-      <div style="position:absolute;left:36px;right:36px;top:26px;text-align:center;">
-        <img src="/aqua-logo.png" style="height:64px;width:auto;object-fit:contain;filter:drop-shadow(0 0 16px #38bdf8);" />
-        <div style="margin-top:5px;font-size:66px;font-weight:950;letter-spacing:0;text-transform:uppercase;line-height:.92;color:#f8fafc;text-shadow:0 0 18px #38bdf8,4px 5px 0 #00111f;">${escapeHtml(getPlainManagerName(managerSummary.manager))}</div>
-        <div style="margin-top:8px;font-size:25px;font-weight:950;letter-spacing:7px;color:#f8fafc;text-transform:uppercase;text-shadow:0 0 12px #38bdf8;">Creator Health Scores</div>
+      <div style="position:relative;z-index:1;text-align:center;">
+        <img src="/aqua-logo.png" style="height:58px;width:auto;object-fit:contain;filter:drop-shadow(0 0 16px #38bdf8);" />
+        <div style="margin-top:4px;font-size:64px;font-weight:950;letter-spacing:0;text-transform:uppercase;line-height:.92;color:#f8fafc;text-shadow:0 0 18px #38bdf8,4px 5px 0 #00111f;">${escapeHtml(getPlainManagerName(managerSummary.manager))}</div>
+        <div style="margin-top:8px;font-size:23px;font-weight:950;letter-spacing:7px;color:#f8fafc;text-transform:uppercase;text-shadow:0 0 12px #38bdf8;">Creator Health Scores</div>
       </div>
 
-      <div style="position:absolute;left:28px;right:28px;top:180px;display:grid;grid-template-columns:1.28fr .95fr;gap:18px;">
-        <div style="height:202px;border:3px solid #38bdf8;background:rgba(2,6,23,.9);box-shadow:0 0 32px #38bdf899 inset,0 0 26px #38bdf855;padding:18px;text-align:center;">
+      <div style="position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.22fr) minmax(0,.9fr);gap:16px;margin-top:22px;">
+        <div style="border:3px solid #38bdf8;background:rgba(2,6,23,.9);box-shadow:0 0 32px #38bdf899 inset,0 0 26px #38bdf855;padding:17px;text-align:center;">
           <div style="font-size:22px;font-weight:950;text-transform:uppercase;letter-spacing:4px;color:#f8fafc;">Team Average Health Score</div>
           <div style="display:flex;align-items:flex-end;justify-content:center;margin-top:8px;">
-            <span style="font-size:102px;font-weight:950;line-height:.86;color:#e0f2fe;text-shadow:0 0 28px #38bdf8,4px 5px 0 #00111f;">${formatNumber(managerSummary.averageScore)}</span>
-            <span style="padding-bottom:12px;font-size:32px;font-weight:950;color:#f8fafc;">/100</span>
+            <span style="font-size:96px;font-weight:950;line-height:.86;color:#e0f2fe;text-shadow:0 0 28px #38bdf8,4px 5px 0 #00111f;">${formatNumber(managerSummary.averageScore)}</span>
+            <span style="padding-bottom:11px;font-size:30px;font-weight:950;color:#f8fafc;">/100</span>
           </div>
-          <div style="margin-top:13px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-weight:900;">
+          <div style="margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-weight:900;">
             <div style="min-width:0;border:1px solid #38bdf8;padding:8px;color:#5ceeff;font-size:15px;line-height:1.1;">${formatNumber(managerSummary.matureCreators)}<br>scored</div>
             <div style="min-width:0;border:1px solid #38bdf8;padding:8px;color:#5ceeff;font-size:15px;line-height:1.1;">${formatNumber(lastSevenDiamonds)}<br>diamonds</div>
             <div style="min-width:0;border:1px solid #38bdf8;padding:8px;color:#5ceeff;font-size:15px;line-height:1.1;">${formatHours(lastSevenHours)}h<br>live</div>
           </div>
         </div>
-        <div style="height:202px;overflow:hidden;">
+        <div>
           <div style="border:2px solid #38bdf8;background:rgba(2,6,23,.92);padding:10px;text-align:center;font-size:22px;font-weight:950;text-transform:uppercase;letter-spacing:2px;">Quality Breakdown</div>
           ${qualityRows}
         </div>
       </div>
 
-      <div style="position:absolute;left:28px;right:28px;top:${tableTop}px;">
-        <div style="display:grid;grid-template-columns:62px 1fr 150px 230px;align-items:center;height:44px;border:2px solid #38bdf8;background:linear-gradient(90deg,rgba(15,23,42,.97),rgba(8,47,73,.86));box-shadow:0 0 24px #38bdf855 inset;color:#f8fafc;text-transform:uppercase;font-size:17px;font-weight:950;letter-spacing:2px;">
+      <div style="position:relative;z-index:1;margin-top:16px;">
+        <div style="display:grid;grid-template-columns:54px 1fr 144px 214px;align-items:center;height:42px;border:2px solid #38bdf8;background:linear-gradient(90deg,rgba(15,23,42,.97),rgba(8,47,73,.86));box-shadow:0 0 24px #38bdf855 inset;color:#f8fafc;text-transform:uppercase;font-size:16px;font-weight:950;letter-spacing:2px;">
           <div style="text-align:center;">#</div>
           <div>Creator</div>
           <div style="text-align:center;">Health Score</div>
@@ -2413,7 +2410,6 @@ async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSumm
   host.style.left = "-10000px";
   host.style.top = "0";
   host.style.width = `${TEAM_HEALTH_POSTER_WIDTH}px`;
-  host.style.height = `${posterHeight}px`;
   host.innerHTML = posterHtml;
   document.body.appendChild(host);
 
@@ -2421,6 +2417,7 @@ async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSumm
     await waitForReportAssets(document);
     const poster = host.firstElementChild as HTMLElement | null;
     if (!poster) throw new Error("Could not create team health poster.");
+    const posterHeight = Math.ceil(poster.scrollHeight);
     const blob = await toBlob(poster, {
       cacheBust: true,
       pixelRatio: 1,
