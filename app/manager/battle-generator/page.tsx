@@ -1863,11 +1863,11 @@ export default function BattleGeneratorPage() {
   async function parseSingleBattleRow(row: string) {
   const parts = getBattleParts(row);
 
+  // A pasted row is always a fresh single poster. Its date must win over any
+  // date used by the previous poster; manual date controls are only a fallback.
   const selectedDate =
-    singleBattle.date ||
-    massDate ||
-    formatDateFromParts(singleDay, singleMonth) ||
-    getPastedBattleDate(parts);
+    getPastedBattleDate(parts) ||
+    formatDateFromParts(singleDay, singleMonth);
 
   const { name1Raw, name2Raw } = getPastedBattleNames(parts);
   const time = getPastedBattleTime(parts);
@@ -1923,6 +1923,7 @@ export default function BattleGeneratorPage() {
 
     setSingleBattle(parsed);
     setSelectedId(parsed.id);
+    setSinglePaste("");
 
     setLoading(false);
   }
