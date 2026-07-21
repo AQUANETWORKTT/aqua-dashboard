@@ -2342,12 +2342,19 @@ async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSumm
   const rows = scoredCreators
     .map((creator, index) => {
       const tone = getHealthPosterTone(creator.healthStatus);
+      const liveDayPoints = Math.min(creator.liveAppearDays * 3, 21);
+      const validDayPoints = Math.min(creator.oneHourDays * 2, 14);
       return `
-        <div style="display:grid;grid-template-columns:54px 1fr 144px 214px;align-items:center;height:44px;border-left:2px solid ${tone.border};border-right:2px solid ${tone.border};border-bottom:1px solid ${tone.border}99;background:linear-gradient(90deg,rgba(2,6,23,.94),rgba(15,23,42,.86));box-shadow:0 0 18px ${tone.border}3d inset;">
-          <div style="text-align:center;color:#f8fafc;font-size:23px;font-weight:950;text-shadow:0 0 10px ${tone.color};">${index + 1}</div>
-          <div style="overflow:hidden;padding-right:12px;color:#f8fafc;font-size:22px;font-weight:950;white-space:nowrap;text-overflow:ellipsis;text-shadow:2px 2px 0 #000;">${escapeHtml(creator.username)}</div>
-          <div style="color:${tone.color};font-size:27px;font-weight:950;text-align:center;text-shadow:0 0 12px ${tone.color};">${formatNumber(creator.healthScore)} <span style="font-size:14px;color:#f8fafc;">/100</span></div>
-          <div style="display:flex;align-items:center;gap:7px;overflow:hidden;padding-right:8px;color:${tone.color};font-size:15px;font-weight:950;white-space:nowrap;text-shadow:0 0 10px ${tone.color};"><span style="font-size:18px;">*</span>${tone.label}</div>
+        <div style="display:grid;grid-template-columns:46px minmax(180px,1fr) 74px 74px 82px 82px 82px 94px 108px;align-items:center;min-height:56px;border-left:2px solid ${tone.border};border-right:2px solid ${tone.border};border-bottom:1px solid ${tone.border}99;background:linear-gradient(90deg,rgba(2,6,23,.94),rgba(15,23,42,.86));box-shadow:0 0 18px ${tone.border}3d inset;">
+          <div style="text-align:center;color:#f8fafc;font-size:21px;font-weight:950;text-shadow:0 0 10px ${tone.color};">${index + 1}</div>
+          <div style="overflow:hidden;padding-right:10px;color:#f8fafc;font-size:19px;font-weight:950;white-space:nowrap;text-overflow:ellipsis;text-shadow:2px 2px 0 #000;">${escapeHtml(creator.username)}</div>
+          <div style="text-align:center;color:#f8fafc;font-weight:950;"><div style="font-size:15px;line-height:1;">${formatNumber(creator.liveAppearDays)}/7</div><div style="margin-top:3px;font-size:9px;color:#5ceeff;letter-spacing:.5px;">${formatNumber(liveDayPoints)}/21</div></div>
+          <div style="text-align:center;color:#f8fafc;font-weight:950;"><div style="font-size:15px;line-height:1;">${formatNumber(creator.oneHourDays)}/7</div><div style="margin-top:3px;font-size:9px;color:#5ceeff;letter-spacing:.5px;">${formatNumber(validDayPoints)}/14</div></div>
+          <div style="text-align:center;color:#f8fafc;font-weight:950;"><div style="font-size:15px;line-height:1;">${formatHours(creator.healthWindowHours)}/20h</div><div style="margin-top:3px;font-size:9px;color:#5ceeff;letter-spacing:.5px;">${formatNumber(creator.healthBreakdown.liveHours)}/30</div></div>
+          <div style="text-align:center;color:#f8fafc;font-weight:950;"><div style="font-size:15px;line-height:1;">${formatNumber(creator.healthWindowMatches)}/70</div><div style="margin-top:3px;font-size:9px;color:#5ceeff;letter-spacing:.5px;">${formatNumber(creator.healthBreakdown.matches)}/10</div></div>
+          <div style="text-align:center;color:#f8fafc;font-weight:950;"><div style="font-size:15px;line-height:1;">${formatNumber(creator.dph)}</div><div style="margin-top:3px;font-size:9px;color:#5ceeff;letter-spacing:.5px;">${formatNumber(creator.healthBreakdown.dph)}/25</div></div>
+          <div style="color:${tone.color};font-size:22px;font-weight:950;text-align:center;text-shadow:0 0 12px ${tone.color};">${formatNumber(creator.healthScore)} <span style="font-size:11px;color:#f8fafc;">/100</span></div>
+          <div style="display:flex;align-items:center;gap:5px;overflow:hidden;padding-right:7px;color:${tone.color};font-size:12px;font-weight:950;white-space:nowrap;text-shadow:0 0 10px ${tone.color};"><span style="font-size:15px;">*</span>${tone.label}</div>
         </div>
       `;
     })
@@ -2390,9 +2397,14 @@ async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSumm
       </div>
 
       <div style="position:relative;z-index:1;margin-top:16px;">
-        <div style="display:grid;grid-template-columns:54px 1fr 144px 214px;align-items:center;height:42px;border:2px solid #38bdf8;background:linear-gradient(90deg,rgba(15,23,42,.97),rgba(8,47,73,.86));box-shadow:0 0 24px #38bdf855 inset;color:#f8fafc;text-transform:uppercase;font-size:16px;font-weight:950;letter-spacing:2px;">
+        <div style="display:grid;grid-template-columns:46px minmax(180px,1fr) 74px 74px 82px 82px 82px 94px 108px;align-items:center;min-height:42px;border:2px solid #38bdf8;background:linear-gradient(90deg,rgba(15,23,42,.97),rgba(8,47,73,.86));box-shadow:0 0 24px #38bdf855 inset;color:#f8fafc;text-transform:uppercase;font-size:11px;font-weight:950;letter-spacing:.6px;">
           <div style="text-align:center;">#</div>
           <div>Creator</div>
+          <div style="text-align:center;">Live days</div>
+          <div style="text-align:center;">1h days</div>
+          <div style="text-align:center;">Hours</div>
+          <div style="text-align:center;">Battles</div>
+          <div style="text-align:center;">DPH</div>
           <div style="text-align:center;">Score</div>
           <div>Quality</div>
         </div>
