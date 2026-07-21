@@ -133,6 +133,7 @@ const TEXT_ELEMENT_KEYS: PosterElementKey[] = ["username1", "username2", "date"]
 const DEFAULT_TEMPLATE_STORAGE_KEY = "aqua-battle-generator-default-template-id";
 const DEFAULT_TEMPLATE_SETTING_KEY = "poster-template-default-aqua";
 const BLANK_TEMPLATE_STORAGE_KEY = "aqua-blank-poster-builder-template-v1";
+const BLANK_TEMPLATE_PUBLIC_NAME = "aqua-team-poster";
 const DEFAULT_AQUA_TEAM_OPTIONS = [
   "Team James",
   "Team Alfie",
@@ -1312,13 +1313,34 @@ export default function BattleGeneratorPage() {
     setBlankTemplateStatus("Selected item removed.");
   }
 
-  function saveBlankTemplate() {
+  async function saveBlankTemplate() {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(
-      BLANK_TEMPLATE_STORAGE_KEY,
-      JSON.stringify(blankTemplate)
+
+    const supabase = getPosterSupabaseClient();
+    if (!supabase) {
+      window.localStorage.setItem(BLANK_TEMPLATE_STORAGE_KEY, JSON.stringify(blankTemplate));
+      setBlankTemplateStatus("Could not reach shared storage. Template saved in this browser only.");
+      return;
+    }
+
+    setBlankTemplateStatus("Saving shared team poster template...");
+    const { error } = await supabase.from("poster_templates").upsert(
+      {
+        name: BLANK_TEMPLATE_PUBLIC_NAME,
+        background_url: blankTemplate.backgroundUrl || null,
+        template_json: blankTemplate,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "name" }
     );
-    setBlankTemplateStatus("Blank template saved in this browser.");
+
+    if (error) {
+      setBlankTemplateStatus(`Shared save failed: ${error.message}`);
+      return;
+    }
+
+    window.localStorage.setItem(BLANK_TEMPLATE_STORAGE_KEY, JSON.stringify(blankTemplate));
+    setBlankTemplateStatus("Team poster template saved publicly for everyone.");
   }
 
   function resetBlankTemplate() {
@@ -1328,7 +1350,7 @@ export default function BattleGeneratorPage() {
     setBlankTemplateStatus("Blank template reset.");
   }
 
-  function handleBlankBackgroundUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleBlankBackgroundUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
 
@@ -1338,15 +1360,33 @@ export default function BattleGeneratorPage() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setBlankTemplate((prev) => ({
-        ...prev,
-        backgroundUrl: String(reader.result || ""),
-      }));
-      setBlankTemplateStatus("Background added. Press Save Template to keep it.");
-    };
-    reader.readAsDataURL(file);
+    const supabase = getPosterSupabaseClient();
+    if (!supabase) {
+      setBlankTemplateStatus("Shared storage is unavailable, so the background cannot be shared yet.");
+      return;
+    }
+
+    setBlankTemplateStatus("Uploading shared background...");
+    const extension = file.name.split(".").pop()?.toLowerCase() || "png";
+    const safeName = file.name
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[^a-z0-9-_]+/gi, "-")
+      .replace(/-+/g, "-")
+      .toLowerCase();
+    const path = `${BLANK_TEMPLATE_PUBLIC_NAME}/${Date.now()}-${safeName}.${extension}`;
+    const { error } = await supabase.storage.from("poster-backgrounds").upload(path, file, {
+      cacheControl: "3600",
+      upsert: true,
+    });
+
+    if (error) {
+      setBlankTemplateStatus(`Background upload failed: ${error.message}`);
+      return;
+    }
+
+    const { data } = supabase.storage.from("poster-backgrounds").getPublicUrl(path);
+    setBlankTemplate((prev) => ({ ...prev, backgroundUrl: data.publicUrl }));
+    setBlankTemplateStatus("Background uploaded. Press Save Template to publish it for everyone.");
   }
 
   function handleBlankAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1586,20 +1626,40 @@ export default function BattleGeneratorPage() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    async function loadBlankTemplate() {
+      const supabase = getPosterSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("poster_templates")
+          .select("template_json,background_url")
+          .eq("name", BLANK_TEMPLATE_PUBLIC_NAME)
+          .maybeSingle();
 
-    const saved = window.localStorage.getItem(BLANK_TEMPLATE_STORAGE_KEY);
-    if (!saved) return;
+        if (!error && data?.template_json) {
+          const parsed = normalizeBlankBuilderTemplate({
+            ...(data.template_json as BlankTemplateJson),
+            backgroundUrl: (data.template_json as BlankTemplateJson).backgroundUrl || data.background_url || "",
+          });
+          setBlankTemplate(parsed);
+          setSelectedBlankElementId(parsed.elements[0]?.id || "");
+          setBlankTemplateStatus("Shared team poster template loaded.");
+          return;
+        }
+      }
 
-    try {
-      const parsed = normalizeBlankBuilderTemplate(JSON.parse(saved) as BlankTemplateJson);
-      if (!Array.isArray(parsed.elements)) return;
-      setBlankTemplate(parsed);
-      setSelectedBlankElementId(parsed.elements[0]?.id || "");
-      setBlankTemplateStatus("Saved team poster template loaded.");
-    } catch {
-      setBlankTemplateStatus("Team poster builder ready.");
+      const saved = window.localStorage.getItem(BLANK_TEMPLATE_STORAGE_KEY);
+      if (!saved) return;
+      try {
+        const parsed = normalizeBlankBuilderTemplate(JSON.parse(saved) as BlankTemplateJson);
+        setBlankTemplate(parsed);
+        setSelectedBlankElementId(parsed.elements[0]?.id || "");
+        setBlankTemplateStatus("Browser-only team poster template loaded.");
+      } catch {
+        setBlankTemplateStatus("Team poster builder ready.");
+      }
     }
+
+    void loadBlankTemplate();
   }, []);
 
   useEffect(() => {
