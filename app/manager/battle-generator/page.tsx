@@ -1324,11 +1324,33 @@ export default function BattleGeneratorPage() {
     }
 
     setBlankTemplateStatus("Saving shared team poster template...");
+    let publicTemplate = blankTemplate;
+
+    // Existing templates stored their uploaded background as a browser data URL.
+    // Promote that image to shared storage the first time the template is saved publicly.
+    if (blankTemplate.backgroundUrl.startsWith("data:")) {
+      try {
+        const backgroundBlob = await fetch(blankTemplate.backgroundUrl).then((response) => response.blob());
+        const path = `${BLANK_TEMPLATE_PUBLIC_NAME}/${Date.now()}-background.png`;
+        const { error: uploadError } = await supabase.storage
+          .from("poster-backgrounds")
+          .upload(path, backgroundBlob, { cacheControl: "3600", upsert: true });
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage.from("poster-backgrounds").getPublicUrl(path);
+        publicTemplate = { ...blankTemplate, backgroundUrl: data.publicUrl };
+        setBlankTemplate(publicTemplate);
+      } catch (error) {
+        setBlankTemplateStatus(`Could not publish the saved background: ${error instanceof Error ? error.message : "unknown error"}`);
+        return;
+      }
+    }
+
     const { error } = await supabase.from("poster_templates").upsert(
       {
         name: BLANK_TEMPLATE_PUBLIC_NAME,
-        background_url: blankTemplate.backgroundUrl || null,
-        template_json: blankTemplate,
+        background_url: publicTemplate.backgroundUrl || null,
+        template_json: publicTemplate,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "name" }
@@ -1339,7 +1361,7 @@ export default function BattleGeneratorPage() {
       return;
     }
 
-    window.localStorage.setItem(BLANK_TEMPLATE_STORAGE_KEY, JSON.stringify(blankTemplate));
+    window.localStorage.setItem(BLANK_TEMPLATE_STORAGE_KEY, JSON.stringify(publicTemplate));
     setBlankTemplateStatus("Team poster template saved publicly for everyone.");
   }
 
