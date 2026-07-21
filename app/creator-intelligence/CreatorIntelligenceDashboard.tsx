@@ -1525,7 +1525,7 @@ function getDefaultTeamPosterTemplate(): TeamPosterTemplate {
     });
   }
 
-  return { backgroundUrl: "", elements };
+  return { backgroundUrl: "/posters/aqua-battle/background.png", elements };
 }
 
 function normalizeTeamPosterTemplate(input: Partial<TeamPosterTemplate> | null): TeamPosterTemplate {
