@@ -361,11 +361,12 @@ function getDurationHours(row: CreatorStat, keys: string[]) {
 
 function getAgencyFromGroup(groupValue: string, fallback: string) {
   const clean = groupValue.toLowerCase();
+  const fallbackClean = fallback.toLowerCase();
 
-  if (clean.includes("aqua")) return "Aqua";
-  if (clean.includes("respawn")) return "Respawn";
-  if (clean.includes("paradise")) return "Paradise";
-  if (clean.includes("strive")) return "Strive";
+  if (clean.includes("aqua") || fallbackClean.includes("aqua")) return "Aqua";
+  if (clean.includes("respawn") || fallbackClean.includes("respawn")) return "Respawn";
+  if (clean.includes("paradise") || fallbackClean.includes("paradise")) return "Paradise";
+  if (clean.includes("strive") || fallbackClean.includes("strive")) return "Strive";
 
   return fallback || "First Class";
 }
@@ -3744,8 +3745,8 @@ export default function CreatorIntelligenceDashboard({
     // to the standard Aqua layout when they have not saved a personal copy.
     const savedTemplate = getSavedTeamPosterTemplate() || getDefaultTeamPosterTemplate();
 
-    const yesterdayRows = rows
-      .filter((row) => row.stat_date === yesterdayDate && isAquaRow(row))
+    const matchingAquaRows = rows
+      .filter(isAquaRow)
       .filter((row) => {
         const rowManagerRaw = getText(row, ["creator_network_manager", "Creator Network manager", "manager_email"], "");
         const rowGroup = getText(row, ["team", "group_name", "Group"], "");
@@ -3758,17 +3759,34 @@ export default function CreatorIntelligenceDashboard({
           rowGroup
         );
         return rowManager === activeManager;
-      })
+      });
+
+    // Uploads can arrive a day late. Use the newest available Aqua date up to
+    // yesterday, rather than failing for every manager until that upload lands.
+    const reportDate = Array.from(
+      new Set(
+        matchingAquaRows
+          .map((row) => row.stat_date)
+          .filter((date) => date <= yesterdayDate)
+      )
+    )
+      .sort((a, b) => b.localeCompare(a))[0] || yesterdayDate;
+    const yesterdayRows = matchingAquaRows
+      .filter((row) => row.stat_date === reportDate)
       .sort((a, b) => getNumber(b, ["diamonds", "Diamonds"]) - getNumber(a, ["diamonds", "Diamonds"]))
       .slice(0, 10);
 
     if (!yesterdayRows.length) {
       alert(
-        `No Aqua rows found for ${yesterdayDate}${
+        `No Aqua rows found up to ${yesterdayDate}${
           selectedTeamLabel === "All Managers" ? "" : ` in ${selectedTeamLabel}`
         }.`
       );
       return;
+    }
+
+    if (reportDate !== yesterdayDate) {
+      alert(`Aqua data for ${yesterdayDate} has not been uploaded yet. Your poster will use the latest available data: ${reportDate}.`);
     }
 
     const rowsWithAvatars = await Promise.all(
@@ -3811,7 +3829,7 @@ export default function CreatorIntelligenceDashboard({
     const blob = await renderTeamPosterToPngBlob(filledTemplate);
     const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
     const safeTeamName = selectedTeamLabel.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-    saveAs(blob, `aqua-yesterday-diamonds-${safeTeamName}-${yesterdayDate}-${timestamp}.png`);
+    saveAs(blob, `aqua-yesterday-diamonds-${safeTeamName}-${reportDate}-${timestamp}.png`);
   }
 
   async function downloadTeamHealthScorePng(managerSummary?: ManagerHealthSummary | null) {
