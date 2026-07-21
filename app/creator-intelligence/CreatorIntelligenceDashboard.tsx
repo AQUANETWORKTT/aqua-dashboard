@@ -3740,12 +3740,9 @@ export default function CreatorIntelligenceDashboard({
     const selectedTeamLabel = normalizedLockedManager
       ? activeManagerSummary?.manager || `Team ${lockedManagerDisplayName}`
       : activeManager;
-    const savedTemplate = getSavedTeamPosterTemplate();
-
-    if (!savedTemplate) {
-      alert("Save a Team Poster Builder template in the battle generator first.");
-      return;
-    }
+    // The builder's browser-local version is optional: everyone can fall back
+    // to the standard Aqua layout when they have not saved a personal copy.
+    const savedTemplate = getSavedTeamPosterTemplate() || getDefaultTeamPosterTemplate();
 
     const yesterdayRows = rows
       .filter((row) => row.stat_date === yesterdayDate && isAquaRow(row))
