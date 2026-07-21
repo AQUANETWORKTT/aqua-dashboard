@@ -21,6 +21,7 @@ const managers: ManagerProfile[] = [
   { name: "vitali", displayName: "Vitaly", focus: "Creator support and team growth" },
   { name: "harry", displayName: "Harry", focus: "Creator support and team growth" },
   { name: "luke", displayName: "Luke", focus: "Creator support and team growth" },
+  { name: "libby", displayName: "Libby", focus: "Creator support and team growth" },
 ];
 
 function ManagerImage({ manager }: { manager: ManagerProfile }) {
