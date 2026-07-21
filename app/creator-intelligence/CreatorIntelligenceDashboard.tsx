@@ -203,6 +203,7 @@ const CREATOR_REPORT_LIVE_DAY_TARGET = 5;
 const MINIMUM_TRACKER_DIAMONDS = 1000;
 const MANUAL_FOCUS_STORAGE_KEY = "creator-intelligence-manual-focus";
 const TEAM_POSTER_TEMPLATE_STORAGE_KEY = "aqua-blank-poster-builder-template-v1";
+const TEAM_POSTER_PUBLIC_TEMPLATE_NAME = "aqua-team-poster";
 const TEAM_POSTER_WIDTH = 1024;
 const TEAM_POSTER_HEIGHT = 1536;
 const TEAM_HEALTH_POSTER_WIDTH = 1000;
@@ -2302,6 +2303,22 @@ async function renderTeamPosterToPngBlob(template: TeamPosterTemplate) {
   }
 }
 
+async function getPublicTeamPosterTemplate() {
+  const { data, error } = await submissionsSupabase
+    .from("poster_templates")
+    .select("template_json,background_url")
+    .eq("name", TEAM_POSTER_PUBLIC_TEMPLATE_NAME)
+    .maybeSingle();
+
+  if (error || !data?.template_json) return null;
+
+  const storedTemplate = data.template_json as TeamPosterTemplate;
+  return normalizeTeamPosterTemplate({
+    ...storedTemplate,
+    backgroundUrl: storedTemplate.backgroundUrl || data.background_url || "",
+  });
+}
+
 function getHealthPosterTone(status: HealthStatus) {
   if (status === "Elite") {
     return { label: "ELITE", color: "#c084fc", border: "#a855f7", icon: "◆" };
@@ -3741,9 +3758,13 @@ export default function CreatorIntelligenceDashboard({
     const selectedTeamLabel = normalizedLockedManager
       ? activeManagerSummary?.manager || `Team ${lockedManagerDisplayName}`
       : activeManager;
-    // The builder's browser-local version is optional: everyone can fall back
-    // to the standard Aqua layout when they have not saved a personal copy.
-    const savedTemplate = getSavedTeamPosterTemplate() || getDefaultTeamPosterTemplate();
+    // Always use the exact shared Team Poster Builder template. The browser
+    // copy is only a fallback for the person who originally built it.
+    const savedTemplate = (await getPublicTeamPosterTemplate()) || getSavedTeamPosterTemplate();
+    if (!savedTemplate) {
+      alert("Save the Team Poster Builder template publicly first, then this download will use the same background, fonts and layout.");
+      return;
+    }
 
     const matchingAquaRows = rows
       .filter(isAquaRow)
