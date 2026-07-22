@@ -1943,7 +1943,15 @@ function ComparisonChart({
   );
 }
 
-function AgencyHealthTrendChart({ points }: { points: AgencyHealthTrendPoint[] }) {
+function AgencyHealthTrendChart({
+  points,
+  title = "Aqua Health Score Trend",
+  description = "Average Aqua health score for creators from day 8 onward.",
+}: {
+  points: AgencyHealthTrendPoint[];
+  title?: string;
+  description?: string;
+}) {
   const width = 760;
   const height = 260;
   const chartTop = 28;
@@ -1969,10 +1977,8 @@ function AgencyHealthTrendChart({ points }: { points: AgencyHealthTrendPoint[] }
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
         <div>
-          <h3 className="text-xl font-black uppercase text-sky-900">Aqua Health Score Trend</h3>
-          <p className="text-sm text-slate-500">
-            Average Aqua health score for creators from day 8 onward.
-          </p>
+          <h3 className="text-xl font-black uppercase text-sky-900">{title}</h3>
+          <p className="text-sm text-slate-500">{description}</p>
         </div>
       </div>
 
@@ -3380,14 +3386,27 @@ export default function CreatorIntelligenceDashboard({
     };
   }, [filteredCreators, matureFilteredCreators, newCreators.length]);
 
+  const trendCreatorKeys = useMemo(
+    () =>
+      new Set(
+        aquaSummaries
+          .filter((creator) => activeManager === "All Managers" || creator.managerLabel === activeManager)
+          .map((creator) => creator.key)
+      ),
+    [activeManager, aquaSummaries]
+  );
+
   const agencyHealthTrend = useMemo<AgencyHealthTrendPoint[]>(() => {
-    const dates = Array.from(new Set(rollingAquaRows.map((row) => row.stat_date))).sort((a, b) =>
+    const trendRows = rollingAquaRows.filter((row) =>
+      trendCreatorKeys.has(getUsername(row).toLowerCase())
+    );
+    const dates = Array.from(new Set(trendRows.map((row) => row.stat_date))).sort((a, b) =>
       a.localeCompare(b)
-    ).slice(-30);
+    ).slice(-14);
 
     return dates.map((date) => {
-      const rowsUpToDate = rollingAquaRows.filter(
-        (row) => row.stat_date <= date && activeAquaCreatorKeys.has(getUsername(row).toLowerCase())
+      const rowsUpToDate = trendRows.filter(
+        (row) => row.stat_date <= date && trendCreatorKeys.has(getUsername(row).toLowerCase())
       );
       const matureCreators = buildCreatorSummaries(rowsUpToDate).filter(
         (creator) => creator.agency === "Aqua" && isTeamHealthScoreCreator(creator)
@@ -3404,7 +3423,7 @@ export default function CreatorIntelligenceDashboard({
         creators: matureCreators.length,
       };
     });
-  }, [activeAquaCreatorKeys, rollingAquaRows]);
+  }, [rollingAquaRows, trendCreatorKeys]);
 
   const weeklyHealthComparison = useMemo<WeeklyHealthComparison[]>(() => {
     if (!latestAquaDate) return [];
@@ -4013,7 +4032,7 @@ export default function CreatorIntelligenceDashboard({
 
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-800">
-            This page is locked to Aqua creators and always uses the latest uploaded data: last 7 days for weekly stats, last 30 days for trends and 30-day scores.
+            This page is locked to Aqua creators and always uses the latest uploaded data: last 7 days for weekly stats, last 14 days for trends and 30-day scores.
             {latestUploadedDate ? ` Latest upload: ${latestUploadedDate}.` : ""}
           </div>
           <div className="grid gap-3 md:grid-cols-3">
@@ -4169,7 +4188,19 @@ export default function CreatorIntelligenceDashboard({
         </section>
 
         <section className="mb-6">
-          <AgencyHealthTrendChart points={agencyHealthTrend} />
+          <AgencyHealthTrendChart
+            points={agencyHealthTrend}
+            title={
+              activeManager === "All Managers"
+                ? "Aqua Health Score Trend"
+                : `${activeManager} Team Health Score Trend`
+            }
+            description={
+              activeManager === "All Managers"
+                ? "Average Aqua health score for creators from day 8 onward, using the latest 14 uploaded days."
+                : `Average health score for ${activeManager}'s team from day 8 onward, using the latest 14 uploaded days.`
+            }
+          />
         </section>
 
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -5221,12 +5252,12 @@ export default function CreatorIntelligenceDashboard({
                 Copy WhatsApp Text
               </button>
             </div>
-            {inactiveNewCreators.length ? (
-              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
-                <h3 className="text-sm font-black uppercase text-red-700">Needs removal check</h3>
-                <p className="mt-1 text-xs text-red-600">
-                  New creators who have reached day 4 with no live hours or diamonds.
-                </p>
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+              <h3 className="text-sm font-black uppercase text-red-700">Needs removal check</h3>
+              <p className="mt-1 text-xs text-red-600">
+                New creators who have reached day 4 with no live hours or diamonds.
+              </p>
+              {inactiveNewCreators.length ? (
                 <div className="mt-3 grid gap-2">
                   {inactiveNewCreators.map((creator) => (
                     <button
@@ -5242,8 +5273,10 @@ export default function CreatorIntelligenceDashboard({
                     </button>
                   ))}
                 </div>
-              </div>
-            ) : null}
+              ) : (
+                <p className="mt-3 text-sm font-semibold text-emerald-700">No creators currently need a removal check.</p>
+              )}
+            </div>
             <div className="mt-5 grid gap-3">
               {newCreators.slice(0, 12).map((creator) => (
                 <button
