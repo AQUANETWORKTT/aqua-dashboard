@@ -30,7 +30,7 @@ const userKeys: Record<string, string> = {
   chris: "C16",
   luke: "L17",
   libby: "L19",
-  candice: "C-21",
+  candice: "C21",
 };
 
 export default function ManagerLoginPage() {
