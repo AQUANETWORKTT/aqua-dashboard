@@ -1364,9 +1364,14 @@ function buildManagerHealthTrend(
   managerSummary: ManagerHealthSummary
 ): ManagerHealthTrendPoint[] {
   const creatorKeys = new Set(managerSummary.creators.map((creator) => creator.key));
-  const dates = Array.from(new Set(allRows.filter(isAquaRow).map((row) => row.stat_date)))
+  if (!creatorKeys.size) return [];
+
+  const teamRows = allRows.filter(
+    (row) => isAquaRow(row) && creatorKeys.has(getUsername(row).toLowerCase())
+  );
+  const dates = Array.from(new Set(teamRows.map((row) => row.stat_date)))
     .sort((a, b) => a.localeCompare(b))
-    .slice(-30);
+    .slice(-14);
 
   return dates.map((date) => {
     const rowsUpToDate = allRows.filter(
@@ -1394,7 +1399,14 @@ function buildManagerTrendChartSvg(points: ManagerHealthTrendPoint[]) {
   const chartWidth = width - left - right;
   const chartHeight = height - top - bottom;
   const yTicks = [0, 20, 40, 60, 80, 100];
-  const safePoints = points.length ? points : [{ date: "", score: 0 }];
+  if (!points.length) {
+    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Manager team health trend has no data">
+      <rect x="0" y="0" width="${width}" height="${height}" rx="18" fill="#f8fbff" />
+      <text x="${width / 2}" y="${height / 2 - 8}" text-anchor="middle" font-size="19" font-weight="700" fill="#475569">No team live data yet</text>
+      <text x="${width / 2}" y="${height / 2 + 22}" text-anchor="middle" font-size="13" fill="#64748b">The 14-day health trend will appear once this manager has creator activity.</text>
+    </svg>`;
+  }
+  const safePoints = points;
   const xFor = (index: number) =>
     left + (safePoints.length === 1 ? chartWidth : (index / (safePoints.length - 1)) * chartWidth);
   const yFor = (score: number) => top + chartHeight - (Math.max(0, Math.min(100, score)) / 100) * chartHeight;
@@ -3283,7 +3295,7 @@ export default function CreatorIntelligenceDashboard({
     () =>
       newCreators.filter(
         (creator) =>
-          creator.daysSinceJoining >= 3 &&
+          creator.daysSinceJoining >= 4 &&
           creator.diamonds <= 0 &&
           creator.liveHours <= 0 &&
           creator.healthWindowHours <= 0
@@ -5213,7 +5225,7 @@ export default function CreatorIntelligenceDashboard({
               <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
                 <h3 className="text-sm font-black uppercase text-red-700">Needs removal check</h3>
                 <p className="mt-1 text-xs text-red-600">
-                  New creators who are 3+ days in with no live hours and no diamonds.
+                  New creators who have reached day 4 with no live hours or diamonds.
                 </p>
                 <div className="mt-3 grid gap-2">
                   {inactiveNewCreators.map((creator) => (

@@ -3373,3 +3373,9 @@
 2771 http fetch GET 200 https://registry.npmjs.org/@vercel%2fgatsby-plugin-vercel-builder 353ms (cache miss)
 2772 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fgatsby-plugin-vercel-builder set size:undefined disposed:false
 2773 info run esbuild@0.27.0 postinstall { code: 0, signal: null }
+2774 verbose cwd C:\Users\james\aqua-dashboard
+2775 verbose os Windows_NT 10.0.26200
+2776 verbose node v24.11.1
+2777 verbose npm  v11.18.0
+2778 verbose exit 1
+2779 verbose code 1
