@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 type ManagerProfile = {
@@ -231,15 +230,6 @@ export default function ManagerDirectoryPage() {
               <div className="row-main">
                 <div className="row-name">{manager.displayName}</div>
                 <div className="row-focus">{manager.focus}</div>
-
-                <div className="row-actions">
-                  <Link href="/manager/portal" className="row-link">
-                    Open Portal
-                  </Link>
-                  <Link href="/manager/battle-generator" className="row-link">
-                    Poster Generator
-                  </Link>
-                </div>
               </div>
             </div>
           ))}

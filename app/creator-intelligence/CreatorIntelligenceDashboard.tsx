@@ -2502,12 +2502,76 @@ function escapeHtml(value: string | number) {
     .replace(/'/g, "&#39;");
 }
 
+function buildHealthLedPlan(creators: CreatorSummary[]) {
+  const bands = [
+    { label: "Offline — health score 0", test: (score: number) => score <= 0, intro: "No current live activity: establish whether the creator is away, stuck, or has stopped wanting to go live before investing more coaching time." },
+    { label: "Rebuild routine — health score 1–20", test: (score: number) => score > 0 && score <= 20, intro: "The first job is a dependable live habit: agree exact days and times, then hold a one-to-one check-in for every missed session." },
+    { label: "Build the base — health score 21–49", test: (score: number) => score >= 21 && score <= 49, intro: "These creators have started, but consistency or volume is preventing progress. Lock in a weekly routine before chasing advanced growth." },
+    { label: "Close the gap — health score 50–84", test: (score: number) => score >= 50 && score < 85, intro: "The basics are partly in place. Use the weakest health-score component to find the fastest next 10 points." },
+    { label: "Elite growth — health score 85–100", test: (score: number) => score >= 85, intro: "These creators have the foundation. Keep standards high, but actively grow them — a 10–20% lift from a major creator can outweigh several new recruits." },
+  ];
+
+  const focusFor = (creator: CreatorSummary) => {
+    const diamonds = getLastSevenDiamonds(creator);
+    const hours = getLastSevenHours(creator);
+    const battles = getLastSevenMatches(creator);
+    const dph = getLastSevenDph(creator);
+    const underOneHourDays = creator.dailyPoints.slice(-7).filter((point) => point.liveHours > 0 && point.liveHours < 1).length;
+    const gaps = [
+      ["live days", 35 - creator.healthBreakdown.liveDays],
+      ["live hours", 30 - creator.healthBreakdown.liveHours],
+      ["battles", 10 - creator.healthBreakdown.matches],
+      ["diamonds per hour", 25 - creator.healthBreakdown.dph],
+    ] as const;
+    const primaryGap = [...gaps].sort((a, b) => b[1] - a[1])[0][0];
+    if (creator.healthScore <= 0) return `Contact immediately: no useful live activity was recorded this week. Ask whether they are away, struggling with confidence, or have lost motivation; agree a restart date or decide whether to continue working with them.`;
+    if (creator.healthScore <= 20) return `Build a written routine from ${creator.oneHourDays}/${creator.healthWindowDays} live days, ${formatHours(hours)}h and ${formatNumber(battles)} battles. ${battles > 0 ? "They have started engaging, so protect that momentum while adding fixed live days." : "Start with agreed live days and a one-to-one confidence check before asking for battles."} ${underOneHourDays ? `${underOneHourDays} short sessions should be extended first.` : "Confirm the next live dates and follow up on any missed session."}`;
+    if (dph < 500) return `Quality is the priority: ${formatNumber(dph)} DPH from ${formatHours(hours)}h suggests they need stronger gifting moments, better room energy and higher-quality battle partners before adding more hours.`;
+    if (creator.healthScore < 50 && diamonds >= 100000) return `High upside: ${formatNumber(diamonds)} diamonds despite only ${creator.oneHourDays}/${creator.healthWindowDays} live days. Show them the upside of a daily routine, then protect a fixed schedule and manager accountability.`;
+    if (creator.healthScore < 50) return `The biggest score gap is ${primaryGap}. Build from ${creator.oneHourDays}/${creator.healthWindowDays} live days, ${formatHours(hours)}h and ${formatNumber(battles)} battles; ${underOneHourDays ? `${underOneHourDays} short sessions need extending.` : "keep sessions planned rather than reactive."}`;
+    if (creator.healthScore < 85) return primaryGap === "battles"
+      ? `Battles are the clearest route to the next 10 points: ${formatNumber(battles)} this week. Set a daily battle target, introduce them to reliable partners and review whether battle quality is lifting discovery.`
+      : `The next health-score gain is ${primaryGap}. Keep their current routine, then set one measurable weekly target rather than changing everything at once.`;
+    if (dph >= 5000) return `Premium efficiency: ${formatNumber(dph)} DPH. Protect their strongest sessions and push a 10–20% diamond-growth plan through better hosts, battle partners and peak-time slots.`;
+    if (dph >= 2500) return `High-quality live: ${formatNumber(dph)} DPH. The opportunity is scale — add carefully chosen hours or battles while protecting the room quality that is already working.`;
+    return `Strong foundation with ${formatNumber(dph)} DPH. Keep daily standards high and use ${primaryGap} as the stretch lever for the next growth target.`;
+  };
+
+  return bands.map((band) => {
+    const members = creators.filter((creator) => band.test(creator.healthScore)).sort((a, b) => a.healthScore - b.healthScore);
+    if (!members.length) return "";
+    return `<section class="health-band"><h3>${band.label} <span class="muted">(${members.length})</span></h3><p>${band.intro}</p><div class="range-names">${members.map((creator) => `<span>${escapeHtml(creator.username)} <b>${formatNumber(creator.healthScore)}</b></span>`).join("")}</div></section>`;
+  }).join("");
+}
+
+function buildCreatorScorecards(creators: CreatorSummary[]) {
+  const tone = (earned: number, max: number) => {
+    const ratio = max ? earned / max : 0;
+    return ratio >= 0.85 ? "purple" : ratio >= 0.65 ? "green" : ratio >= 0.5 ? "orange" : "red";
+  };
+  return [...creators].sort((a, b) => b.healthScore - a.healthScore).map((creator) => {
+    const points = creator.healthBreakdown;
+    const cells = [
+      ["Live days", `${creator.oneHourDays}/${creator.healthWindowDays} days`, points.liveDays, 35],
+      ["Live hours", `${formatHours(creator.healthWindowHours)}h`, points.liveHours, 30],
+      ["Battles", `${formatNumber(creator.healthWindowMatches)} battles`, points.matches, 10],
+      ["DPH", `${formatNumber(getLastSevenDph(creator))} DPH`, points.dph, 25],
+      ["Diamonds", `${formatNumber(getLastSevenDiamonds(creator))} diamonds`, creator.healthScore, 100],
+    ] as const;
+    const tiles = cells.map(([label, value, earned, max]) => '<div class="score-tile ' + tone(earned, max) + '"><span>' + label + '</span><strong>' + value + '</strong><em>' + formatNumber(earned) + ' / ' + formatNumber(max) + ' pts</em></div>').join("");
+    return '<section class="creator-scorecard"><div class="creator-scorecard-head"><div><span class="label">Creator</span><h3>' + escapeHtml(creator.username) + '</h3></div><div class="health-total">' + formatNumber(creator.healthScore) + '<small>/100 health</small></div></div><div class="score-tiles">' + tiles + '</div><div class="scorecard-note"><b>Weekly target</b><span>' + escapeHtml(getWeeklyTargetText(creator)) + '</span></div><div class="scorecard-note focus"><b>Manager focus</b><span>' + escapeHtml(buildManagerFocusDetail(creator).slice(0, 2).join(" ")) + '</span></div></section>';
+  }).join("");
+}
+
 function downloadManagerReport(
   managerSummary: ManagerHealthSummary,
   movementItems: WeeklyHealthComparison[],
   agencyAverageScore: number,
   managerTrend: ManagerHealthTrendPoint[]
 ) {
+  const healthLedPlan = buildHealthLedPlan(managerSummary.creators);
+  const creatorScorecards = buildCreatorScorecards(managerSummary.creators);
+  const fourteenDayTrend = managerTrend.slice(-14);
   const healthScoreCreators = managerSummary.creators.filter(isTeamHealthScoreCreator);
   const creatorsForStats = healthScoreCreators;
   const strongestCreators = [...creatorsForStats].sort((a, b) => b.healthScore - a.healthScore).slice(0, 8);
@@ -2597,6 +2661,19 @@ function downloadManagerReport(
     .creator-action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     .creator-action-box { border: 1px solid #dbeafe; background: #f8fbff; border-radius: 14px; padding: 12px 14px; line-height: 1.45; }
     .creator-action-title { color: #075985; font-size: 11px; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; }
+    .health-band { margin-top: 24px; border-left: 6px solid #0284c7; padding: 16px 18px; background: linear-gradient(135deg, #f0f9ff, #ffffff); border-radius: 0 16px 16px 0; }
+    .health-band h3 { margin: 0; color: #075985; font-size: 18px; }
+    .health-band p { margin: 7px 0 12px; color: #475569; line-height: 1.5; }
+    .creator-focus { padding: 12px 0; border-top: 1px solid #dbeafe; line-height: 1.5; }
+    .creator-focus strong { color: #0c4a6e; }
+    .range-names { display:flex; flex-wrap:wrap; gap:8px; } .range-names span { display:inline-flex; gap:7px; align-items:center; padding:8px 11px; border-radius:999px; background:#082f49; color:white; font-size:12px; font-weight:800; } .range-names b { color:#7dd3fc; }
+    .creator-scorecard { margin: 20px 0; overflow: hidden; border: 1px solid #164e63; border-radius: 20px; background: linear-gradient(135deg, #082f49, #0c4a6e); color: white; box-shadow: 0 12px 26px rgba(2,132,199,.18); }
+    .creator-scorecard-head { display:flex; justify-content:space-between; align-items:center; padding:18px 20px; background:rgba(2,6,23,.34); } .creator-scorecard-head h3 { margin:3px 0 0; font-size:22px; } .health-total { color:#e0f2fe; font-size:30px; font-weight:900; text-align:right; } .health-total small { display:block; font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+    .score-tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:12px; } .score-tile:nth-child(5){display:none} .score-tile { min-height:94px; padding:12px; border-radius:13px; color:#fff; } .score-tile span,.score-tile em { display:block; font-size:10px; font-style:normal; font-weight:800; text-transform:uppercase; letter-spacing:.06em; opacity:.82; } .score-tile strong { display:block; margin:9px 0 5px; font-size:15px; } .score-tile.purple{background:#7e22ce}.score-tile.green{background:#15803d}.score-tile.orange{background:#c2410c}.score-tile.red{background:#b91c1c}
+    .scorecard-note { display:grid; grid-template-columns:140px 1fr; gap:16px; padding:14px 18px; border-top:1px solid rgba(255,255,255,.16); line-height:1.45; } .scorecard-note b { color:#7dd3fc; text-transform:uppercase; font-size:11px; letter-spacing:.1em; } .scorecard-note.focus b{color:#facc15} #legacy-creator-detail{display:none}
+    .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .team-mix .card { border-top: 5px solid #f59e0b; }
+    .team-mix .card:nth-child(1) { border-top-color: #a855f7; } .team-mix .card:nth-child(2) { border-top-color: #22c55e; } .team-mix .card:nth-child(3) { border-top-color: #f59e0b; } .team-mix .card:nth-child(4), .team-mix .card:nth-child(5) { border-top-color: #ef4444; }
     ul { margin: 10px 0 0; padding-left: 20px; }
     li { margin: 7px 0; }
     @media print {
@@ -2658,19 +2735,25 @@ function downloadManagerReport(
       </div>
     </div>
   </section>
-  <h2>30-Day Manager Health Trend</h2>
+  <h2>14-Day Manager Health Trend</h2>
   <section class="panel">
-    <p class="muted">Daily average team health for this manager over the latest 30 uploaded days.</p>
-    ${buildManagerTrendChartSvg(managerTrend)}
+    <p class="muted">Latest 14 uploaded days only. This avoids older or incomplete data distorting the manager view.</p>
+    ${buildManagerTrendChartSvg(fourteenDayTrend)}
   </section>
 
   <h2>Team Mix</h2>
-  <section class="grid">
+  <section class="grid team-mix">
     <div class="card"><div class="label">Elite</div><div class="value elite-value">${formatNumber(managerSummary.elite)}</div></div>
     <div class="card"><div class="label">Above Average</div><div class="value good">${formatNumber(managerSummary.healthy)}</div></div>
     <div class="card"><div class="label">Average</div><div class="value warn">${formatNumber(managerSummary.needsAttention)}</div></div>
     <div class="card"><div class="label">Needs Improvement</div><div class="value performance-value">${formatNumber(managerSummary.lowPerformance)}</div></div>
     <div class="card"><div class="label">Needs Improvement</div><div class="value bad">${formatNumber(managerSummary.lowQuality)}</div></div>
+  </section>
+
+  <h2>Health-Led Manager Focus</h2>
+  <section class="panel">
+    <p class="muted">Creators are grouped by current health score. Each action is generated from their live days, hours, battles, diamonds and diamonds per hour, so the manager has one specific next move rather than a repeated generic instruction.</p>
+    ${healthLedPlan}
   </section>
 
   <h2>Manager Action Summary</h2>
@@ -2717,7 +2800,7 @@ function downloadManagerReport(
     </table>
   </section>
 
-  <h2>Week-On-Week Movement</h2>
+  <!-- Week-on-week movement removed from the manager action view.
   <section class="grid">
     <div class="card"><div class="label">Improving</div><div class="value good">${formatNumber(improvingCreators.length)}</div></div>
     <div class="card"><div class="label">Stable</div><div class="value">${formatNumber(stableCreators.length)}</div></div>
@@ -2739,9 +2822,10 @@ function downloadManagerReport(
       .join("")}
   </table>
 
+  -->
   <section class="two-col">
     <div>
-      <h2>Biggest Contributors</h2>
+      <h2 style="display:none">Biggest Contributors</h2>
       <div class="panel">
         <table>
           <tr><th>Creator</th><th>Score</th><th>Why</th></tr>
@@ -2756,7 +2840,7 @@ function downloadManagerReport(
         </table>
       </div>
     </div>
-    <div>
+    <div style="display:none">
       <h2>Bringing The Average Down</h2>
       <div class="panel">
         <p class="muted">Only creators below the current Aqua agency average of ${formatNumber(agencyAverageScore)}/100 are shown here.</p>
@@ -2778,8 +2862,9 @@ function downloadManagerReport(
     </div>
   </section>
 
-  <h2>Full Creator Detail</h2>
-  <table>
+  <h2>Creator Scorecards</h2>
+  ${creatorScorecards}
+  <table id="legacy-creator-detail">
     <tr>
       <th>Creator</th>
       <th>Status</th>
@@ -2849,13 +2934,9 @@ function downloadManagerReport(
 
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${managerSummary.manager.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-manager-team-health-${timestamp}.html`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  const preview = window.open(url, "_blank", "noopener,noreferrer");
+  if (preview) window.setTimeout(() => preview.print(), 700);
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 type CreatorIntelligenceDashboardProps = {
