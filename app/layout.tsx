@@ -1,6 +1,4 @@
 import "./globals.css";
-import { cookies } from "next/headers";
-import NavBarClient from "./components/NavBarClient";
 import { Poppins } from "next/font/google";
 
 export const dynamic = "force-dynamic";
@@ -33,14 +31,10 @@ const poppins = Poppins({
 });
 
 export default async function RootLayout({
-  children,
+  children: _children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = await cookies();
-  const aquaCookie = cookieStore.get("aqua_user");
-  const loggedInUser = aquaCookie?.value ?? null;
-
   return (
     <html lang="en" className={poppins.variable}>
       <head>
@@ -49,13 +43,14 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
 
-      <body className="app-body">
-        {/* Only show Aqua navbar outside manager pages */}
-        <div id="main-site-navbar">
-          <NavBarClient user={loggedInUser} />
-        </div>
-
-        {children}
+      <body className="m-0 min-h-screen overflow-hidden bg-black">
+        <main className="fixed inset-0 flex h-screen w-screen items-center justify-center bg-black">
+          <img
+            src="/aqua-merging-into-first-class.png"
+            alt="Aqua is merging into First Class Agency"
+            className="h-full w-full object-contain"
+          />
+        </main>
       </body>
     </html>
   );
