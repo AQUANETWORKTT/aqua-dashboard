@@ -4,9 +4,58 @@ import Link from "next/link";
 import Image from "next/image";
 import { saveAs } from "file-saver";
 import { toBlob } from "html-to-image";
+import { jsPDF } from "jspdf";
 import JSZip from "jszip";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
+
+async function downloadHtmlAsPdf(html: string, filename: string) {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.cssText = "position:fixed;left:-20000px;top:0;width:1120px;height:1000px;border:0;opacity:0;pointer-events:none;";
+  document.body.appendChild(iframe);
+
+  try {
+    const doc = iframe.contentDocument;
+    if (!doc) throw new Error("Could not create the PDF report.");
+    const loaded = new Promise<void>((resolve) => iframe.addEventListener("load", () => resolve(), { once: true }));
+    doc.open();
+    doc.write(html);
+    doc.close();
+    await loaded;
+    await (doc.fonts?.ready || Promise.resolve());
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+
+    const report = doc.querySelector("main") as HTMLElement | null;
+    if (!report) throw new Error("Could not find the PDF report content.");
+    const png = await toBlob(report, {
+      cacheBust: true,
+      pixelRatio: 1.5,
+      backgroundColor: "#ffffff",
+      width: report.scrollWidth,
+      height: report.scrollHeight,
+    });
+    if (!png) throw new Error("Could not render the PDF report.");
+
+    const imageUrl = URL.createObjectURL(png);
+    const image = new window.Image();
+    image.src = imageUrl;
+    await image.decode();
+    URL.revokeObjectURL(imageUrl);
+
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const imageHeight = (image.height * pageWidth) / image.width;
+    for (let offset = 0, page = 0; offset < imageHeight; offset += pageHeight, page += 1) {
+      if (page) pdf.addPage();
+      pdf.addImage(image, "PNG", 0, -offset, pageWidth, imageHeight, undefined, "FAST");
+    }
+    pdf.save(filename);
+  } finally {
+    iframe.remove();
+  }
+}
 
 type CreatorStat = {
   [key: string]: unknown;
@@ -2581,7 +2630,7 @@ function buildCreatorScorecards(creators: CreatorSummary[]) {
   }).join("");
 }
 
-function downloadManagerReport(
+async function downloadManagerReport(
   managerSummary: ManagerHealthSummary,
   movementItems: WeeklyHealthComparison[],
   agencyAverageScore: number,
@@ -2950,11 +2999,10 @@ function downloadManagerReport(
 </body>
 </html>`;
 
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const preview = window.open(url, "_blank", "noopener,noreferrer");
-  if (preview) window.setTimeout(() => preview.print(), 700);
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  await downloadHtmlAsPdf(
+    html,
+    `${managerSummary.manager.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-manager-team-health-report-${timestamp}.pdf`
+  );
 }
 
 type CreatorIntelligenceDashboardProps = {
@@ -3358,6 +3406,21 @@ export default function CreatorIntelligenceDashboard({
     [matureFilteredCreators]
   );
 
+  const calendarMonthDiamonds = useMemo(() => {
+    if (!latestUploadedDate) return 0;
+    const monthStart = `${latestUploadedDate.slice(0, 7)}-01`;
+    const creatorKeys = new Set(filteredCreators.map((creator) => creator.key));
+    return rows
+      .filter(
+        (row) =>
+          isAquaRow(row) &&
+          row.stat_date >= monthStart &&
+          row.stat_date <= latestUploadedDate &&
+          creatorKeys.has(getUsername(row).toLowerCase())
+      )
+      .reduce((sum, row) => sum + safeNumber(row.diamonds), 0);
+  }, [filteredCreators, latestUploadedDate, rows]);
+
   const totals = useMemo(() => {
     const totalDiamonds = filteredCreators.reduce((sum, row) => sum + row.diamonds, 0);
     const totalHours = filteredCreators.reduce((sum, row) => sum + row.liveHours, 0);
@@ -3380,11 +3443,12 @@ export default function CreatorIntelligenceDashboard({
       averageThirtyDayHealth,
       averageDph: totalHours > 0 ? totalDiamonds / totalHours : 0,
       totalDiamonds,
+      calendarMonthDiamonds,
       totalHours,
       totalMatches,
       totalFollowers,
     };
-  }, [filteredCreators, matureFilteredCreators, newCreators.length]);
+  }, [calendarMonthDiamonds, filteredCreators, matureFilteredCreators, newCreators.length]);
 
   const trendCreatorKeys = useMemo(
     () =>
@@ -4181,7 +4245,8 @@ export default function CreatorIntelligenceDashboard({
           <MetricCard label="Elite creators" value={formatNumber(totals.elite)} />
           <MetricCard label="New creators" value={formatNumber(totals.newCreators)} />
           <MetricCard label="Average DPH (diamonds per hour)" value={formatNumber(totals.averageDph)} />
-          <MetricCard label="Total diamonds" value={formatNumber(totals.totalDiamonds)} />
+          <MetricCard label="Total diamonds last 30 days" value={formatNumber(totals.totalDiamonds)} />
+          <MetricCard label="Total diamonds calendar month" value={formatNumber(totals.calendarMonthDiamonds)} />
           <MetricCard label="Total live hours" value={formatHours(totals.totalHours)} />
           <MetricCard label="Total battles" value={formatNumber(totals.totalMatches)} />
           <MetricCard label="Total new followers" value={formatNumber(totals.totalFollowers)} />
@@ -4431,7 +4496,7 @@ export default function CreatorIntelligenceDashboard({
                       }
                       className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100"
                     >
-                      Download Manager Report
+                      Download Manager Report PDF
                     </button>
                     <button
                       type="button"
