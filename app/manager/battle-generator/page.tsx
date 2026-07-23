@@ -141,7 +141,7 @@ const DEFAULT_AQUA_TEAM_OPTIONS = [
   "Team Jay",
   "Team Ellie",
   "Team Lewis",
-  "Team Vitaly",
+  "Team Vitali",
   "Team Callum",
   "Team Harry",
   "Team Millie",
@@ -1535,6 +1535,7 @@ export default function BattleGeneratorPage() {
     }
 
     return ((data || []) as TeamDiamondRow[])
+      .filter((row) => !["lucylou449", "lucyliu449"].includes(getTeamDiamondUsername(row).toLowerCase().replace(/[^a-z0-9]/g, "")))
       .filter((row) => {
         if (blankTeam === "All Teams") return true;
         return getTeamDiamondTeam(row) === blankTeam;

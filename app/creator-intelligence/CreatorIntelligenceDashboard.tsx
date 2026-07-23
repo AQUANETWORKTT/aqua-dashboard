@@ -23,53 +23,46 @@ function isHiddenAquaCreatorUsername(username: string) {
 }
 
 async function downloadHtmlAsPdf(html: string, filename: string) {
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("aria-hidden", "true");
-  iframe.style.cssText = "position:fixed;left:-20000px;top:0;width:1120px;height:1000px;border:0;opacity:0;pointer-events:none;";
-  document.body.appendChild(iframe);
-
   try {
-    const doc = iframe.contentDocument;
-    if (!doc) throw new Error("Could not create the PDF report.");
-    const loaded = new Promise<void>((resolve) => iframe.addEventListener("load", () => resolve(), { once: true }));
-    doc.open();
-    doc.write(html);
-    doc.close();
-    await Promise.race([loaded, new Promise<void>((resolve) => window.setTimeout(resolve, 1000))]);
-    await (doc.fonts?.ready || Promise.resolve());
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
-
-    const report = doc.querySelector("main") as HTMLElement | null;
-    if (!report) throw new Error("Could not find the PDF report content.");
-    const png = await toBlob(report, {
-      cacheBust: true,
-      pixelRatio: 1.5,
-      backgroundColor: "#ffffff",
-      width: report.scrollWidth,
-      height: report.scrollHeight,
-    });
-    if (!png) throw new Error("Could not render the PDF report.");
-
-    const imageUrl = URL.createObjectURL(png);
-    const image = new window.Image();
-    image.src = imageUrl;
-    await image.decode();
-    URL.revokeObjectURL(imageUrl);
+    const reportDocument = new DOMParser().parseFromString(html, "text/html");
+    const report = reportDocument.querySelector("main") || reportDocument.body;
+    const title = report.querySelector("h1")?.textContent?.trim() || "Manager Team Health Report";
+    const reportText = (report.textContent || "")
+      .replace(/\u00a0/g, " ")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    if (!reportText) throw new Error("Could not find the PDF report content.");
 
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const imageHeight = (image.height * pageWidth) / image.width;
-    for (let offset = 0, page = 0; offset < imageHeight; offset += pageHeight, page += 1) {
-      if (page) pdf.addPage();
-      pdf.addImage(image, "PNG", 0, -offset, pageWidth, imageHeight, undefined, "FAST");
+    const margin = 14;
+    const contentWidth = 210 - margin * 2;
+    const bottom = 297 - margin;
+    let y = margin;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(17);
+    const titleLines = pdf.splitTextToSize(title, contentWidth);
+    pdf.text(titleLines, margin, y);
+    y += titleLines.length * 7 + 4;
+    pdf.setDrawColor(2, 132, 199);
+    pdf.line(margin, y, margin + contentWidth, y);
+    y += 7;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9.5);
+
+    for (const line of pdf.splitTextToSize(reportText, contentWidth)) {
+      if (y + 4.6 > bottom) {
+        pdf.addPage();
+        y = margin;
+      }
+      pdf.text(line, margin, y);
+      y += 4.6;
     }
     saveAs(pdf.output("blob"), filename);
   } catch (error) {
     console.error("Manager report PDF export failed", error);
-    alert("The PDF could not be created on this device. Please try again after the report has fully loaded.");
-  } finally {
-    iframe.remove();
+    alert("The PDF could not be created on this device. Please try again.");
   }
 }
 
@@ -324,7 +317,8 @@ const MANAGER_DISPLAY_MAP: Record<string, string> = {
   teddie: "Teddie",
   ellie1: "Ellie B",
   chris: "Chris",
-  vitali: "Vitaly",
+  vitali: "Vitali",
+  vitaly: "Vitali",
 };
 
 function safeNumber(value: unknown) {
@@ -3964,6 +3958,7 @@ export default function CreatorIntelligenceDashboard({
 
     const matchingAquaRows = rows
       .filter(isAquaRow)
+      .filter((row) => !isHiddenAquaCreatorUsername(getUsername(row)))
       .filter((row) => {
         const rowManagerRaw = getText(row, ["creator_network_manager", "Creator Network manager", "manager_email"], "");
         const rowGroup = getText(row, ["team", "group_name", "Group"], "");

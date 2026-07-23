@@ -16,7 +16,7 @@ const managers: ManagerProfile[] = [
   { name: "chris", displayName: "Chris", focus: "Creator support and team growth" },
   { name: "ellie", displayName: "Ellie", focus: "Creator support and team growth" },
   { name: "millie", displayName: "Millie", focus: "Creator support and team growth" },
-  { name: "vitaly", displayName: "Vitaly", focus: "Creator support and team growth", imageNames: ["vitali"] },
+  { name: "vitali", displayName: "Vitali", focus: "Creator support and team growth", imageNames: ["vitali"] },
   { name: "candice", displayName: "Candice", focus: "Creator support and team growth" },
   { name: "harry", displayName: "Harry", focus: "Creator support and team growth" },
   { name: "luke", displayName: "Luke", focus: "Creator support and team growth" },
