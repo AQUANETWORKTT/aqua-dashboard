@@ -21,7 +21,7 @@ function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
 }
 
-const HIDDEN_LEADERBOARD_USERNAMES = new Set(["arabellama_y"]);
+const HIDDEN_LEADERBOARD_USERNAMES = new Set(["arabellama_y", "lucylou449", "lucyliu449"]);
 
 function currentMonthKey() {
   const now = new Date();

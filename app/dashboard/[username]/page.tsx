@@ -239,7 +239,9 @@ export default function CreatorDashboardPage() {
         .eq("month_key", selectedMonthKey)
         .order("diamonds", { ascending: false });
 
-      const rows = (data || []) as CreatorMonthlyStat[];
+      const rows = ((data || []) as CreatorMonthlyStat[]).filter(
+        (row) => cleanUsername(row.username).replace(/[^a-z0-9]/g, "") !== "lucylou449"
+      );
 
       const match =
         rows.find((row) => cleanUsername(row.username) === username) || null;

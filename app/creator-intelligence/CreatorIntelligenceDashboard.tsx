@@ -9,6 +9,19 @@ import JSZip from "jszip";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { submissionsSupabase } from "@/lib/submissions-supabase";
 
+const HIDDEN_AQUA_CREATOR_KEYS = new Set(["lucylou449", "lucyliu449"]);
+const EXCLUDED_DOWNLOADABLE_LEADERBOARD_CREATORS = ["lucylou449", "lucyliu449"];
+
+function isExcludedFromDownloadableLeaderboards(creator: Pick<CreatorSummary, "username">) {
+  return EXCLUDED_DOWNLOADABLE_LEADERBOARD_CREATORS.includes(
+    creator.username.toLowerCase().replace(/[^a-z0-9]/g, "")
+  );
+}
+
+function isHiddenAquaCreatorUsername(username: string) {
+  return HIDDEN_AQUA_CREATOR_KEYS.has(username.toLowerCase().replace(/[^a-z0-9]/g, ""));
+}
+
 async function downloadHtmlAsPdf(html: string, filename: string) {
   const iframe = document.createElement("iframe");
   iframe.setAttribute("aria-hidden", "true");
@@ -22,7 +35,7 @@ async function downloadHtmlAsPdf(html: string, filename: string) {
     doc.open();
     doc.write(html);
     doc.close();
-    await loaded;
+    await Promise.race([loaded, new Promise<void>((resolve) => window.setTimeout(resolve, 1000))]);
     await (doc.fonts?.ready || Promise.resolve());
     await new Promise((resolve) => window.setTimeout(resolve, 250));
 
@@ -51,7 +64,10 @@ async function downloadHtmlAsPdf(html: string, filename: string) {
       if (page) pdf.addPage();
       pdf.addImage(image, "PNG", 0, -offset, pageWidth, imageHeight, undefined, "FAST");
     }
-    pdf.save(filename);
+    saveAs(pdf.output("blob"), filename);
+  } catch (error) {
+    console.error("Manager report PDF export failed", error);
+    alert("The PDF could not be created on this device. Please try again after the report has fully loaded.");
   } finally {
     iframe.remove();
   }
@@ -758,12 +774,14 @@ function buildCreatorSummaries(rows: CreatorStat[], rollingRows: CreatorStat[] =
 
   for (const row of rows) {
     const username = getUsername(row).toLowerCase();
+    if (isHiddenAquaCreatorUsername(username)) continue;
     if (!byCreator.has(username)) byCreator.set(username, []);
     byCreator.get(username)?.push(row);
   }
 
   for (const row of rollingRows) {
     const username = getUsername(row).toLowerCase();
+    if (isHiddenAquaCreatorUsername(username)) continue;
     if (!rollingByCreator.has(username)) rollingByCreator.set(username, []);
     rollingByCreator.get(username)?.push(row);
   }
@@ -2401,7 +2419,7 @@ function getHealthPosterTone(status: HealthStatus) {
 
 async function renderTeamHealthPosterToPngBlob(managerSummary: ManagerHealthSummary) {
   const scoredCreators = [...managerSummary.creators]
-    .filter(isTeamHealthScoreCreator)
+    .filter((creator) => isTeamHealthScoreCreator(creator) && !isExcludedFromDownloadableLeaderboards(creator))
     .sort((a, b) => b.healthScore - a.healthScore);
   const lowQualityCount = managerSummary.lowPerformance + managerSummary.lowQuality;
   const lastSevenDiamonds = managerSummary.creators.reduce((sum, creator) => sum + getLastSevenDiamonds(creator), 0);
@@ -2550,7 +2568,9 @@ async function downloadTeamCreatorReports(managerSummary: ManagerHealthSummary) 
   const folderName = `${managerSummary.manager.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-creator-reports-${timestamp}`;
   const folder = zip.folder(folderName);
 
-  for (const creator of managerSummary.creators.filter(isTeamHealthScoreCreator)) {
+  for (const creator of managerSummary.creators.filter(
+    (creator) => isTeamHealthScoreCreator(creator) && !isExcludedFromDownloadableLeaderboards(creator)
+  )) {
     const safeUsername = creator.username.replace(/[^a-z0-9._-]+/gi, "-").toLowerCase();
     const reportBlob = await renderCreatorReportToPngBlob(buildReportHtml(creator, "creator"));
     folder?.file(`${safeUsername}-weekly-creator-report.png`, reportBlob);

@@ -53,6 +53,7 @@ type CreatorProgress = {
 };
 
 const RACE_MONTH_KEY = "2026-07";
+const HIDDEN_AQUA_CREATOR_KEYS = new Set(["lucylou449", "lucyliu449"]);
 
 const GOLD_CREATORS = [
   "dylanjinks",
@@ -488,7 +489,7 @@ export default function RaceToAtlantisPage() {
 
   const activeTrack = TRACKS.find((track) => track.id === activeTrackId) || TRACKS[0];
   const newBronzeCreators = useMemo(() => {
-    return uniqueCreatorList(rows.map(getUsername).filter((username) => !PRIZE_TRACK_CREATOR_KEYS.has(usernameKey(username))));
+    return uniqueCreatorList(rows.map(getUsername).filter((username) => !PRIZE_TRACK_CREATOR_KEYS.has(usernameKey(username)) && !HIDDEN_AQUA_CREATOR_KEYS.has(usernameKey(username))));
   }, [rows]);
 
   const trackLeaderboards = useMemo(() => {
@@ -498,6 +499,7 @@ export default function RaceToAtlantisPage() {
         ...track.creators,
         ...(track.id === "bronze" || track.id === "pro" ? newBronzeCreators : []),
       ])
+        .filter((username) => !HIDDEN_AQUA_CREATOR_KEYS.has(usernameKey(username)))
         .map((username) => buildCreatorProgress(rows, track, username))
         .sort((a, b) => b.progress - a.progress),
     }));
